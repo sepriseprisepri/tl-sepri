@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>TL SEPRI | Sales Performance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <style>
+    :root{color-scheme:dark}body{background:#0b1220;color:#e5e7eb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .panel{background:rgba(19,30,49,.88);border:1px solid rgba(148,163,184,.14);box-shadow:0 18px 55px rgba(0,0,0,.18)}
+    .field{background:#0d1728;border:1px solid #29384f;color:#f8fafc}.field:focus{outline:2px solid #38bdf8;outline-offset:1px}
+    .nav-item{display:flex;align-items:center;gap:.75rem;width:100%;padding:.72rem .85rem;border-radius:.8rem;color:#aab8ca;text-align:left}
+    .nav-item:hover,.nav-item.active{background:#1b2b43;color:#fff}
+    .metric{background:linear-gradient(145deg,rgba(24,39,62,.95),rgba(14,24,40,.95));border:1px solid rgba(148,163,184,.13)}
+  </style>
+</head>
+<body class="min-h-screen">
+  <main id="login-view" class="min-h-screen grid lg:grid-cols-2">
+    <section class="hidden lg:flex flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950">
+      <div class="flex items-center gap-3"><div class="h-11 w-11 rounded-2xl bg-cyan-400 text-slate-950 grid place-items-center font-black text-xl">S</div><div><div class="font-bold tracking-wide">TL SEPRI</div><div class="text-xs text-slate-400">Sales Performance Intelligence</div></div></div>
+      <div class="max-w-xl"><div class="text-cyan-300 text-sm font-semibold tracking-[.24em] uppercase mb-5">Samsung · Central Kalimantan</div><h1 class="text-5xl xl:text-6xl font-semibold leading-tight text-white">Satu pusat kendali untuk <span class="text-cyan-300">performa penjualan.</span></h1><p class="mt-6 text-slate-300 text-lg leading-8">Pantau target, sellout, coverage, dan produktivitas tim dalam satu ruang kerja.</p></div>
+      <div class="text-xs text-slate-500">Internal workspace · Authorized personnel only</div>
+    </section>
+    <section class="flex items-center justify-center p-6 sm:p-10">
+      <div class="w-full max-w-md">
+        <div class="lg:hidden flex items-center gap-3 mb-12"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div class="font-bold">TL SEPRI</div></div>
+        <div class="mb-8"><p class="text-cyan-300 text-sm font-semibold tracking-widest uppercase">Welcome back</p><h2 class="text-3xl font-semibold mt-2 text-white">Masuk ke akun</h2><p class="text-slate-400 mt-2">Gunakan Employee ID dan password terdaftar.</p></div>
+        <form id="login-form" class="panel rounded-2xl p-6 sm:p-8 space-y-5">
+          <div><label for="employee-id" class="block text-sm text-slate-300 mb-2">Employee ID</label><input id="employee-id" class="field w-full rounded-xl px-4 py-3" autocomplete="username" inputmode="numeric" placeholder="Masukkan Employee ID" required></div>
+          <div><label for="password" class="block text-sm text-slate-300 mb-2">Password</label><input id="password" type="password" class="field w-full rounded-xl px-4 py-3" autocomplete="current-password" placeholder="Masukkan password" required></div>
+          <div id="login-error" class="hidden text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3" role="alert"></div>
+          <button id="login-button" class="w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold py-3 transition disabled:opacity-50">Masuk</button>
+          <p class="text-xs text-slate-500 text-center">Akses hanya untuk akun TL SEPRI yang aktif.</p>
+        </form>
+        <p class="text-xs text-slate-600 mt-8 text-center">© 2026 TL SEPRI · Secure internal portal</p>
+      </div>
+    </section>
+  </main>
+
+  <main id="app-view" class="hidden min-h-screen">
+    <div class="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
+      <aside class="bg-slate-950/80 border-r border-slate-800/80 p-5 lg:min-h-screen">
+        <div class="flex items-center justify-between mb-10">
+          <div class="flex items-center gap-3"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div><div class="font-bold">TL SEPRI</div><div class="text-[11px] text-slate-500">Sales Intelligence</div></div></div>
+          <button id="mobile-menu" class="lg:hidden text-slate-400" aria-label="Toggle menu">☰</button>
+        </div>
+        <div id="nav-wrap" class="hidden lg:block">
+          <p class="text-[10px] tracking-[.2em] text-slate-600 uppercase font-bold px-3 mb-3">Workspace</p><nav id="nav-list" class="space-y-1"></nav>
+          <div class="mt-10 rounded-xl bg-slate-900 p-4"><p class="text-xs text-slate-500">Status sistem</p><div class="flex items-center gap-2 mt-2 text-sm"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Terhubung ke Supabase</div></div>
+        </div>
+      </aside>
+      <section class="min-w-0">
+        <header class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 px-6 py-5 lg:px-9">
+          <div><p id="page-kicker" class="text-xs text-cyan-300 uppercase tracking-widest font-semibold">Overview</p><h1 id="page-title" class="text-2xl font-semibold mt-1 text-white">Dashboard</h1></div>
+          <div class="flex items-center gap-3"><div class="text-right"><div id="user-name" class="text-sm font-semibold text-white"></div><div id="user-role" class="text-xs text-slate-500"></div></div><button id="logout-button" class="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800">Keluar</button></div>
+        </header>
+        <div class="p-6 lg:p-9 max-w-7xl">
+          <div class="mb-7"><h2 id="welcome-title" class="text-xl font-semibold text-white">Selamat datang</h2><p id="welcome-subtitle" class="text-sm text-slate-400 mt-1">Ringkasan aktivitas dan performa tim.</p></div>
+          <div id="metric-grid" class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Toko dalam akses</p><p id="store-count" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Sesuai cakupan akun</p></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Transaksi bulan ini</p><p id="txn-count" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Data RAW Sellout</p></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Qty valid</p><p id="qty-total" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">EULA VALID</p></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Amt valid</p><p id="amt-total" class="text-2xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Nilai penjualan resmi</p></div>
+          </div>
+          <div class="grid xl:grid-cols-[1.4fr_1fr] gap-5 mt-6">
+            <div class="panel rounded-2xl p-6"><div class="flex items-center justify-between"><h3 class="font-semibold text-white">Ringkasan aktivitas</h3><span class="text-xs text-slate-500">Realtime on refresh</span></div><p id="activity-copy" class="text-sm text-slate-400 mt-4 leading-7">Data akan tampil berdasarkan hak akses akun.</p></div>
+            <div class="panel rounded-2xl p-6"><h3 class="font-semibold text-white">Akses akun</h3><div class="mt-4 space-y-3 text-sm"><div class="flex justify-between"><span class="text-slate-400">Role</span><span id="access-role" class="text-white"></span></div><div class="flex justify-between"><span class="text-slate-400">Employee ID</span><span id="access-id" class="text-white"></span></div><div class="flex justify-between"><span class="text-slate-400">Status</span><span class="text-emerald-300">Aktif</span></div></div></div>
+          </div>
+          <div id="section-placeholder" class="hidden panel rounded-2xl p-6 mt-6"><h3 id="section-heading" class="font-semibold text-white"></h3><p id="section-description" class="text-sm text-slate-400 mt-2">Modul ini akan diaktifkan pada tahap integrasi berikutnya.</p></div>
+          <p class="text-xs text-slate-600 mt-10">TL SEPRI · Internal use only</p>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const SUPABASE_URL = "https://xirmqdcdqpocdfqqvxmh.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-IN453_OWCSKnepIDCCkFg_7Y2kebO4";
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const $ = (id) => document.getElementById(id);
+    const roleLabels = {admin:"Administrator",tl:"Team Leader",tso:"TSO",ec:"Experience Consultant"};
+    const menus = {
+      admin:[["Dashboard","⌂"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
+      tl:[["Dashboard","⌂"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
+      tso:[["Dashboard","⌂"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
+      ec:[["Dashboard","⌂"],["Target Saya","◎"],["Input Sellout","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
+    };
+    function showError(message){$("login-error").textContent=message;$("login-error").classList.remove("hidden")}
+    function money(value){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(value||0)}
+    async function loadDashboard(profile){
+      const start = new Date(); start.setDate(1); const monthStart = start.toISOString().slice(0,10);
+      const [storesResult,salesResult] = await Promise.all([
+        client.from("stores").select("id",{count:"exact",head:true}),
+        client.from("raw_sellout").select("id,qty,amt,eula_status").gte("sold_at",monthStart).limit(1000)
+      ]);
+      if(storesResult.error) throw storesResult.error;
+      if(salesResult.error) throw salesResult.error;
+      const rows = salesResult.data || [];
+      const valid = rows.filter(x=>(x.eula_status||"").toUpperCase()==="VALID");
+      $("store-count").textContent = new Intl.NumberFormat("id-ID").format(storesResult.count||0);
+      $("txn-count").textContent = new Intl.NumberFormat("id-ID").format(rows.length);
+      $("qty-total").textContent = new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(valid.reduce((n,x)=>n+Number(x.qty||0),0));
+      $("amt-total").textContent = money(valid.reduce((n,x)=>n+Number(x.amt||0),0));
+      $("activity-copy").textContent = rows.length ? "Data RAW Sellout bulan berjalan berhasil dimuat. Angka transaksi dibatasi oleh kebijakan akses akun." : "Belum ada transaksi yang dapat ditampilkan untuk periode bulan berjalan.";
+    }
+    function openSection(label){
+      $("page-title").textContent=label;$("page-kicker").textContent="Workspace";
+      const isHome=label==="Dashboard";$("metric-grid").classList.toggle("hidden",!isHome);
+      document.querySelector(".grid.xl\\:grid-cols-\\[1\\.4fr_1fr\\]")?.classList.toggle("hidden",!isHome);
+      $("section-placeholder").classList.toggle("hidden",isHome);
+      if(!isHome){$("section-heading").textContent=label;$("section-description").textContent="Modul "+label+" sedang disiapkan untuk integrasi data dan alur kerja produksi."}
+      $("nav-list").querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.label===label));
+    }
+    async function enterApp(user){
+      const {data,error}=await client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active").eq("id",user.id).single();
+      if(error||!data||!data.is_active||!roleLabels[data.role]){await client.auth.signOut();throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.")}
+      $("login-view").classList.add("hidden");$("app-view").classList.remove("hidden");
+      $("user-name").textContent=data.full_name||"Pengguna";$("user-role").textContent=roleLabels[data.role];
+      $("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
+      $("access-role").textContent=roleLabels[data.role];$("access-id").textContent=data.employee_id||"-";
+      $("nav-list").innerHTML="";
+      (menus[data.role]||menus.ec).forEach(([label,icon],i)=>{const b=document.createElement("button");b.className="nav-item"+(i===0?" active":"");b.dataset.label=label;b.innerHTML='<span class="w-5 text-center">'+icon+'</span><span>'+label+'</span>';b.addEventListener("click",()=>openSection(label));$("nav-list").appendChild(b)});
+      openSection("Dashboard"); await loadDashboard(data);
+    }
+    $("login-form").addEventListener("submit",async(e)=>{
+      e.preventDefault();$("login-error").classList.add("hidden");$("login-button").disabled=true;$("login-button").textContent="Memeriksa akun…";
+      const employeeId=$("employee-id").value.trim();const password=$("password").value;
+      try{
+        if(!/^\d{4,12}$/.test(employeeId)) throw new Error("Employee ID harus berupa angka.");
+        const {data,error}=await client.auth.signInWithPassword({email:employeeId+"@login.tlsepri.internal",password});
+        if(error) throw new Error("Employee ID atau password tidak sesuai.");
+        await enterApp(data.user);
+      }catch(err){showError(err.message||"Login gagal. Coba kembali.");}
+      finally{$("login-button").disabled=false;$("login-button").textContent="Masuk"}
+    });
+    $("logout-button").addEventListener("click",async()=>{await client.auth.signOut();$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
+    $("mobile-menu").addEventListener("click",()=>$("nav-wrap").classList.toggle("hidden"));
+    client.auth.getSession().then(({data})=>{if(data.session) enterApp(data.session.user).catch(err=>{console.error(err);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})});
+  </script>
+</body>
+</html>

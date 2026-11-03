@@ -12,7 +12,13 @@
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
     const d=new Date(s); return isNaN(d)?null:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
   }
-  function validIsoDate(s) {\n    const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(String(s??""));\n    if(!m) return false;\n    const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]),dt=new Date(Date.UTC(y,mo-1,d));\n    return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d;\n  }\n  function message(t,ok) {
+  function validIsoDate(s) {
+    const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s ?? ""));
+    if(!m) return false;
+    const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]),dt=new Date(Date.UTC(y,mo-1,d));
+    return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d;
+  }
+  function message(t,ok) {
     const e=$("raw-import-message"); e.textContent=t;
     e.className="mt-5 rounded-xl border p-4 text-sm "+(ok?"border-emerald-800 bg-emerald-950/20 text-emerald-200":"border-rose-800 bg-rose-950/30 text-rose-200");
     e.classList.remove("hidden");

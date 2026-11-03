@@ -49,13 +49,13 @@
       ]);
       const storeMap=new Map(stores.map(s=>[String(s.site_id).trim(),s]));
       const ec=new Set(people.filter(p=>p.fieldforce_position==="EC"&&p.promoter_id).map(p=>String(p.promoter_id).trim()));
-      const seen=new Set(), valid=[], invalid=[];
+      const idCounts=new Map(); source.forEach(r=>{const id=String(r[hm["imei/sn"]]??"").trim();if(id)idCounts.set(id,(idCounts.get(id)||0)+1);});\n      const valid=[], invalid=[];
       source.forEach((r,i)=>{
         const get=k=>r[hm[k]]??"", id=String(get("imei/sn")).trim(), site=String(get("site id")).trim();
         const promoter=String(get("promoter id")).trim(), sold=date(get("day")), model=String(get("marketing name")).trim();
         const status=String(get("eula status")).trim().toUpperCase(), price=num(get("rrp price (local)")), qty=num(get("sellout_qty"));
         const errors=[];
-        if(!id) errors.push("IMEI/SN kosong"); else if(seen.has(id)) errors.push("IMEI/SN duplikat dalam file"); else seen.add(id);
+        if(!id) errors.push("IMEI/SN kosong"); else if(idCounts.get(id)>1) errors.push("IMEI/SN duplikat dalam file");
         if(!storeMap.has(site)) errors.push("Site ID tidak ada di master toko");
         if(!model) errors.push("Marketing Name kosong");
         if(!sold) errors.push("Tanggal tidak valid");
@@ -65,7 +65,7 @@
         if(errors.length){invalid.push({line:i+2,id,reason:errors.join("; ")});return;}
         const store=storeMap.get(site);
         const category=!promoter?"Tanpa Promoter ID":promoter.toUpperCase().startsWith("SP-")?"Store Shadow":ec.has(promoter)?"EC Aktif":"Unmapped Promoter";
-        valid.push({transaction_id:id,site_id:site,site_name:String(get("site name")||store.site_name),promoter_id:promoter||null,promoter_name:String(get("promoter name")||"")||null,model,ram:String(get("hhp memory")||"")||null,storage:String(get("hhp storage")||"")||null,color:String(get("color")||"")||null,price_segment:String(get("price seg")||"")||null,eula_status:status,unit_price:price,qty,amt:price*qty,sold_at:sold,week_code:String(get("week")||"")||null,month_code:String(get("month")||sold.slice(0,7).replace("-",""))||null,tl_name:String(get("spv / tl name")||"")||null,segment:String(get("segment by target")||"")||null,_category:category});
+        valid.push({transaction_id:id,site_id:site,site_name:String(get("site name")||store.site_name),promoter_id:promoter||null,promoter_name:String(get("promoter name")||"")||null,model,ram:String(get("hhp memory")||"")||null,storage:String(get("hhp storage")||"")||null,color:String(get("color")||"")||null,price_segment:String(get("price seg")||"")||null,eula_status:status,unit_price:price,qty,amt:price*qty,sold_at:sold,week_code:String(get("week")||"")||null,month_code:String(get("month")||sold.slice(0,7).replace("-",""))||null,tl_name:String(get("spv / tl name")||"")||null,segment:String(get("segment by target")||"")||null,promoter_mapping_status:category==="EC Aktif"?"EC_ACTIVE":category==="Store Shadow"?"STORE_SHADOW":category==="Unmapped Promoter"?"UNMAPPED":"NO_PROMOTER_ID",_category:category});
       });
       window.rawImportPreview={file:f,valid,invalid,sheet};
       renderPreview();

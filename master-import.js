@@ -26,6 +26,22 @@
     const m=new Map();values.map(clean).filter(Boolean).forEach(v=>m.set(v,(m.get(v)||0)+1));
     return [...m].filter(([,n])=>n>1).map(([v,n])=>({value:v,count:n}));
   }
+window.renderImportHub=function(){
+    $("import-hub-container").innerHTML=
+      '<div class="flex flex-wrap gap-2 mb-5"><button id="tab-raw-import" class="rounded-xl bg-cyan-400 text-slate-950 px-4 py-2 text-sm font-semibold">RAW Sellout</button><button id="tab-master-import" class="rounded-xl border border-slate-700 px-4 py-2 text-sm">Master Database</button></div>'+
+      '<div id="raw-import-panel"></div><div id="master-import-panel" class="hidden"></div>';
+    const rawBtn=$("tab-raw-import"),masterBtn=$("tab-master-import");
+    function activate(which){
+      $("raw-import-panel").classList.toggle("hidden",which!=="raw");
+      $("master-import-panel").classList.toggle("hidden",which!=="master");
+      rawBtn.className=which==="raw"?"rounded-xl bg-cyan-400 text-slate-950 px-4 py-2 text-sm font-semibold":"rounded-xl border border-slate-700 px-4 py-2 text-sm";
+      masterBtn.className=which==="master"?"rounded-xl bg-cyan-400 text-slate-950 px-4 py-2 text-sm font-semibold":"rounded-xl border border-slate-700 px-4 py-2 text-sm";
+      if(which==="raw")window.renderRawImport();else window.renderMasterImport();
+    }
+    rawBtn.addEventListener("click",()=>activate("raw"));
+    masterBtn.addEventListener("click",()=>activate("master"));
+    activate("raw");
+  };
   window.renderMasterImport=function(){
     $("master-import-panel").innerHTML=
       '<div class="grid lg:grid-cols-2 gap-5">'+

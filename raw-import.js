@@ -48,7 +48,7 @@
         fetchAll("manpower","promoter_id,fieldforce_position,is_active",q=>q.eq("is_active",true))
       ]);
       const storeMap=new Map(stores.map(s=>[String(s.site_id).trim(),s]));
-      const ec=new Set(people.filter(p=>p.fieldforce_position==="EC"&&p.promoter_id).map(p=>String(p.promoter_id).trim()));
+      const ec=new Set(people.filter(p=>String(p.fieldforce_position||"").toUpperCase()==="EC"&&p.promoter_id).map(p=>String(p.promoter_id).trim()));
       const idCounts=new Map(); source.forEach(r=>{const id=String(r[hm["imei/sn"]]??"").trim();if(id)idCounts.set(id,(idCounts.get(id)||0)+1);});\n      const valid=[], invalid=[];
       source.forEach((r,i)=>{
         const get=k=>r[hm[k]]??"", id=String(get("imei/sn")).trim(), site=String(get("site id")).trim();

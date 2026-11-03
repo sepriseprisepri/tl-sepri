@@ -90,13 +90,20 @@
     function money(value){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(value||0)}
     async function loadDashboard(profile){
       const start = new Date(); start.setDate(1); const monthStart = start.toISOString().slice(0,10);
-      const [storesResult,salesResult] = await Promise.all([
-        client.from("stores").select("id",{count:"exact",head:true}),
-        client.from("raw_sellout").select("id,qty,amt,eula_status").gte("sold_at",monthStart).limit(1000)
-      ]);
+      const storesResult = await client.from("stores").select("id",{count:"exact",head:true});
       if(storesResult.error) throw storesResult.error;
-      if(salesResult.error) throw salesResult.error;
-      const rows = salesResult.data || [];
+      const rows = [];
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const {data,error} = await client.from("raw_sellout")
+          .select("id,qty,amt,eula_status")
+          .gte("sold_at",monthStart)
+          .order("sold_at",{ascending:true})
+          .range(offset,offset + pageSize - 1);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < pageSize) break;
+      }
       const valid = rows.filter(x=>(x.eula_status||"").toUpperCase()==="VALID");
       $("store-count").textContent = new Intl.NumberFormat("id-ID").format(storesResult.count||0);
       $("txn-count").textContent = new Intl.NumberFormat("id-ID").format(rows.length);

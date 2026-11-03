@@ -198,7 +198,7 @@ function renderDashboard(d){
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function drawCharts(daily,segments,period){
  Object.values(charts).forEach(c=>c.destroy());charts={};
- const labels=[],values=[];if(period){const a=new Date(period.period_start+"T00:00:00"),b=new Date(period.period_end+"T00:00:00");for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){const k=d.toISOString().slice(0,10);labels.push(String(d.getDate()));values.push(daily.get(k)||0)}}
+ const labels=[],values=[];if(period){const a=new Date(period.period_start+"T00:00:00"),b=new Date(period.period_end+"T00:00:00");for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");labels.push(String(d.getDate()));values.push(daily.get(k)||0)}}
  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#a8b6c9",boxWidth:10,font:{size:11}}}},scales:{x:{ticks:{color:"#8191a7",maxTicksLimit:10},grid:{display:false}},y:{beginAtZero:true,ticks:{color:"#8191a7"},grid:{color:"rgba(148,163,184,.10)"}}}};
  charts.daily=new Chart($("daily-chart"),{type:"bar",data:{labels,datasets:[{label:"Qty VALID",data:values,backgroundColor:"rgba(34,211,238,.62)",borderRadius:5,maxBarThickness:18}]},options:base});
  const entries=[...segments.entries()].sort((a,b)=>b[1]-a[1]);

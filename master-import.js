@@ -1,0 +1,118 @@
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = v => String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const norm = v => String(v ?? "").trim().toLowerCase().replace(/\s+/g," ");
+  const clean = v => String(v ?? "").trim();
+  const requiredSheets = [
+    "DATABASE MANPOWER","STORE WITH EC","STORE NON EC",
+    "STORE WITH EC + PROMOTOR ID","STORE NON EC + PROMOTOR ID",
+    "STORE SHADOW","TARGET STORE"
+  ];
+  function show(msg,good=false) {
+    const el=$("master-import-message");el.textContent=msg;
+    el.className="mt-5 rounded-xl border p-4 text-sm "+(good?"border-emerald-800 bg-emerald-950/20 text-emerald-200":"border-rose-800 bg-rose-950/30 text-rose-200");
+    el.classList.remove("hidden");
+  }
+  function sheetRows(wb,name) {
+    const actual=wb.SheetNames.find(s=>norm(s)===norm(name));
+    if(!actual)return null;
+    return XLSX.utils.sheet_to_json(wb.Sheets[actual],{defval:"",raw:true});
+  }
+  function col(row,name) {
+    const k=Object.keys(row||{}).find(x=>norm(x)===norm(name));
+    return k===undefined?"":row[k];
+  }
+  function duplicates(values) {
+    const m=new Map();values.map(clean).filter(Boolean).forEach(v=>m.set(v,(m.get(v)||0)+1));
+    return [...m].filter(([,n])=>n>1).map(([v,n])=>({value:v,count:n}));
+  }
+  window.renderMasterImport=function(){
+    $("master-import-panel").innerHTML=
+      '<div class="grid lg:grid-cols-2 gap-5">'+
+      '<div class="rounded-2xl border border-slate-700 bg-slate-950/40 p-5"><h4 class="font-semibold">Validasi Master Database</h4>'+
+      '<p class="text-xs text-slate-400 mt-2">Upload workbook Database Web dengan 7 sheet master. Tahap ini hanya membaca dan membandingkan data, belum mengubah database.</p>'+
+      '<input id="master-file-input" type="file" accept=".xlsx,.xls" class="field block w-full rounded-xl p-3 mt-4 text-sm">'+
+      '<button id="master-analyze-btn" class="mt-3 w-full rounded-xl bg-cyan-400 text-slate-950 font-bold py-3">Validasi Master Database</button></div>'+
+      '<div class="rounded-2xl border border-slate-700 bg-slate-950/40 p-5"><h4 class="font-semibold">Perlindungan data</h4>'+
+      '<ul class="text-xs text-slate-400 mt-3 space-y-2"><li>Tidak membuat atau menghapus akun login.</li><li>Tidak menghapus manpower, toko, atau target yang sudah ada.</li><li>Data yang tidak cocok ditampilkan untuk review.</li><li>Perubahan baru akan disimpan pada tahap commit terpisah setelah hasil preview disetujui.</li></ul></div></div>'+
+      '<div id="master-import-message" class="hidden mt-5 rounded-xl border p-4 text-sm"></div>'+
+      '<div id="master-import-preview" class="mt-5"></div>';
+    $("master-analyze-btn").addEventListener("click",analyze);
+  };
+  async function analyze(){
+    const f=$("master-file-input").files[0],btn=$("master-analyze-btn");
+    $("master-import-preview").innerHTML="";
+    if(!f)return show("Pilih file Master Database terlebih dahulu.");
+    if(f.size>20*1024*1024)return show("Ukuran file melebihi 20 MB.");
+    btn.disabled=true;btn.textContent="Memeriksa workbook…";
+    try{
+      const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
+      const missing=requiredSheets.filter(n=>!wb.SheetNames.some(s=>norm(s)===norm(n)));
+      if(missing.length)throw Error("Sheet wajib tidak ditemukan: "+missing.join(", "));
+      const data={};
+      requiredSheets.forEach(n=>data[n]=sheetRows(wb,n)||[]);
+      const manpower=data["DATABASE MANPOWER"];
+      const targets=data["TARGET STORE"];
+      const withEc=data["STORE WITH EC"];
+      const nonEc=data["STORE NON EC"];
+      const shadow=data["STORE SHADOW"];
+      const ecProm=data["STORE WITH EC + PROMOTOR ID"];
+      const nonEcProm=data["STORE NON EC + PROMOTOR ID"];
+      const empDup=duplicates(manpower.map(r=>col(r,"EMPLOYEE ID")));
+      const targetDup=duplicates(targets.map(r=>col(r,"SITE ID")));
+      const siteDup=duplicates([...withEc,...nonEc].map(r=>col(r,"Site ID")));
+      const promoterDup=duplicates(ecProm.map(r=>col(r,"PROMOTOR ID")));
+      const requiredIssues=[];
+      manpower.forEach((r,i)=>{
+        const emp=clean(col(r,"EMPLOYEE ID")),name=clean(col(r,"NAME")),pos=clean(col(r,"POSITION"));
+        if(!emp||!name||!pos)requiredIssues.push({sheet:"DATABASE MANPOWER",row:i+2,reason:"Employee ID, Name, atau Position kosong"});
+      });
+      targets.forEach((r,i)=>{
+        const site=clean(col(r,"SITE ID")),qty=Number(col(r,"TARGET QTY")),amt=Number(String(col(r,"TARGET AMT")).replace(/,/g,""));
+        if(!site||!Number.isFinite(qty)||qty<0||!Number.isFinite(amt)||amt<0)requiredIssues.push({sheet:"TARGET STORE",row:i+2,reason:"Site ID atau target tidak valid"});
+      });
+      const [stores,people,storeTargets]=await Promise.all([
+        fetchAll("stores","site_id,site_name"),
+        fetchAll("manpower","employee_id,full_name,fieldforce_position,promoter_id,is_active"),
+        fetchAll("store_targets","store_id,period_id,target_qty,target_amt")
+      ]);
+      const dbSite=new Set(stores.map(x=>clean(x.site_id)));
+      const dbEmp=new Map(people.map(x=>[clean(x.employee_id),x]));
+      const unknownTarget=targets.map(r=>clean(col(r,"SITE ID"))).filter(x=>x&&!dbSite.has(x));
+      const unknownEmp=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>x&&!dbEmp.has(x));
+      const targetSum=targets.reduce((a,r)=>a+(Number(String(col(r,"TARGET AMT")).replace(/,/g,""))||0),0);
+      const qtySum=targets.reduce((a,r)=>a+(Number(col(r,"TARGET QTY"))||0),0);
+      window.masterImportPreview={file:f.name,sheetNames:wb.SheetNames,counts:{
+        manpower:manpower.length,withEc:withEc.length,nonEc:nonEc.length,ecProm:ecProm.length,nonEcProm:nonEcProm.length,shadow:shadow.length,targets:targets.length
+      },duplicates:{employee:empDup,targetSite:targetDup,storeSite:siteDup,promoter:promoterDup},requiredIssues,unknownTarget,unknownEmp,targetSum,qtySum,dbCounts:{stores:stores.length,manpower:people.length,storeTargets:storeTargets.length},periods:await fetchAll("target_periods","id,period_name,period_start,period_end")};
+      renderPreview();
+      show("Validasi workbook selesai. Belum ada data yang diubah di Supabase.",true);
+    }catch(e){console.error(e);show(e.message||"Gagal membaca workbook.");}
+    finally{btn.disabled=false;btn.textContent="Validasi Master Database";}
+  }
+  function renderPreview(){
+    const p=window.masterImportPreview,c=p.counts,d=p.duplicates;
+    const tiles=[["Manpower",c.manpower],["Store with EC",c.withEc],["Store non EC",c.nonEc],["EC + Promoter ID",c.ecProm],["Non EC + Promoter ID",c.nonEcProm],["Store Shadow",c.shadow],["Target Store",c.targets]];
+    let html='<div class="flex flex-wrap items-center justify-between gap-3"><div><h4 class="font-semibold">Ringkasan workbook</h4><p class="text-xs text-slate-500 mt-1">'+esc(p.file)+'</p></div><span class="rounded-full border border-amber-700 px-3 py-1 text-xs text-amber-300">Preview saja · belum disimpan</span></div>';
+    html+='<div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3 mt-4">';
+    tiles.forEach(x=>html+='<div class="rounded-xl border border-slate-700 p-3"><div class="text-xs text-slate-500">'+x[0]+'</div><div class="text-xl font-semibold">'+x[1]+'</div></div>');
+    html+='</div><div class="grid md:grid-cols-2 gap-4 mt-5">';
+    html+='<div class="rounded-xl border border-slate-800 p-4"><h5 class="font-semibold text-sm">Pemeriksaan master</h5><p class="text-xs text-slate-400 mt-3">Duplikat Employee ID: <b>'+d.employee.length+'</b></p><p class="text-xs text-slate-400 mt-1">Duplikat Site ID pada Target: <b>'+d.targetSite.length+'</b></p><p class="text-xs text-slate-400 mt-1">Duplikat Site ID pada daftar toko: <b>'+d.storeSite.length+'</b></p><p class="text-xs text-slate-400 mt-1">Duplikat Promoter ID EC: <b>'+d.promoter.length+'</b></p><p class="text-xs text-slate-400 mt-1">Baris wajib bermasalah: <b>'+p.requiredIssues.length+'</b></p></div>';
+    html+='<div class="rounded-xl border border-slate-800 p-4"><h5 class="font-semibold text-sm">Perbandingan database</h5><p class="text-xs text-slate-400 mt-3">Site ID target belum ada di master toko: <b>'+p.unknownTarget.length+'</b></p><p class="text-xs text-slate-400 mt-1">Employee ID workbook belum ada di master manpower: <b>'+p.unknownEmp.length+'</b></p><p class="text-xs text-slate-400 mt-1">Toko database: <b>'+p.dbCounts.stores+'</b></p><p class="text-xs text-slate-400 mt-1">Manpower database: <b>'+p.dbCounts.manpower+'</b></p><p class="text-xs text-slate-400 mt-1">Baris target tersimpan: <b>'+p.dbCounts.storeTargets+'</b></p><p class="text-xs text-slate-400 mt-1">Total target workbook: <b>'+new Intl.NumberFormat("id-ID").format(p.qtySum)+' Qty · '+new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.targetSum)+'</b></p></div></div>';
+    const issues=[];
+    d.employee.forEach(x=>issues.push("Employee ID "+x.value+" muncul "+x.count+" kali"));
+    d.targetSite.forEach(x=>issues.push("Target Site ID "+x.value+" muncul "+x.count+" kali"));
+    d.storeSite.forEach(x=>issues.push("Daftar toko Site ID "+x.value+" muncul "+x.count+" kali"));
+    d.promoter.forEach(x=>issues.push("Promoter ID "+x.value+" muncul "+x.count+" kali"));
+    p.requiredIssues.slice(0,15).forEach(x=>issues.push(x.sheet+" baris "+x.row+": "+x.reason));
+    p.unknownTarget.slice(0,15).forEach(x=>issues.push("Target Site ID belum ada di database toko: "+x));
+    p.unknownEmp.slice(0,15).forEach(x=>issues.push("Employee ID belum ada di database manpower: "+x));
+    if(issues.length){
+      html+='<div class="rounded-xl border border-amber-800/70 bg-amber-950/10 p-4 mt-5"><h5 class="font-semibold text-sm text-amber-200">Temuan yang perlu ditinjau ('+issues.length+')</h5><ul class="list-disc pl-5 mt-3 space-y-1 text-xs text-amber-100/80">'+issues.slice(0,40).map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div>';
+    }else{
+      html+='<div class="rounded-xl border border-emerald-800 bg-emerald-950/20 p-4 mt-5 text-sm text-emerald-200">Tidak ditemukan duplikat atau field wajib kosong dalam pemeriksaan awal.</div>';
+    }
+    html+='<div class="mt-5 rounded-xl border border-slate-700 p-4 text-xs text-slate-400">Tahap berikutnya adalah pemetaan perubahan per tabel dan pengecualian manpower/store. Tidak ada tombol commit pada tahap ini agar data yang pernah dinonaktifkan atau dikecualikan tidak aktif kembali tanpa persetujuan.</div>';
+    $("master-import-preview").innerHTML=html;
+  }
+})();

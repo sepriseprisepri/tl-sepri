@@ -12,7 +12,7 @@
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
     const d=new Date(s); return isNaN(d)?null:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
   }
-  function message(t,ok) {
+  function validIsoDate(s) {\n    const m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(String(s??""));\n    if(!m) return false;\n    const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]),dt=new Date(Date.UTC(y,mo-1,d));\n    return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d;\n  }\n  function message(t,ok) {
     const e=$("raw-import-message"); e.textContent=t;
     e.className="mt-5 rounded-xl border p-4 text-sm "+(ok?"border-emerald-800 bg-emerald-950/20 text-emerald-200":"border-rose-800 bg-rose-950/30 text-rose-200");
     e.classList.remove("hidden");
@@ -59,7 +59,7 @@
         if(!id) errors.push("IMEI/SN kosong"); else if(idCounts.get(id)>1) errors.push("IMEI/SN duplikat dalam file");
         if(!storeMap.has(site)) errors.push("Site ID tidak ada di master toko");
         if(!model) errors.push("Marketing Name kosong");
-        if(!sold) errors.push("Tanggal tidak valid");
+        if(!validIsoDate(sold)) errors.push("Tanggal tidak valid");
         if(!["VALID","PENDING"].includes(status)) errors.push("Status EULA tidak valid");
         if(!Number.isFinite(price)||price<0) errors.push("Harga tidak valid");
         if(!Number.isFinite(qty)||qty<=0) errors.push("Qty tidak valid");
@@ -79,7 +79,7 @@
     const count=k=>v.filter(r=>r._category===k).length;
     let html='<div class="flex justify-between items-center gap-3"><div><h4 class="font-semibold">Hasil validasi</h4><p class="text-xs text-slate-500 mt-1">'+esc(p.file.name)+'</p></div><button id="raw-commit-btn" class="rounded-xl bg-cyan-400 text-slate-950 font-bold px-5 py-3" '+(!v.length?'disabled':'')+'>Konfirmasi & Impor</button></div>';
     html+='<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">';
-    [["Siap diimpor",v.length],["Invalid",p.invalid.length],["EC aktif",count("EC Aktif")],["Store Shadow",count("Store Shadow")],["Unmapped",count("Unmapped Promoter")],["Tanpa ID",count("Tanpa Promoter ID")]].forEach(x=>html+='<div class="rounded-xl border border-slate-700 p-3"><div class="text-xs text-slate-500">'+x[0]+'</div><div class="text-xl font-semibold">'+x[1]+'</div></div>');
+    [["Total baris",v.length+p.invalid.length],["Siap diimpor",v.length],["Invalid",p.invalid.length],["EC aktif",count("EC Aktif")],["Store Shadow",count("Store Shadow")],["Unmapped",count("Unmapped Promoter")],["Tanpa ID",count("Tanpa Promoter ID")]].forEach(x=>html+='<div class="rounded-xl border border-slate-700 p-3"><div class="text-xs text-slate-500">'+x[0]+'</div><div class="text-xl font-semibold">'+x[1]+'</div></div>');
     html+='</div><div class="table-wrap rounded-xl border border-slate-800 mt-4"><table class="w-full text-xs"><thead><tr><th>IMEI/SN</th><th>Tanggal</th><th>Toko</th><th>Promoter</th><th>Klasifikasi</th><th>Qty</th><th>Amt</th><th>EULA</th></tr></thead><tbody>';
     v.slice(0,25).forEach(r=>html+='<tr><td>'+esc(r.transaction_id)+'</td><td>'+esc(r.sold_at)+'</td><td>'+esc(r.site_name)+'</td><td>'+esc(r.promoter_id||"-")+'</td><td>'+esc(r._category)+'</td><td>'+r.qty+'</td><td>'+new Intl.NumberFormat("id-ID").format(r.amt)+'</td><td>'+esc(r.eula_status)+'</td></tr>');
     html+='</tbody></table></div>';

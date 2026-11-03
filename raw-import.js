@@ -32,9 +32,36 @@
       '<button id="raw-analyze-btn" class="mt-3 w-full rounded-xl bg-cyan-400 text-slate-950 font-bold py-3">Validasi & Preview</button></div>'+
       '<div class="rounded-2xl border border-slate-700 bg-slate-950/40 p-5"><h4 class="font-semibold">Aturan pencocokan</h4>'+
       '<ul class="text-xs text-slate-400 mt-3 space-y-2"><li>Promoter ID cocok EC aktif: ditautkan ke EC.</li><li>ID awalan SP: Store Shadow, tanpa akun login.</li><li>ID belum cocok: tetap disimpan sebagai Unmapped.</li><li>IMEI/SN adalah kunci unik untuk mencegah transaksi ganda.</li><li>EULA VALID masuk achievement; PENDING terpisah.</li></ul></div></div>'+
-      '<div id="raw-import-message" class="hidden mt-5 rounded-xl border p-4 text-sm"></div><div id="raw-import-preview" class="mt-5"></div>';
+      '<div id="raw-import-message" class="hidden mt-5 rounded-xl border p-4 text-sm"></div>'+
+      '<div id="raw-import-preview" class="mt-5"></div><div id="raw-import-history" class="mt-8"></div>';
     $("raw-analyze-btn").addEventListener("click", analyze);
+    loadImportHistory();
   };
+  async function loadImportHistory() {
+    const el=$("raw-import-history"); if(!el) return;
+    el.innerHTML='<div class="flex items-center justify-between mb-3"><h4 class="font-semibold">Riwayat import RAW Sellout</h4><button id="raw-history-refresh" class="text-xs text-cyan-300">Muat ulang</button></div><p class="text-xs text-slate-500">Memuat riwayat…</p>';
+    try {
+      const {data,error}=await client.from("import_history").select("id,file_name,status,total_rows,inserted_rows,updated_rows,invalid_rows,created_at").eq("import_type","raw_sellout").order("created_at",{ascending:false}).limit(10);
+      if(error) throw error;
+      if(!data?.length) {
+        el.innerHTML='<div class="rounded-xl border border-slate-800 p-4 text-xs text-slate-500">Belum ada riwayat import RAW Sellout.</div>';
+        return;
+      }
+      const labels={completed:"Selesai",processing:"Diproses",failed:"Gagal"};
+      let html='<div class="flex items-center justify-between mb-3"><h4 class="font-semibold">Riwayat import RAW Sellout</h4><button id="raw-history-refresh" class="text-xs text-cyan-300">Muat ulang</button></div>';
+      html+='<div class="table-wrap rounded-xl border border-slate-800"><table class="w-full text-xs"><thead><tr><th>Waktu</th><th>File</th><th>Status</th><th>Total</th><th>Baru</th><th>Update</th><th>Invalid</th></tr></thead><tbody>';
+      data.forEach(x=>{
+        const time=new Date(x.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Jakarta"});
+        const color=x.status==="completed"?"text-emerald-300":x.status==="failed"?"text-rose-300":"text-amber-300";
+        html+='<tr><td>'+esc(time)+'</td><td>'+esc(x.file_name)+'</td><td class="'+color+'">'+esc(labels[x.status]||x.status)+'</td><td>'+Number(x.total_rows||0)+'</td><td>'+Number(x.inserted_rows||0)+'</td><td>'+Number(x.updated_rows||0)+'</td><td>'+Number(x.invalid_rows||0)+'</td></tr>';
+      });
+      html+='</tbody></table></div>';
+      el.innerHTML=html;
+      $("raw-history-refresh").addEventListener("click",loadImportHistory);
+    } catch(e) {
+      el.innerHTML='<div class="text-xs text-rose-300">Riwayat import tidak dapat dimuat: '+esc(e.message)+'</div>';
+    }
+  }
   async function analyze() {
     const f=$("raw-file-input").files[0]; $("raw-import-preview").innerHTML="";
     if(!f) return message("Pilih file Excel terlebih dahulu.",false);
@@ -118,10 +145,10 @@
       if(done.error) throw done.error;
       $("raw-import-preview").innerHTML='<div class="rounded-xl border border-emerald-800 bg-emerald-950/20 p-5 text-emerald-200">Import berhasil: '+inserted+' transaksi baru, '+updated+' diperbarui, '+p.invalid.length+' invalid dilewati.<button id="raw-refresh-dashboard" class="block mt-4 rounded-lg bg-slate-700 px-4 py-2 text-sm text-white">Refresh Dashboard</button></div>';
       $("raw-refresh-dashboard").addEventListener("click",async()=>{await loadDashboard();openSection("Dashboard");});
-      message("Import berhasil disimpan ke Supabase.",true); window.rawImportPreview=null;
+      message("Import berhasil disimpan ke Supabase.",true); window.rawImportPreview=null; await loadImportHistory();
     } catch(e) {
       if(importId) await client.from("import_history").update({status:"failed",details:{error:e.message,inserted_rows:inserted,updated_rows:updated},inserted_rows:inserted,updated_rows:updated,completed_at:new Date().toISOString()}).eq("id",importId);
-      message("Import gagal: "+e.message+". Jika batch sebagian sudah masuk, upload ulang file yang sama untuk menyinkronkan berdasarkan IMEI/SN.",false);
+      message("Import gagal: "+e.message+". Jika batch sebagian sudah masuk, upload ulang file yang sama untuk menyinkronkan berdasarkan IMEI/SN.",false); await loadImportHistory();
       b.disabled=false;b.textContent="Coba ulang";
     }
     function countRows(c){return p.valid.filter(r=>r._category===c).length;}

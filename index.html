@@ -81,11 +81,12 @@
           </div>
           <p class="text-xs text-slate-600 mt-8">TL SEPRI · Internal use only · Data dibatasi oleh Row Level Security Supabase</p>
         </div>
-        <div id="section-placeholder" class="hidden panel rounded-2xl p-7 mt-2"><h3 id="section-heading" class="font-semibold text-xl"></h3><p id="section-description" class="text-sm text-slate-400 mt-2 leading-7">Modul ini akan diaktifkan pada tahap integrasi berikutnya.</p><div id="raw-import-panel" class="mt-6"></div></div>
+        <div id="section-placeholder" class="hidden panel rounded-2xl p-7 mt-2"><h3 id="section-heading" class="font-semibold text-xl"></h3><p id="section-description" class="text-sm text-slate-400 mt-2 leading-7">Modul ini akan diaktifkan pada tahap integrasi berikutnya.</p><div id="import-hub-container" class="mt-6"></div></div>
       </div>
     </section>
   </div>
 </main>
+<script src="/master-import.js"></script>
 <script src="/master-import.js"></script>
 <script src="/raw-import.js"></script>
 <script>
@@ -114,7 +115,7 @@ function openSection(label){
  const home=label==="Dashboard";$("page-title").textContent=label;$("page-kicker").textContent=home?"Overview":"Workspace";
  $("dashboard-content").classList.toggle("hidden",!home);$("section-placeholder").classList.toggle("hidden",home);
  if(!home){
-  $("section-heading").textContent=label;$("raw-import-panel").innerHTML="";
+  $("section-heading").textContent=label;$("import-hub-container").innerHTML="";
   if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
    if(window.renderImportHub)window.renderImportHub();

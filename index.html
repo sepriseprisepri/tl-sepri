@@ -86,6 +86,7 @@
     </section>
   </div>
 </main>
+<script src="/master-import.js"></script>
 <script src="/raw-import.js"></script>
 <script>
 const SUPABASE_URL="https://xirmqdcdqpocdfqqvxmh.supabase.co";
@@ -116,7 +117,7 @@ function openSection(label){
   $("section-heading").textContent=label;$("raw-import-panel").innerHTML="";
   if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
-   if(window.renderRawImport)window.renderRawImport();
+   if(window.renderImportHub)window.renderImportHub();
   }else $("section-description").textContent="Kerangka menu "+label+" sudah disiapkan. Modul operasional akan diintegrasikan pada tahap berikutnya.";
  }
  $("nav-list").querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.label===label));

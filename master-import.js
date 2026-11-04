@@ -26,6 +26,36 @@
     const m=new Map();values.map(clean).filter(Boolean).forEach(v=>m.set(v,(m.get(v)||0)+1));
     return [...m].filter(([,n])=>n>1).map(([v,n])=>({value:v,count:n}));
   }
+  // Reviewed canonical decisions for cross-category Site ID conflicts.
+  const siteCategoryOverrides = [
+    {siteId:"C031860693",siteName:"RAMA PONSEL",category:"WITH_EC",promoterId:"076462",promoterName:"WINDA AYU LESTARI"},
+    {siteId:"C040361599",siteName:"MITRA LL PONSEL",category:"NON_EC"},
+    {siteId:"C037921620",siteName:"FORTUNE CELL",category:"WITH_EC",promoterId:"MT-02560",promoterName:"FIKY"},
+    {siteId:"C006360880",siteName:"AHYAR PONSEL",category:"NON_EC"}
+  ];
+  function applySiteCategoryOverrides(data) {
+    const siteOf = row => clean(col(row,"Site ID"));
+    const withIds = new Set(siteCategoryOverrides.filter(x=>x.category==="WITH_EC").map(x=>x.siteId));
+    const nonIds = new Set(siteCategoryOverrides.filter(x=>x.category==="NON_EC").map(x=>x.siteId));
+    data["STORE WITH EC"] = data["STORE WITH EC"].filter(r=>!nonIds.has(siteOf(r)));
+    data["STORE NON EC"] = data["STORE NON EC"].filter(r=>!withIds.has(siteOf(r)));
+    data["STORE WITH EC + PROMOTOR ID"] = data["STORE WITH EC + PROMOTOR ID"].filter(r=>!nonIds.has(siteOf(r)));
+    data["STORE NON EC + PROMOTOR ID"] = data["STORE NON EC + PROMOTOR ID"].filter(r=>!withIds.has(siteOf(r)));
+    const ecRows = data["STORE WITH EC + PROMOTOR ID"];
+    siteCategoryOverrides.filter(x=>x.category==="WITH_EC").forEach(o=>{
+      let row = ecRows.find(r=>siteOf(r)===o.siteId);
+      if(!row){ row={"Site ID":o.siteId,"Site Name":o.siteName}; ecRows.push(row); }
+      const setField=(aliases,fallback,value)=>{
+        const key=Object.keys(row).find(k=>aliases.includes(norm(k)))||fallback;
+        row[key]=value;
+      };
+      setField(["site id"],"Site ID",o.siteId);
+      setField(["site name"],"Site Name",o.siteName);
+      setField(["promotor id","promoter id"],"Promotor ID",o.promoterId);
+      setField(["promotor name","promoter name"],"Promotor Name",o.promoterName);
+    });
+    return siteCategoryOverrides.map(o=>({siteId:o.siteId,siteName:o.siteName,category:o.category,promoterId:o.promoterId||null,promoterName:o.promoterName||null}));
+  }
 window.renderImportHub=function(){
     $("import-hub-container").innerHTML=
       '<div class="flex flex-wrap gap-2 mb-5"><button id="tab-raw-import" class="rounded-xl bg-cyan-400 text-slate-950 px-4 py-2 text-sm font-semibold">RAW Sellout</button><button id="tab-master-import" class="rounded-xl border border-slate-700 px-4 py-2 text-sm">Master Database</button></div>'+
@@ -67,6 +97,7 @@ window.renderImportHub=function(){
       if(missing.length)throw Error("Sheet wajib tidak ditemukan: "+missing.join(", "));
       const data={};
       requiredSheets.forEach(n=>data[n]=sheetRows(wb,n)||[]);
+      const appliedSiteOverrides=applySiteCategoryOverrides(data);
       const manpower=data["DATABASE MANPOWER"];
       const targets=data["TARGET STORE"];
       const withEc=data["STORE WITH EC"];
@@ -102,7 +133,7 @@ window.renderImportHub=function(){
       const unknownEmp=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>x&&!/^MT-/i.test(x)&&!/^SP-/i.test(x)&&!dbEmp.has(x));
       const targetSum=targets.reduce((a,r)=>a+(Number(String(col(r,"TARGET AMT")).replace(/,/g,""))||0),0);
       const qtySum=targets.reduce((a,r)=>a+(Number(col(r,"TARGET QTY"))||0),0);
-      window.masterImportPreview={file:f.name,sheetNames:wb.SheetNames,counts:{
+      window.masterImportPreview={file:f.name,sheetNames:wb.SheetNames,appliedSiteOverrides,counts:{
         manpower:manpower.length,withEc:withEc.length,nonEc:nonEc.length,ecProm:ecProm.length,nonEcProm:nonEcProm.length,shadow:shadow.length,targets:targets.length
       },duplicates:{employee:empDup,targetSite:targetDup,storeSite:siteDup,promoter:promoterDup},siteCategoryConflicts,promoterStyleIds,requiredIssues,unknownTarget,unknownEmp,targetSum,qtySum,dbCounts:{stores:stores.length,manpower:people.length,storeTargets:storeTargets.length},periods:await fetchAll("target_periods","id,period_name,period_start,period_end")};
       renderPreview();
@@ -116,13 +147,13 @@ window.renderImportHub=function(){
     let html='<div class="flex flex-wrap items-center justify-between gap-3"><div><h4 class="font-semibold">Ringkasan workbook</h4><p class="text-xs text-slate-500 mt-1">'+esc(p.file)+'</p></div><span class="rounded-full border border-amber-700 px-3 py-1 text-xs text-amber-300">Preview saja · belum disimpan</span></div>';
     html+='<div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3 mt-4">';
     tiles.forEach(x=>html+='<div class="rounded-xl border border-slate-700 p-3"><div class="text-xs text-slate-500">'+x[0]+'</div><div class="text-xl font-semibold">'+x[1]+'</div></div>');
-    html+='</div><div class="grid md:grid-cols-2 gap-4 mt-5">';
+    html+='</div><div class="rounded-xl border border-cyan-800/70 bg-cyan-950/10 p-4 mt-5"><h5 class="font-semibold text-sm text-cyan-200">Keputusan kategori yang diterapkan</h5><ul class="mt-3 space-y-1 text-xs text-cyan-100/90">'+p.appliedSiteOverrides.map(x=>'<li><b>'+esc(x.siteId)+' · '+esc(x.siteName)+'</b>: '+(x.category==='WITH_EC'?'With EC':'Non EC')+(x.promoterId?' · Promoter '+esc(x.promoterName)+' ('+esc(x.promoterId)+')':'')+'</li>').join("")+'</ul><p class="text-[11px] text-slate-400 mt-2">Aturan diterapkan saat membaca workbook untuk preview; file Excel asli dan data Supabase tidak diubah.</p></div><div class="grid md:grid-cols-2 gap-4 mt-5">';
     html+='<div class="rounded-xl border border-slate-800 p-4"><h5 class="font-semibold text-sm">Pemeriksaan master</h5><p class="text-xs text-slate-400 mt-3">Duplikat Employee ID: <b>'+d.employee.length+'</b></p><p class="text-xs text-slate-400 mt-1">Duplikat Site ID pada Target: <b>'+d.targetSite.length+'</b></p><p class="text-xs text-slate-400 mt-1">Site ID tercantum di kategori With EC dan Non EC: <b>'+p.siteCategoryConflicts.length+'</b></p><p class="text-xs text-slate-400 mt-1">Duplikat Promoter ID EC: <b>'+d.promoter.length+'</b></p><p class="text-xs text-slate-400 mt-1">Baris wajib bermasalah: <b>'+p.requiredIssues.length+'</b></p></div>';
     html+='<div class="rounded-xl border border-slate-800 p-4"><h5 class="font-semibold text-sm">Perbandingan database</h5><p class="text-xs text-slate-400 mt-3">Site ID target belum ada di master toko: <b>'+p.unknownTarget.length+'</b></p><p class="text-xs text-slate-400 mt-1">Employee ID workbook belum ada di master manpower: <b>'+p.unknownEmp.length+'</b></p><p class="text-xs text-slate-400 mt-1">Toko database: <b>'+p.dbCounts.stores+'</b></p><p class="text-xs text-slate-400 mt-1">Manpower database: <b>'+p.dbCounts.manpower+'</b></p><p class="text-xs text-slate-400 mt-1">Baris target tersimpan: <b>'+p.dbCounts.storeTargets+'</b></p><p class="text-xs text-slate-400 mt-1">Total target workbook: <b>'+new Intl.NumberFormat("id-ID").format(p.qtySum)+' Qty · '+new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(p.targetSum)+'</b></p></div></div>';
     const issues=[];
     d.employee.forEach(x=>issues.push("Employee ID "+x.value+" muncul "+x.count+" kali"));
     d.targetSite.forEach(x=>issues.push("Target Site ID "+x.value+" muncul "+x.count+" kali"));
-    p.siteCategoryConflicts.forEach(x=>issues.push("Site ID "+x+" tercantum di kategori With EC dan Non EC, perlu konfirmasi kategori"));
+    p.siteCategoryConflicts.forEach(x=>issues.push("Site ID "+x+" masih konflik setelah aturan keputusan diterapkan; periksa struktur sheet sumber"));
     d.promoter.forEach(x=>issues.push("Promoter ID "+x.value+" muncul "+x.count+" kali"));
     p.requiredIssues.slice(0,15).forEach(x=>issues.push(x.sheet+" baris "+x.row+": "+x.reason));
     p.unknownTarget.slice(0,15).forEach(x=>issues.push("Target Site ID belum ada di database toko: "+x));

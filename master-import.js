@@ -169,7 +169,7 @@ window.renderImportHub=function(){
     const current=(p.periods||[]).find(x=>x.period_start<=today&&x.period_end>=today);
     const period=current||(p.periods||[]).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))[0];
     if(!period)throw new Error("Periode target belum tersedia di database.");
-    const employeeKey=v=>{const x=clean(v);return /^\\d+$/.test(x)?x.padStart(6,"0"):x.toUpperCase();};
+    const employeeKey=v=>{const x=clean(v);return /^\d+$/.test(x)?x.padStart(6,"0"):x.toUpperCase();};
     const promoterByEmployee=new Map();
     (data["STORE WITH EC + PROMOTOR ID"]||[]).forEach(r=>{
       const emp=employeeKey(col(r,"EMPLOYEE ID"));

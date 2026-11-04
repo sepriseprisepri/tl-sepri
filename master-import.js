@@ -163,7 +163,8 @@ window.renderImportHub=function(){
   }
   function buildCommitPayload(p){
     const data=p.data;
-    const today=new Date().toISOString().slice(0,10);
+    const now=new Date();
+    const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
     const current=(p.periods||[]).find(x=>x.period_start<=today&&x.period_end>=today);
     const period=current||(p.periods||[]).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))[0];
     if(!period)throw new Error("Periode target belum tersedia di database.");

@@ -141,7 +141,7 @@ window.renderImportHub=function(){
         fetchAll("store_targets","store_id,period_id,target_qty,target_amt")
       ]);
       const dbSite=new Set(stores.map(x=>clean(x.site_id)));
-      const empKey=v=>{const x=clean(v);return /^\\d+$/.test(x)?x.padStart(6,"0"):x;};
+      const empKey=v=>{const x=clean(v);return /^\d+$/.test(x)?x.padStart(6,"0"):x;};
       const dbEmp=new Map(people.map(x=>[empKey(x.employee_id),x]));
       const unknownTarget=targets.map(r=>clean(col(r,"SITE ID"))).filter(x=>x&&!dbSite.has(x));
       const promoterStyleIds=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>/^MT-/i.test(x));

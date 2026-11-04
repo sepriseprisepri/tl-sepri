@@ -148,13 +148,79 @@ window.renderImportHub=function(){
       const unknownEmp=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>x&&!/^MT-/i.test(x)&&!/^SP-/i.test(x)&&!dbEmp.has(empKey(x)));
       const targetSum=targets.reduce((a,r)=>a+(Number(String(col(r,"TARGET AMT")).replace(/,/g,""))||0),0);
       const qtySum=targets.reduce((a,r)=>a+(Number(col(r,"TARGET QTY"))||0),0);
-      window.masterImportPreview={file:f.name,sheetNames:wb.SheetNames,appliedSiteOverrides,counts:{
+      window.masterImportPreview={file:f.name,sheetNames:wb.SheetNames,data,appliedSiteOverrides,counts:{
         manpower:manpower.length,withEc:withEc.length,nonEc:nonEc.length,ecProm:ecProm.length,nonEcProm:nonEcProm.length,shadow:shadow.length,targets:targets.length
       },duplicates:{employee:empDup,targetSite:targetDup,storeSite:siteDup,promoter:promoterDup},siteCategoryConflicts,promoterStyleIds,requiredIssues,unknownTarget,unknownEmp,targetSum,qtySum,dbCounts:{stores:stores.length,manpower:people.length,storeTargets:storeTargets.length},periods:await fetchAll("target_periods","id,period_name,period_start,period_end")};
       renderPreview();
       show("Validasi workbook selesai. Belum ada data yang diubah di Supabase.",true);
     }catch(e){console.error(e);show(e.message||"Gagal membaca workbook.");}
     finally{btn.disabled=false;btn.textContent="Validasi Master Database";}
+  }
+  function numeric(v){
+    if(typeof v==="number")return Number.isFinite(v)?v:0;
+    const x=Number(String(v??"").replace(/,/g,"").trim());
+    return Number.isFinite(x)?x:0;
+  }
+  function buildCommitPayload(p){
+    const data=p.data;
+    const today=new Date().toISOString().slice(0,10);
+    const current=(p.periods||[]).find(x=>x.period_start<=today&&x.period_end>=today);
+    const period=current||(p.periods||[]).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))[0];
+    if(!period)throw new Error("Periode target belum tersedia di database.");
+    const promoterByEmployee=new Map();
+    (data["STORE WITH EC + PROMOTOR ID"]||[]).forEach(r=>{
+      const emp=clean(col(r,"EMPLOYEE ID"));
+      const pid=clean(col(r,"PROMOTOR ID")||col(r,"PROMOTER ID"));
+      if(emp&&pid)promoterByEmployee.set(emp,pid);
+    });
+    const manpower=(data["DATABASE MANPOWER"]||[]).map(r=>{
+      const employee_id=clean(col(r,"EMPLOYEE ID"));
+      const ff=clean(col(r,"FIELDFORCE_POSITION"));
+      const site=clean(col(r,"SITE CODE"));
+      return {employee_id,full_name:clean(col(r,"NAME")),position:clean(col(r,"POSITION")),
+        fieldforce_position:ff,promoter_id:promoterByEmployee.get(employee_id)||null,
+        site_id:site&&site!=="-"?site:null,
+        tl_name:clean(col(r,"SPV/SA/TL NAME"))||null,
+        tso_name:clean(col(r,"KAO/TSO NAME"))||null};
+    }).filter(x=>x.employee_id&&x.full_name);
+    const storeMap=new Map();
+    const addStore=(r)=>{
+      const site=clean(col(r,"SITE ID")),name=clean(col(r,"SITE NAME"));
+      if(!site||!name)return;
+      const prior=storeMap.get(site)||{};
+      storeMap.set(site,{site_id:site,site_name:name,
+        channel_category:clean(col(r,"CHANNEL CATEGORY"))||prior.channel_category||null});
+    };
+    ["TARGET STORE","STORE WITH EC","STORE NON EC","STORE SHADOW","STORE NON EC + PROMOTOR ID"].forEach(k=>(data[k]||[]).forEach(addStore));
+    const targets=(data["TARGET STORE"]||[]).map(r=>({site_id:clean(col(r,"SITE ID")),
+      target_qty:numeric(col(r,"TARGET QTY")),target_amt:numeric(col(r,"TARGET AMT"))})).filter(x=>x.site_id);
+    const ec_assignments=manpower.filter(x=>norm(x.fieldforce_position)==="ec"&&x.site_id)
+      .map(x=>({employee_id:x.employee_id,site_id:x.site_id}));
+    const coverage=(data["TARGET STORE"]||[]).map(r=>({
+      site_id:clean(col(r,"SITE ID")),tl_name:clean(col(r,"SPV NAME")||col(r,"TL NAME"))
+    })).filter(x=>x.site_id&&x.tl_name);
+    const ecWithoutPromoter=manpower.filter(x=>norm(x.fieldforce_position)==="ec"&&!x.promoter_id);
+    if(ecWithoutPromoter.length)throw new Error("Promoter ID belum terpetakan untuk: "+ecWithoutPromoter.map(x=>x.employee_id).join(", "));
+    return {file_name:p.file,period_id:period.id,manpower,stores:[...storeMap.values()],targets,ec_assignments,coverage};
+  }
+  async function commitMasterDatabase(){
+    const p=window.masterImportPreview,btn=$("master-commit-btn");
+    if(!p||p.committed||!btn)return;
+    btn.disabled=true;btn.textContent="Menyimpan Master Database…";
+    try{
+      const payload=buildCommitPayload(p);
+      const {data,error}=await client.rpc("commit_master_database",{p_payload:payload});
+      if(error)throw error;
+      if(!data||data.success!==true)throw new Error("Supabase tidak mengembalikan status commit berhasil.");
+      p.committed=true;
+      const result=document.createElement("div");
+      result.className="mt-4 rounded-xl border border-emerald-800 bg-emerald-950/20 p-4 text-sm text-emerald-200";
+      result.innerHTML="<b>Commit Master Database berhasil.</b><div class='mt-2 text-xs text-emerald-100/80'>Manpower baru: "+esc(data.new_manpower)+" · Toko baru: "+esc(data.new_stores)+" · Target toko: "+esc(data.target_store_rows)+" · Alokasi EC diperbarui: "+esc(data.ec_allocations_upserted)+" · Akun login dibuat: 0</div><div class='mt-1 text-xs text-emerald-100/80'>ID import: "+esc(data.import_id)+"</div>";
+      btn.replaceWith(result);show("Master Database berhasil disinkronkan ke Supabase.",true);
+    }catch(e){
+      console.error(e);btn.disabled=false;btn.textContent="Coba Commit Ulang";
+      show(e.message||"Commit Master Database gagal. Proses transaksi dibatalkan sehingga tidak ada perubahan parsial.");
+    }
   }
   function renderPreview(){
     const p=window.masterImportPreview,c=p.counts,d=p.duplicates;
@@ -178,7 +244,10 @@ window.renderImportHub=function(){
     }else{
       html+='<div class="rounded-xl border border-emerald-800 bg-emerald-950/20 p-4 mt-5 text-sm text-emerald-200">Tidak ditemukan duplikat atau field wajib kosong dalam pemeriksaan awal.</div>';
     }
-    html+='<div class="mt-5 rounded-xl border border-slate-700 p-4 text-xs text-slate-400">Tahap berikutnya adalah pemetaan perubahan per tabel dan pengecualian manpower/store. Tidak ada tombol commit pada tahap ini agar data yang pernah dinonaktifkan atau dikecualikan tidak aktif kembali tanpa persetujuan.</div>';
+    const canCommit=issues.length===0&&!p.committed;
+    html+='<div class="mt-5 rounded-xl border border-slate-700 p-4"><div class="text-xs text-slate-400">Commit akan menyinkronkan manpower, master toko, target periode, penempatan EC, coverage TL, dan pembagian target EC. Akun login tidak dibuat atau dihapus. Manpower yang sudah nonaktif tetap nonaktif.</div><button id="master-commit-btn" class="mt-4 w-full rounded-xl '+(canCommit?'bg-emerald-400 text-slate-950':'bg-slate-700 text-slate-400')+' font-bold py-3" '+(canCommit?'':'disabled')+'>'+(p.committed?'Master Database sudah di-commit':canCommit?'Commit Master Database ke Supabase':'Commit terkunci sampai seluruh temuan selesai')+'</button><p class="text-[11px] text-slate-500 mt-2">Periode target dipilih otomatis berdasarkan tanggal hari ini. Seluruh perubahan database dijalankan dalam satu transaksi.</p></div>';
     $("master-import-preview").innerHTML=html;
+    const commitBtn=$("master-commit-btn");
+    if(commitBtn&&canCommit)commitBtn.addEventListener("click",commitMasterDatabase);
   }
 })();

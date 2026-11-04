@@ -176,6 +176,9 @@ window.renderImportHub=function(){
       const pid=clean(col(r,"PROMOTOR ID")||col(r,"PROMOTER ID"));
       if(emp&&pid)promoterByEmployee.set(emp,pid);
     });
+    // Canonical reviewed mappings are authoritative even if the workbook EC mapping sheet omits a row.
+    siteCategoryOverrides.filter(o=>o.category==="WITH_EC"&&o.employeeId&&o.promoterId)
+      .forEach(o=>promoterByEmployee.set(employeeKey(o.employeeId),o.promoterId));
     const manpower=(data["DATABASE MANPOWER"]||[]).map(r=>{
       const employee_id=clean(col(r,"EMPLOYEE ID"));
       const ff=clean(col(r,"FIELDFORCE_POSITION"));

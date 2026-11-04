@@ -28,9 +28,9 @@
   }
   // Reviewed canonical decisions for cross-category Site ID conflicts.
   const siteCategoryOverrides = [
-    {siteId:"C031860693",siteName:"RAMA PONSEL",category:"WITH_EC",promoterId:"076462",promoterName:"WINDA AYU LESTARI"},
+    {siteId:"C031860693",siteName:"RAMA PONSEL",category:"WITH_EC",employeeId:"076462",promoterId:"076462",promoterName:"WINDA AYU LESTARI"},
     {siteId:"C040361599",siteName:"MITRA LL PONSEL",category:"NON_EC"},
-    {siteId:"C037921620",siteName:"FORTUNE CELL",category:"WITH_EC",promoterId:"MT-02560",promoterName:"FIKY"},
+    {siteId:"C037921620",siteName:"FORTUNE CELL",category:"WITH_EC",employeeId:"MT-02560",promoterId:"MT-02560",promoterName:"FIKY"},
     {siteId:"C006360880",siteName:"AHYAR PONSEL",category:"NON_EC"}
   ];
   function applySiteCategoryOverrides(data) {
@@ -65,6 +65,7 @@
       };
       setField(["site id"],"Site ID",o.siteId);
       setField(["site name"],"Site Name",o.siteName);
+      if(o.employeeId)setField(["employee id"],"EMPLOYEE ID",o.employeeId);
       setField(["promotor id","promoter id"],"Promotor ID",o.promoterId);
       setField(["promotor name","promoter name"],"Promotor Name",o.promoterName);
     });
@@ -168,9 +169,10 @@ window.renderImportHub=function(){
     const current=(p.periods||[]).find(x=>x.period_start<=today&&x.period_end>=today);
     const period=current||(p.periods||[]).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))[0];
     if(!period)throw new Error("Periode target belum tersedia di database.");
+    const employeeKey=v=>{const x=clean(v);return /^\\d+$/.test(x)?x.padStart(6,"0"):x.toUpperCase();};
     const promoterByEmployee=new Map();
     (data["STORE WITH EC + PROMOTOR ID"]||[]).forEach(r=>{
-      const emp=clean(col(r,"EMPLOYEE ID"));
+      const emp=employeeKey(col(r,"EMPLOYEE ID"));
       const pid=clean(col(r,"PROMOTOR ID")||col(r,"PROMOTER ID"));
       if(emp&&pid)promoterByEmployee.set(emp,pid);
     });
@@ -179,7 +181,7 @@ window.renderImportHub=function(){
       const ff=clean(col(r,"FIELDFORCE_POSITION"));
       const site=clean(col(r,"SITE CODE"));
       return {employee_id,full_name:clean(col(r,"NAME")),position:clean(col(r,"POSITION")),
-        fieldforce_position:ff,promoter_id:promoterByEmployee.get(employee_id)||null,
+        fieldforce_position:ff,promoter_id:promoterByEmployee.get(employeeKey(employee_id))||null,
         site_id:site&&site!=="-"?site:null,
         tl_name:clean(col(r,"SPV/SA/TL NAME"))||null,
         tso_name:clean(col(r,"KAO/TSO NAME"))||null};

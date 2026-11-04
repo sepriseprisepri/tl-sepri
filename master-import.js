@@ -42,8 +42,22 @@
     data["STORE WITH EC + PROMOTOR ID"] = data["STORE WITH EC + PROMOTOR ID"].filter(r=>!nonIds.has(siteOf(r)));
     data["STORE NON EC + PROMOTOR ID"] = data["STORE NON EC + PROMOTOR ID"].filter(r=>!withIds.has(siteOf(r)));
     const ecRows = data["STORE WITH EC + PROMOTOR ID"];
+    // MT-02560 is confirmed only for FORTUNE CELL; remove any stray duplicate assignment.
+    ecRows.splice(0,ecRows.length,...ecRows.filter(r=>{
+      const pid=clean(col(r,"PROMOTOR ID")||col(r,"PROMOTER ID"));
+      return pid!=="MT-02560" || siteOf(r)==="C037921620";
+    }));
+    // Collapse repeated rows for the same store/promoter pair without hiding cross-store assignments.
+    const seenPairs=new Set();
+    data["STORE WITH EC + PROMOTOR ID"]=ecRows.filter(r=>{
+      const key=siteOf(r)+"|"+clean(col(r,"PROMOTOR ID")||col(r,"PROMOTER ID"));
+      if(!siteOf(r)||key.endsWith("|"))return true;
+      if(seenPairs.has(key))return false;
+      seenPairs.add(key);return true;
+    });
+    const canonicalEcRows=data["STORE WITH EC + PROMOTOR ID"];
     siteCategoryOverrides.filter(x=>x.category==="WITH_EC").forEach(o=>{
-      let row = ecRows.find(r=>siteOf(r)===o.siteId);
+      let row = canonicalEcRows.find(r=>siteOf(r)===o.siteId);
       if(!row){ row={"Site ID":o.siteId,"Site Name":o.siteName}; ecRows.push(row); }
       const setField=(aliases,fallback,value)=>{
         const key=Object.keys(row).find(k=>aliases.includes(norm(k)))||fallback;
@@ -111,7 +125,7 @@ window.renderImportHub=function(){
       const nonEcSites=new Set(nonEc.map(r=>clean(col(r,"Site ID"))).filter(Boolean));
       const siteCategoryConflicts=[...withEcSites].filter(x=>nonEcSites.has(x));
       const siteDup=[];
-      const promoterDup=duplicates(ecProm.map(r=>col(r,"PROMOTOR ID")));
+      const promoterDup=duplicates(ecProm.map(r=>col(r,"PROMOTOR ID")||col(r,"PROMOTER ID")));
       const requiredIssues=[];
       manpower.forEach((r,i)=>{
         const emp=clean(col(r,"EMPLOYEE ID")),name=clean(col(r,"NAME")),pos=clean(col(r,"POSITION"));
@@ -127,10 +141,11 @@ window.renderImportHub=function(){
         fetchAll("store_targets","store_id,period_id,target_qty,target_amt")
       ]);
       const dbSite=new Set(stores.map(x=>clean(x.site_id)));
-      const dbEmp=new Map(people.map(x=>[clean(x.employee_id),x]));
+      const empKey=v=>{const x=clean(v);return /^\\d+$/.test(x)?x.padStart(6,"0"):x;};
+      const dbEmp=new Map(people.map(x=>[empKey(x.employee_id),x]));
       const unknownTarget=targets.map(r=>clean(col(r,"SITE ID"))).filter(x=>x&&!dbSite.has(x));
       const promoterStyleIds=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>/^MT-/i.test(x));
-      const unknownEmp=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>x&&!/^MT-/i.test(x)&&!/^SP-/i.test(x)&&!dbEmp.has(x));
+      const unknownEmp=manpower.map(r=>clean(col(r,"EMPLOYEE ID"))).filter(x=>x&&!/^MT-/i.test(x)&&!/^SP-/i.test(x)&&!dbEmp.has(empKey(x)));
       const targetSum=targets.reduce((a,r)=>a+(Number(String(col(r,"TARGET AMT")).replace(/,/g,""))||0),0);
       const qtySum=targets.reduce((a,r)=>a+(Number(col(r,"TARGET QTY"))||0),0);
       window.masterImportPreview={file:f.name,sheetNames:wb.SheetNames,appliedSiteOverrides,counts:{

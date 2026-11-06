@@ -9,7 +9,7 @@
     traditional:"Traditional",organized:"Organized",
     e_store:"E-Store",online:"Online",unspecified:"Belum ditetapkan"
   };
-  const ambiguous = /apple\s+adaptor|harga\s+belum\s+final|perlu\s+klarifikasi|belum\s+diterima|buds\s+score/i;
+  const ambiguous = /apple\s+adaptor|harga\s+belum\s+final|perlu\s+klarifikasi|belum\s+diterima|buds\s+score|masih\s+(dalam\s+)?pengecekan|belum\s+dapat\s+dijanjikan/i;
   function validate(record,form,storeMap) {
     const errors = [];
     if (!form.confirmed) errors.push("Centang pernyataan verifikasi Admin.");
@@ -19,7 +19,7 @@
     if (form.benefit.length < 4 || form.benefit.length > 600) errors.push("Benefit harus jelas.");
     if (form.terms.length > 2500) errors.push("Syarat terlalu panjang.");
     if (!Object.hasOwn(channels, form.channel)) errors.push("Channel tidak valid.");
-    if (!Array.isArray(form.items) || !form.items.length || form.items.length > 20) {
+    if (!Array.isArray(form.items) || !form.items.length || form.items.length > 20 || JSON.stringify(form.items).length>10000) {
       errors.push("Benefit terstruktur wajib berupa JSON array berisi 1–20 item.");
     } else {
       for (const item of form.items) {
@@ -33,7 +33,7 @@
         }
       }
     }
-    const labels = [form.model,form.variant,form.benefit].concat(
+    const labels = [form.model,form.variant,form.benefit,form.terms].concat(
       Array.isArray(form.items) ? form.items.map(item => item?.name || "") : []);
     if (labels.some(label => ambiguous.test(label))) errors.push("Ada benefit atau SKU ambigu yang belum dikoreksi.");
     const sites = [...new Set(form.siteIds)];

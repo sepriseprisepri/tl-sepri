@@ -45,8 +45,8 @@ Keenam entri ini mempunyai `published=false`, `verification_state=draft`, `requi
 2. Pilih menu **Promo**.
 3. Pilih status **Sedang berjalan**, filter model/varian, kategori, atau channel.
 4. Baca semua baris benefit, nilai rupiah, status *tidak ada cashback*, dan syarat per channel.
-5. Lihat label **Bulletin internal** atau **Sumber Samsung.com**; validasi di kanal penjualan sebelum menjanjikan nilai.
-6. Admin dapat memeriksa 6 draft melalui filter **Draft Admin**. Pelengkapan data dan approval harus dilakukan setelah detail dikonfirmasi.
+5. Lihat label **Bulletin internal** atau **Sumber Samsung.com**; informasi nasional tetap memerlukan pemeriksaan kelayakan varian/channel sebelum menjanjikan nilai.
+6. Panel dan filter **Draft Admin** telah dihapus dari UI. Enam draft historis tetap disimpan untuk audit dan tidak muncul dalam katalog nasional.
 7. Dataset import ber-id unik dan migrasi `ON CONFLICT(import_key) DO NOTHING`, sehingga penerapan ulang tidak menimpa koreksi Admin yang dibuat sesudahnya.
 
 ## Keamanan
@@ -61,3 +61,7 @@ RLS `sales_promotions` dan `sales_promotion_stores` tetap aktif. Admin aktif men
 `node tests/promo-master-20261106.cjs`
 
 Browser E2E per role masih perlu verifikasi dengan sesi akun yang sah. Jangan menyimpulkan bahwa program berlaku di setiap toko hanya dari badge “Aktif” (tanggal berjalan).
+
+## Pembaruan UI 7 November 2026
+
+Katalog dipresentasikan secara nasional untuk semua peran aktif dan hanya memuat entri terbit. Dua panel Admin (verifikasi dan publikasi) serta tombol Admin untuk menonaktifkan/menerbitkan ulang tidak tersedia lagi. Pembaruan penawaran di masa depan memerlukan pengelolaan data terkontrol di luar UI. Kebijakan RLS/tabel database dan enam draft arsip tidak berubah.

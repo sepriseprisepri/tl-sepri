@@ -5,7 +5,7 @@
 Pada branch `feature/sales-intelligence-promos-20261106`, UI lama tidak dibangun ulang. Integrasi memakai `index.html`, `ops-modules.js`, dan 3 modul baru:
 - `sales-intelligence.js`: dashboard Smart Alerts, ringkasan personal, AI Sales Insight berbasis aturan, global search, dan 6 grafik di Chart Studio.
 - `user-experience.js`: filter tersimpan per user dan preferensi kerapatan tabel.
-- `promo-center.js`: kartu promo aktif, filter model/status, cakupan, detail T&C, URL official, form admin dan penonaktifan.
+- `promo-center.js`: kartu promo nasional read-only, filter model/status/channel, detail T&C, dan asal sumber resmi/bulletin internal.
 - `sales-intelligence.css`: responsif/mobile-first dengan visual sistem Aether Command.
 
 ## Role matrix
@@ -18,8 +18,8 @@ Pada branch `feature/sales-intelligence-promos-20261106`, UI lama tidak dibangun
 | Saved Filter | Punya sendiri | Punya sendiri | Punya sendiri | Punya sendiri |
 | Compact Table | Punya sendiri | Punya sendiri | Punya sendiri | Punya sendiri |
 | AI Insight rule-based | Global | Coverage | Coverage | Pribadi |
-| Promo Viewer | Draft + aktif | Published verified + scope | Published verified + scope | Published verified + scope |
-| Promo Publish/Deactivate | Ya | Tidak | Tidak | Tidak |
+| Promo Viewer | Nasional terbit | Nasional terbit | Nasional terbit | Nasional terbit |
+| Promo Publish/Deactivate | Tidak ada di UI | Tidak ada di UI | Tidak ada di UI | Tidak ada di UI |
 
 **RLS adalah kontrol keamanan yang menentukan cakupan.** Search, filter browser, dan pemilihan chart tidak boleh dijadikan dasar otorisasi.
 
@@ -32,15 +32,14 @@ Pada branch `feature/sales-intelligence-promos-20261106`, UI lama tidak dibangun
 - Semua tabel baru punya RLS dan policy Admin-only untuk mengubah promo, user-only untuk filter/preferensi.
 - SQL idempotent disimpan di `docs/sql/sales-intelligence-promotions-20261106.sql`; migration live `sales_intelligence_promo_filters_20261106` sudah diterapkan.
 
-## Cara menambahkan promo per model
+## Katalog Promo Nasional (read-only sejak 7 November 2026)
 
-1. Admin masuk sebagai Admin aktif.
-2. Menu **Promo** → **Admin · Publikasikan promo terverifikasi**.
-3. Isi judul, model Samsung, benefit, syarat, channel, periode, dan URL halaman `samsung.com/id` atau `news.samsung.com/id` yang sesuai.
-4. Untuk kanal yang hanya berlaku pada toko tertentu, pilih **Toko tertentu** dan isi daftar Site ID. Sistem menyimpan record *unpublished*, memetakan toko, lalu *published* pada langkah terakhir.
-5. Periksa kartu Promo di akun TL/EC: hanya promosi yang verified + published + cakupan RLS yang boleh terlihat. Pemegang akun wajib membaca syarat lengkap.
-
-**Penting:** Tidak tersedia feed resmi promo semua model yang terhubung otomatis. Katalog model dibentuk dari focus model dan sellout sesuai RLS; model tanpa promo khusus yang terverifikasi menampilkan *Belum ada promo model*. Kampanye umum tidak identik dengan jaminan cashback per model.
+- Menu **Promo** menampilkan penawaran nasional yang telah diterbitkan bagi semua peran aktif (Admin, TSO, TL, EC); hanya data dengan `published=true`, `verification_state=verified`, dan `scope_type=national`.
+- Tidak ada panel **Admin · Antrean Klarifikasi Promo**, **Admin · Publikasikan promo terverifikasi**, pilihan draft, maupun tombol menonaktifkan/menerbitkan ulang pada kartu promo.
+- Perubahan katalog masa depan dilakukan melalui proses pembaruan data yang terkontrol di luar UI, bukan melalui form Admin.
+- Tidak tersedia sinkronisasi otomatis promosi nasional dari Samsung. Penggunaan kata **nasional** tidak berarti cashback setiap model sama atau berlaku di semua channel. Selalu patuhi pengecualian channel, varian, periode, dan ketentuan regular/non-PO.
+- Enam draft historis belum terpublikasi tetap berada dalam database untuk audit; penghapusan UI **tidak menghapus** data.
+- RLS dan izin Admin di database belum diubah oleh pembaruan frontend ini. Ini **bukan** penonaktifan API tulis pada lapisan database.
 
 ### Kampanye yang terverifikasi
 - Year-End Sale Starts Early: 30 Oktober–30 November 2026.

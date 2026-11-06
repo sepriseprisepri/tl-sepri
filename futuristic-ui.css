@@ -97,7 +97,7 @@ button:disabled {cursor:wait;}
 }
 .login-title {font-family:"Rajdhani","Space Grotesk",system-ui,sans-serif;font-size:clamp(29px,5.3vw,42px);line-height:1.05;letter-spacing:.035em;font-weight:700;color:#f4fcff;margin-top:10px;}
 .login-subtitle {color:#a0b4c9;line-height:1.75;font-size:13px;margin-top:10px;max-width:350px;}
-.login-glass {
+#login-view .login-glass {
   position:relative;overflow:hidden;
   background:linear-gradient(153deg,rgba(27,47,73,.74),rgba(10,20,39,.90) 55%,rgba(9,19,33,.87));
   border:1px solid rgba(92,202,244,.35);
@@ -264,7 +264,7 @@ button:disabled {cursor:wait;}
 #app-view canvas {max-width:100%;}
 #data-notice,#data-error {border-radius:13px;}
 /* Small screens: nav collapses into a compact launcher, not a full-height drawer. */
-#app-view #mobile-menu {display:none;color:#b5eaff;border:1px solid rgba(95,184,221,.29);border-radius:11px;background:rgba(26,64,91,.27);font-size:21px;width:42px;height:42px;align-items:center;justify-content:center;}
+#app-view #mobile-menu {display:none;margin-left:auto;color:#b5eaff;border:1px solid rgba(95,184,221,.29);border-radius:11px;background:rgba(26,64,91,.27);font-size:21px;width:42px;height:42px;align-items:center;justify-content:center;}
 @media (max-width:1023px) {
   #app-view .app-frame {display:block;}
   #app-view .app-sidebar {height:auto;max-height:82svh;overflow-y:auto;position:sticky;top:0;padding:13px 18px;z-index:45;border-right:0;border-bottom:1px solid rgba(102,181,215,.23);box-shadow:0 14px 35px rgba(0,0,0,.28);}

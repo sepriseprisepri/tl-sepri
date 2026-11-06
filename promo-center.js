@@ -33,10 +33,10 @@ async function render(ctx,mount){
  const token=++renderToken;mount.innerHTML='<p class="intel-loading" role="status">Memuat katalog promo yang diizinkan akun...</p>';
  try{
   const [promos,focus,raw,eligible]=await Promise.all([
-   loadRows(ctx.client,"sales_promotions","id,title,model_code,model_name,benefit,terms,channel_label,scope_type,start_date,end_date,source_url,verification_state,verified_at,published,created_at,source_type,source_reference,source_date,verified_basis,program_category,sku_variant,channel_code,offer_items,record_kind,review_notes,requires_review",q=>q.order("start_date",{ascending:false})),
-   loadRows(ctx.client,"focus_model_settings","model_code,display_name,is_active"),
-   loadRows(ctx.client,"raw_sellout","model",q=>q.order("sold_at",{ascending:false})),
-   loadRows(ctx.client,"sales_promotion_stores","promo_id,store_id")
+   loadRows(ctx.client,"sales_promotions","id,title,model_code,model_name,benefit,terms,channel_label,scope_type,start_date,end_date,source_url,verification_state,verified_at,published,created_at,source_type,source_reference,source_date,verified_basis,program_category,sku_variant,channel_code,offer_items,record_kind,review_notes,requires_review,initial_review_required,review_evidence,reviewed_by,reviewed_at,import_key",q=>q.order("start_date",{ascending:false})),
+   loadRows(ctx.client,"focus_model_settings","model_code,display_name,is_active").catch(err=>{console.warn("[PromoCenter] optional model data unavailable",err);return []}),
+   loadRows(ctx.client,"raw_sellout","model",q=>q.order("sold_at",{ascending:false})).catch(err=>{console.warn("[PromoCenter] optional sales models unavailable",err);return []}),
+   loadRows(ctx.client,"sales_promotion_stores","promo_id,store_id").catch(err=>{console.warn("[PromoCenter] optional store scope unavailable",err);return []})
   ]);
   if(token!==renderToken||!mount.isConnected)return;
   const models=[...new Set([...focus.map(s=>s.display_name||s.model_code),...raw.map(s=>s.model),...promos.filter(p=>p.model_code!=="*").map(p=>p.model_name)].filter(Boolean).map(s=>String(s).trim()))].sort((a,b)=>a.localeCompare(b,"id"));
@@ -57,7 +57,7 @@ async function render(ctx,mount){
    '</div><div id="promo-saved-filters"></div>'+
    '<p id="promo-results-count" class="intel-caption" aria-live="polite"></p><div id="promo-results" class="intel-promo-grid" aria-live="polite"></div><button id="promo-load-more" class="intel-action intel-action-subtle" type="button" hidden>Muat 18 promo berikutnya</button>'+
    '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Ketersediaan promo bergantung pada model, varian, channel, dan syarat berlaku. Tidak ada data promo = jangan menjanjikan cashback.</p><div id="promo-model-list" class="intel-model-chips"></div></div>'+
-   (role==="admin"?'<div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
+   (role==="admin"?'<div id="promo-review-queue" class="intel-card"><div class="intel-card-head"><h3>Admin · Klarifikasi promo tertunda</h3></div></div><div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
   const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model"),
    channel=mount.querySelector("#promo-channel"),category=mount.querySelector("#promo-category");
   if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;window.UserPrefs.pendingSearch="";}
@@ -159,7 +159,10 @@ async function render(ctx,mount){
     display();
    }
   });
-  if(role==="admin")adminEditor(ctx,mount.querySelector("#promo-admin"),models,ctx.stores||[],()=>render(ctx,mount));
+  if(role==="admin"){
+   if(window.PromoReview)window.PromoReview.render(ctx,mount.querySelector("#promo-review-queue"),promos,ctx.stores||[],relation,()=>render(ctx,mount));
+   adminEditor(ctx,mount.querySelector("#promo-admin"),models,ctx.stores||[],()=>render(ctx,mount));
+  }
  }catch(error){
   if(token!==renderToken)return;
   console.error("[PromoCenter]",error);

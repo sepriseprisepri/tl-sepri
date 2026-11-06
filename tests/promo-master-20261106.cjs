@@ -69,6 +69,16 @@ assert.match(ui,/const channelEligible=p=>/);
 assert.match(ui,/record_kind/);
 assert.match(ui,/id="promo-channel"/);
 assert.match(ui,/id="promo-category"/);
+assert.match(ui,/id="promo-review-queue"/);
+assert.match(ui,/function adminReviewQueue\(/);
+assert.match(ui,/requires_review,import_key/);
+assert.match(ui,/eq\("published",false\)\.eq\("requires_review",true\)/);
+assert.match(ui,/Simpan catatan \(tetap draft\)/);
+assert.match(ui,/reviewChecklist\[key\]/);
+assert.match(ui,/a17-lte-8-128-price/);
+assert.match(ui,/a57-xl-pending/);
+assert.doesNotMatch(ui.slice(ui.indexOf("function adminReviewQueue("),ui.indexOf("function adminEditor(")),/published:true|verification_state:"verified"/);
+
 assert.match(ui,/Tanpa promo cashback/); // no-cashback informational records remain distinct from offers
 assert.match(css,/\.intel-source-internal/);
 assert.match(chart,/p\.record_kind==="offer"/);

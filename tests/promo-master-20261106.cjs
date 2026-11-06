@@ -65,6 +65,7 @@ assert.match(ui,/bukan hasil verifikasi eksternal/);
 assert.match(ui,/intel-offer-items/);
 assert.match(ui,/sku_variant/);
 assert.match(ui,/channel_code/);
+assert.match(ui,/const channelEligible=p=>/);
 assert.match(ui,/record_kind/);
 assert.match(ui,/id="promo-channel"/);
 assert.match(ui,/id="promo-category"/);

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#060b14"><meta name="description" content="Samsung Kalteng Sales Intelligence: pantau target, coverage dan sellout sesuai hak akses."><title>Samsung Kalteng | Sales Intelligence</title>
+  <meta name="theme-color" content="#060b15"><meta name="description" content="Samsung Kalteng Sales Intelligence: pantau target, coverage dan sellout sesuai hak akses."><title>Samsung Kalteng | Sales Intelligence</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -40,25 +40,48 @@
       #login-view .login-trigger:before {transition:none;}
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/futuristic-ui.css">
 </head>
 <body class="min-h-screen">
-<main id="login-view" class="min-h-screen grid lg:grid-cols-2">
-  <section class="hidden lg:flex flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950">
-    <div class="flex items-center gap-3"><div class="h-11 w-11 rounded-2xl brand-orb bg-cyan-400 text-slate-950 grid place-items-center font-black text-xl">S</div><div><div class="font-bold tracking-wide">Samsung Kalteng</div><div class="text-xs text-slate-400">Sales Performance Intelligence</div></div></div>
-    <div class="max-w-xl"><div class="text-cyan-300 text-sm font-semibold tracking-[.24em] uppercase mb-5">Samsung · Central Kalimantan</div><h1 class="text-5xl xl:text-6xl font-semibold leading-tight text-white">Sistem intelijen penjualan <span class="text-cyan-300">Kalimantan Tengah.</span></h1><p class="mt-6 text-slate-300 text-lg leading-8">Pantau EULA VALID, target November, dan coverage RSO Ryan Cipta secara aman.</p></div>
-    <div class="text-xs text-slate-500">Internal workspace · Authorized personnel only</div>
-  </section>
-  <section class="flex items-center justify-center p-6 sm:p-10"><div class="w-full max-w-md">
-    <div class="lg:hidden flex items-center gap-3 mb-12"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div class="font-bold">Samsung Kalteng</div></div>
-    <div class="mb-8"><p class="text-cyan-300 text-sm font-semibold tracking-widest uppercase">Welcome back</p><h2 class="text-3xl font-semibold mt-2 text-white">Masuk ke akun</h2><p class="text-slate-400 mt-2">Gunakan ID akun, kode TL, atau alias Admin yang terdaftar.</p></div>
-    <form id="login-form" class="panel login-glass rounded-2xl p-6 sm:p-8 space-y-5">
-      <div><label for="employee-id" class="block text-sm text-slate-300 mb-2">ID akun / Kode TL</label><input id="employee-id" class="field w-full rounded-xl px-4 py-3" autocomplete="username" inputmode="text" autocapitalize="none" spellcheck="false" placeholder="Contoh: TL_BMU_KAL_02" required></div>
-      <div><label for="password" class="block text-sm text-slate-300 mb-2">Password</label><input id="password" type="password" class="field w-full rounded-xl px-4 py-3" autocomplete="current-password" placeholder="Masukkan password" required></div>
-      <div id="login-error" class="hidden text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3" role="alert"></div>
-      <button id="login-button" class="login-trigger w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold py-3 transition disabled:opacity-50">Masuk</button>
-      <p class="text-xs text-slate-500 text-center">Akses hanya untuk akun yang diotorisasi. Akun TL_BMU diaktifkan oleh Admin.</p>
-    </form><p class="text-xs text-slate-600 mt-8 text-center">© 2026 Samsung Kalteng · Secure internal portal</p>
-  </div></section>
+<main id="login-view" class="login-stage min-h-screen">
+  <div class="login-orbit login-orbit--one" aria-hidden="true"></div>
+  <div class="login-orbit login-orbit--two" aria-hidden="true"></div>
+  <div class="login-shell">
+    <header class="login-head">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <p class="login-eyebrow">Sales intelligence · Central Kalimantan</p>
+      <h1 class="login-title">SAMSUNG KALTENG</h1>
+      <p class="login-subtitle">Command center untuk monitoring penjualan, performa tim, target, dan coverage dalam satu ruang kerja.</p>
+    </header>
+    <form id="login-form" class="login-glass" aria-labelledby="login-card-title">
+      <h2 id="login-card-title" class="login-card-label">Akses personel terotorisasi</h2>
+      <div class="login-fields">
+        <div>
+          <label for="employee-id">ID Karyawan / Kode TL</label>
+          <input id="employee-id" class="login-input field" autocomplete="username" inputmode="text"
+            autocapitalize="none" spellcheck="false" placeholder="Masukkan ID akun terdaftar" required>
+        </div>
+        <div class="login-password-wrap">
+          <label for="password">Password</label>
+          <input id="password" type="password" class="login-input field" autocomplete="current-password" placeholder="Masukkan password" required>
+          <button id="password-visibility" class="password-visibility" type="button"
+            aria-controls="password" aria-label="Tampilkan password" aria-pressed="false">Lihat</button>
+        </div>
+      </div>
+      <div id="login-error" class="hidden text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3 mt-4" role="alert" aria-live="polite"></div>
+      <button id="login-button" class="login-primary" type="submit">
+        <span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>
+      </button>
+      <p class="login-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        Akun TL_BMU_KAL_02 diaktifkan secara khusus oleh Admin.
+      </p>
+    </form>
+    <footer class="login-footer"><strong>Samsung Kalteng</strong> · Internal workspace · 2026</footer>
+  </div>
 </main>
 <main id="password-rotation-view" class="hidden min-h-screen bg-slate-950 px-5 py-14 flex items-center justify-center">
   <section class="panel w-full max-w-md p-7 rounded-2xl border border-cyan-700/50" aria-labelledby="rotate-title">
@@ -75,31 +98,62 @@
     <button id="rotate-logout" type="button" class="text-xs text-slate-400 hover:text-white mt-5">Keluar dari akun</button>
   </section>
 </main>
-<main id="app-view" class="hidden min-h-screen">
-  <div class="min-h-screen lg:grid lg:grid-cols-[255px_1fr]">
-    <aside class="bg-slate-950/90 border-r border-slate-800/80 p-5 lg:min-h-screen">
-      <div class="flex items-center justify-between mb-10"><div class="flex items-center gap-3"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div><div class="font-bold">Samsung Kalteng</div><div class="text-[11px] text-slate-500">Sales Intelligence</div></div></div><button id="mobile-menu" class="lg:hidden text-slate-400" aria-label="Toggle menu">☰</button></div>
-      <div id="nav-wrap" class="hidden lg:block"><p class="text-[10px] tracking-[.2em] text-slate-600 uppercase font-bold px-3 mb-3">Workspace</p><nav id="nav-list" class="space-y-1"></nav>
-        <div class="mt-10 rounded-xl bg-slate-900 p-4"><p class="text-xs text-slate-500">Status sistem</p><div class="flex items-center gap-2 mt-2 text-sm"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Terhubung ke Supabase</div></div>
+<main id="app-view" class="app-shell hidden min-h-screen">
+  <div class="app-frame">
+    <aside class="app-sidebar">
+      <div class="app-brand">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <div><div class="app-brand-text">Samsung Kalteng</div><div class="app-brand-sub">Sales Intelligence</div></div>
+        <button id="mobile-menu" type="button" aria-label="Buka menu navigasi" aria-controls="nav-wrap" aria-expanded="false">☰</button>
+      </div>
+      <div id="nav-wrap" class="hidden lg:block">
+        <p class="sidebar-group-label">Workspace Menu</p>
+        <nav id="nav-list" aria-label="Navigasi berdasarkan peran"></nav>
+        <div class="sidebar-note">
+          <p class="sidebar-note-label">Akses & Keamanan</p>
+          <div class="sidebar-note-value"><span class="sidebar-note-dot" aria-hidden="true"></span>
+            Data terlindungi oleh Supabase RLS</div>
+        </div>
       </div>
     </aside>
-    <section class="min-w-0">
-      <header class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 px-6 py-5 lg:px-9">
-        <div><p id="page-kicker" class="text-xs text-cyan-300 uppercase tracking-widest font-semibold">Overview</p><h1 id="page-title" class="text-2xl font-semibold mt-1 text-white">Dashboard</h1></div>
-        <div class="flex items-center gap-3"><div class="text-right"><div id="user-name" class="text-sm font-semibold text-white"></div><div id="user-role" class="text-xs text-slate-500"></div></div><button id="logout-button" class="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800">Keluar</button></div>
-      </header>
-      <div class="p-5 sm:p-6 lg:p-9 max-w-[1600px]">
-        <div id="dashboard-content">
-          <div class="flex flex-wrap items-end justify-between gap-4 mb-7">
-            <div><h2 id="welcome-title" class="text-xl font-semibold text-white">Dashboard</h2><p id="welcome-subtitle" class="text-sm text-slate-400 mt-1">Ringkasan target dan sellout sesuai hak akses akun.</p></div>
-            <div class="flex flex-wrap items-center gap-2"><label class="text-xs text-slate-400" for="period-select">Periode</label><select id="period-select" class="field rounded-lg px-3 py-2 text-sm min-w-40"></select><button id="refresh-button" class="rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-2 text-sm">↻ Refresh</button></div>
+    <section class="app-content">
+      <header class="app-head">
+        <div>
+          <p id="page-kicker" class="head-kicker">Overview</p>
+          <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div class="head-user">
+            <span class="head-avatar" id="user-avatar" aria-hidden="true">S</span>
+            <div class="text-right"><div id="user-name"></div><div id="user-role"></div></div>
           </div>
+          <button id="logout-button" class="head-logout" type="button">Keluar</button>
+        </div>
+      </header>
+      <div class="app-main">
+        <div id="dashboard-content">
+          <section class="dashboard-intro mb-6" aria-label="Ringkasan kerja">
+            <div class="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <p class="dashboard-overline">Mission overview / Sales control</p>
+                <h2 id="welcome-title" class="mt-2">Dashboard</h2>
+                <p id="welcome-subtitle">Ringkasan target dan sellout sesuai hak akses akun.</p>
+              </div>
+              <div class="dashboard-controls">
+                <label for="period-select" class="text-xs text-slate-400">Periode</label>
+                <select id="period-select" class="field" aria-label="Pilih periode target"></select>
+                <button id="refresh-button" type="button">↻ Perbarui</button>
+              </div>
+            </div>
+            <p class="sync-caption" id="sync-status" role="status" aria-live="polite">Memuat data dashboard saat Anda masuk.</p>
+            <nav id="quick-actions" class="quick-actions" aria-label="Akses cepat modul"></nav>
+          </section>
           <div id="data-error" class="hidden mb-5 rounded-xl border border-rose-900 bg-rose-950/30 text-rose-200 text-sm p-4"></div>
           <div id="kpi-grid" class="grid sm:grid-cols-2 2xl:grid-cols-4 gap-4">
             <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Toko dalam cakupan</p><p id="kpi-stores" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Toko yang dapat diakses</p></div>
             <div class="metric rounded-2xl p-5"><p id="target-label" class="text-sm text-slate-400">Target Qty</p><p id="kpi-target-qty" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Target periode terpilih</p></div>
-            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Qty VALID</p><p id="kpi-actual-qty" class="text-3xl font-semibold mt-3">…</p><p id="kpi-qty-progress" class="text-xs text-slate-500 mt-2">Achievement: …</p></div>
-            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Achievement Amt</p><p id="kpi-actual-amt" class="text-2xl font-semibold mt-3">…</p><p id="kpi-amt-progress" class="text-xs text-slate-500 mt-2">Target: …</p></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Qty VALID</p><p id="kpi-actual-qty" class="text-3xl font-semibold mt-3">…</p><p id="kpi-qty-progress" class="text-xs text-slate-500 mt-2">Achievement: …</p><div id="qty-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Qty" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="qty-progress-fill" class="kpi-progress-fill"></div></div></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Achievement Amt</p><p id="kpi-actual-amt" class="text-2xl font-semibold mt-3">…</p><p id="kpi-amt-progress" class="text-xs text-slate-500 mt-2">Target: …</p><div id="amt-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Amount" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="amt-progress-fill" class="kpi-progress-fill"></div></div></div>
           </div>
           <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
             <div class="panel rounded-xl p-4"><p class="text-xs text-slate-500">Target Amt</p><p id="small-target-amt" class="text-lg font-semibold mt-1">…</p></div>
@@ -144,10 +198,50 @@ const money=v=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",ma
 const pct=(a,b)=>b>0?(a/b*100):0;
 const dateFmt=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
 function showLoginError(msg){const el=$("login-error");el.className="text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3";el.textContent=msg}
-function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Refresh"}
+function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Perbarui"}
 function showDataError(msg){$("data-error").textContent=msg;$("data-error").classList.remove("hidden")}
 function hideDataError(){$("data-error").classList.add("hidden")}
-function renderNav(role){$("nav-list").innerHTML="";(menus[role]||[]).forEach(([label,icon],i)=>{const b=document.createElement("button");b.className="nav-item"+(i===0?" active":"");b.dataset.label=label;b.innerHTML='<span class="w-5 text-center">'+icon+'</span><span>'+label+'</span>';b.addEventListener("click",()=>openSection(label));$("nav-list").appendChild(b)})}
+function menuIcon(label){
+ const paths={
+  "Dashboard":'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  "Data & Import":'<path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+  "Target":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  "Target Saya":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  "RAW Sellout":'<path d="M4 19h16M7 16v-5M12 16V5M17 16V8"/><circle cx="7" cy="9" r="1"/><circle cx="12" cy="3" r="1"/><circle cx="17" cy="6" r="1"/>',
+  "Manpower":'<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
+  "Coverage":'<path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',
+  "Coverage & Toko":'<path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',
+  "Store Shadow":'<path d="M4 21V7l8-4 8 4v14M8 9h2m4 0h2M8 13h2m4 0h2M10 21v-4h4v4M3 21h18"/>',
+  "Focus Model":'<path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2Z"/>',
+  "Survey":'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 10h6M9 14h6M9 18h4"/>',
+  "Laporan":'<path d="M4 20h16M5 17V9M10 17V5M15 17v-7M20 17V3"/>',
+  "Laporan Saya":'<path d="M4 20h16M5 17V9M10 17V5M15 17v-7M20 17V3"/>',
+  "Performa EC":'<path d="M3 20h18M6 17v-7M12 17V4M18 17v-4"/><circle cx="12" cy="3" r=".8"/>',
+  "Input Sellout":'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 12h6m-3-3v6"/>',
+  "Pengaturan":'<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .8 1.4-1.7 1.7-1.4-.8a7 7 0 0 1-2 .8l-.4 1.6H9.3l-.4-1.6a7 7 0 0 1-2-.8l-1.4.8-1.7-1.7.8-1.4a7 7 0 0 1-.8-2l-1.6-.4V10l1.6-.4a7 7 0 0 1 .8-2l-.8-1.4 1.7-1.7 1.4.8a7 7 0 0 1 2-.8l.4-1.6h5.4l.4 1.6a7 7 0 0 1 2 .8l1.4-.8 1.7 1.7-.8 1.4a7 7 0 0 1 .8 2l1.6.4v2.4l-1.6.4a7 7 0 0 1-.8 2Z"/>'
+ };
+ return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">'+(paths[label]||paths.Dashboard)+'</svg>';
+}
+function renderNav(role){
+ const menu=menus[role]||[];
+ $("nav-list").innerHTML="";
+ menu.forEach(([label,icon],i)=>{
+  const b=document.createElement("button");
+  b.type="button";b.className="nav-item"+(i===0?" active":"");
+  b.dataset.label=label;
+  b.setAttribute("aria-current",i===0?"page":"false");
+  b.innerHTML='<span aria-hidden="true">'+menuIcon(label)+'</span><span>'+label+'</span>';
+  b.addEventListener("click",()=>openSection(label));
+  $("nav-list").appendChild(b);
+ });
+ const quickLabels=["Coverage & Toko","Coverage","Target","Target Saya","RAW Sellout","Performa EC","Laporan Saya","Laporan","Focus Model"];
+ const quick=quickLabels.filter(label=>menu.some(([name])=>name===label)).slice(0,3);
+ const container=$("quick-actions");container.innerHTML="";
+ quick.forEach(label=>{
+  const b=document.createElement("button");b.type="button";b.className="quick-action";
+  b.textContent=label;b.addEventListener("click",()=>openSection(label));container.appendChild(b);
+ });
+}
 function openSection(label){
  const home=label==="Dashboard";$("page-title").textContent=label;$("page-kicker").textContent=home?"Overview":"Workspace";
  $("dashboard-content").classList.toggle("hidden",!home);$("section-placeholder").classList.toggle("hidden",home);
@@ -165,8 +259,11 @@ function openSection(label){
    if(window.renderImportHub)window.renderImportHub();
   }else $("section-description").textContent="Kerangka menu "+label+" sudah disiapkan. Modul operasional akan diintegrasikan pada tahap berikutnya.";
  }
- $("nav-list").querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.label===label));
- if(window.innerWidth<1024)$("nav-wrap").classList.add("hidden");
+ $("nav-list").querySelectorAll("button").forEach(b=>{
+  const active=b.dataset.label===label;
+  b.classList.toggle("active",active);b.setAttribute("aria-current",active?"page":"false");
+ });
+ if(window.innerWidth<1024){$("nav-wrap").classList.add("hidden");$("mobile-menu").setAttribute("aria-expanded","false");}
 }
 async function fetchAll(table,columns,configure){
  const out=[],size=1000;
@@ -190,7 +287,7 @@ async function loadDashboard(){
  if(!currentProfile)return;setBusy(true);hideDataError();$("data-notice").classList.add("hidden");
  try{
   const period=periods.find(p=>p.id===$("period-select").value)||periods[0];
-  if(!period){renderDashboard({stores:[],targets:[],sales:[],targetQty:0,targetAmt:0});$("data-notice").textContent="Belum ada periode target yang tersedia untuk akun ini.";$("data-notice").classList.remove("hidden");return}
+  if(!period){renderDashboard({stores:[],targets:[],sales:[],targetQty:0,targetAmt:0});$("data-notice").textContent="Belum ada periode target yang tersedia untuk akun ini.";$("data-notice").classList.remove("hidden");$("sync-status").textContent="Belum ada periode untuk ditampilkan.";return}
   const [stores,manpower]=await Promise.all([
    fetchAll("stores","id,site_id,site_name,channel_category"),
    fetchAll("manpower","id,employee_id,full_name,fieldforce_position,promoter_id,site_id,is_active",q=>q.eq("is_active",true))
@@ -203,7 +300,9 @@ async function loadDashboard(){
   }
   const sales=await fetchAll("raw_sellout","id,site_id,site_name,promoter_id,model,segment,qty,amt,eula_status,sold_at",q=>q.gte("sold_at",period.period_start).lte("sold_at",period.period_end).order("sold_at",{ascending:true}));
   renderDashboard({period,stores,manpower,targets,sales});
- }catch(err){console.error(err);showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));}
+  $("sync-status").classList.remove("error");
+  $("sync-status").textContent="Data dimuat pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB · Perbarui untuk memuat data terbaru.";
+ }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));}
  finally{setBusy(false)}
 }
 function renderDashboard(d){
@@ -234,6 +333,13 @@ function renderDashboard(d){
  $("kpi-target-qty").textContent=fmtNum(targetQty);$("kpi-actual-qty").textContent=fmtNum(actualQty);
  $("kpi-qty-progress").textContent="Achievement: "+fmtNum(pct(actualQty,targetQty))+"%";
  $("kpi-actual-amt").textContent=money(actualAmt);$("kpi-amt-progress").textContent="Achievement: "+fmtNum(pct(actualAmt,targetAmt))+"%";
+ for(const [id,actual,target] of [["qty",actualQty,targetQty],["amt",actualAmt,targetAmt]]){
+  const rate=target>0?actual/target*100:0;
+  const safe=Math.min(100,Math.max(0,rate));
+  $(id+"-progress-fill").style.width=safe+"%";
+  $(id+"-progress-track").setAttribute("aria-valuenow",safe.toFixed(0));
+  $(id+"-progress-track").setAttribute("aria-valuetext",fmtNum(rate)+"% pencapaian");
+ }
  $("small-target-amt").textContent=money(targetAmt);$("small-gap-qty").textContent=fmtNum(targetQty-actualQty);
  $("small-gap-amt").textContent=money(targetAmt-actualAmt);$("small-pending").textContent=fmtNum(pending.length)+" transaksi";
  $("target-label").textContent=currentProfile.role==="ec"?"Target Qty Pribadi":"Target Qty";
@@ -266,7 +372,9 @@ async function enterApp(user){
  $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
  if(data.must_change_password){$("app-view").classList.add("hidden");return}
  $("app-view").classList.remove("hidden");
- $("user-name").textContent=data.full_name||"Pengguna";$("user-role").textContent=roleLabels[data.role];$("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
+ $("user-name").textContent=data.full_name||"Pengguna";$("user-role").textContent=roleLabels[data.role];
+ $("user-avatar").textContent=(data.full_name||"S").trim().split(/\s+/).map(t=>t[0]).slice(0,2).join("").toUpperCase();
+ $("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
  $("access-role").textContent=roleLabels[data.role];$("access-id").textContent=data.employee_id||"-";
  renderNav(data.role);await loadPeriods();await loadDashboard();
 }
@@ -337,9 +445,26 @@ $("login-form").addEventListener("submit",async e=>{e.preventDefault();$("login-
  const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
  const {data,error}=await client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password});
  if(error)throw new Error("ID akun atau password tidak sesuai.");await enterApp(data.user)}
- catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").textContent="Masuk"}});
+ catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").innerHTML='<span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>'}});
 $("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
-$("mobile-menu").addEventListener("click",()=>$("nav-wrap").classList.toggle("hidden"));
+$("mobile-menu").addEventListener("click",()=>{
+ const opened=$("nav-wrap").classList.toggle("hidden")===false;
+ $("mobile-menu").setAttribute("aria-expanded",String(opened));
+ $("mobile-menu").setAttribute("aria-label",opened?"Tutup menu navigasi":"Buka menu navigasi");
+});
+document.addEventListener("keydown",event=>{
+ if(event.key==="Escape"&&window.innerWidth<1024){
+  $("nav-wrap").classList.add("hidden");$("mobile-menu").setAttribute("aria-expanded","false");
+ }
+});
+$("password-visibility").addEventListener("click",()=>{
+ const input=$("password"),button=$("password-visibility"),visible=input.type==="password";
+ input.type=visible?"text":"password";
+ button.setAttribute("aria-pressed",String(visible));
+ button.setAttribute("aria-label",visible?"Sembunyikan password":"Tampilkan password");
+ button.textContent=visible?"Tutup":"Lihat";
+ input.focus({preventScroll:true});
+});
 $("period-select").addEventListener("change",loadDashboard);$("refresh-button").addEventListener("click",loadDashboard);
 client.auth.getSession().then(({data})=>{if(data.session)enterApp(data.session.user).catch(err=>{console.error(err);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})});
 </script>

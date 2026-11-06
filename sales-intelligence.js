@@ -178,7 +178,15 @@ function renderCharts(ctx,mount){
    ['PENDING',N(pending.length)],['Model terjual',N(modelMap.size)]].map(([l,v])=>'<div class="intel-stat"><span>'+esc(l)+'</span><strong>'+esc(v)+'</strong></div>').join("");
   const base=[{data:day.map(x=>x[1]),label:metric==="qty"?"Qty":"Amount",borderColor:"#63e3fa",backgroundColor:"rgba(78,192,239,.20)",fill:true,tension:.32,pointRadius:2}];
   createChart(document.getElementById("intel-day-chart"),"line",day.map(x=>x[0].slice(5)),base);
-  createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>x[0]),[{label:"WoW "+(metric==="qty"?"Qty":"Amount"),data:weekRows.map(x=>x[1]),backgroundColor:"#4f92e7",borderRadius:5}]);
+  const wow=weekRows.map((row,i)=>i>0&&weekRows[i-1][1]>0?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
+  createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>x[0]),[
+    {type:"bar",label:metric==="qty"?"Qty per minggu":"Amount per minggu",data:weekRows.map(x=>x[1]),backgroundColor:"#4f92e7",borderRadius:5,yAxisID:"y"},
+    {type:"line",label:"Growth WoW (%)",data:wow,borderColor:"#7be7c5",pointBackgroundColor:"#7be7c5",tension:.25,yAxisID:"y1"}
+  ],{scales:{
+   x:{ticks:{color:"#91adc1"},grid:{display:false}},
+   y:{beginAtZero:true,position:"left",ticks:{color:"#91adc1"},grid:{color:"rgba(133,180,217,.08)"}},
+   y1:{position:"right",ticks:{color:"#8ee4c9",callback:value=>value+"%"},grid:{display:false}}
+  }});
   createChart(document.getElementById("intel-model-chart"),"bar",rank.map(x=>x[0]),[{data:rank.map(x=>x[1]),backgroundColor:"#68d8f7",borderRadius:5}]);
   createChart(document.getElementById("intel-store-chart"),"bar",storeRank.map(x=>nameMap.get(x[0])||x[0]),[{data:storeRank.map(x=>x[1]),backgroundColor:"#7a9eff",borderRadius:5}],{indexAxis:"y"});
   createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
@@ -200,12 +208,27 @@ function renderCharts(ctx,mount){
 function renderAlerts(ctx,mount){
  const data=analytics.compute(ctx),items=analytics.insights(ctx,ctx.profile.role);
  mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Health & Quality</p><h3>Smart Alerts</h3><p>Risiko yang terdeteksi dari penjualan dan target dalam cakupan akun saat ini.</p></div></div>'+
- panel("Status pemeriksaan",data.alerts.length?'<p>'+N(data.alerts.length)+' kategori alert aktif dari hasil perhitungan.</p>':'<p>Tidak ditemukan alert berdasarkan aturan yang tersedia.</p>')+
- '<div class="intel-chart-grid">'+data.alerts.map(a=>panel(a.title,
-    '<p class="intel-alert-number">'+N(a.count)+'</p><p>'+esc(a.desc)+'</p><button class="intel-link" data-alert-target="'+esc(a.target)+'">Lihat data terkait ↗</button>')).join("")+'</div>'+
+ '<div class="intel-filters"><label>Prioritas<select id="intel-alert-severity" class="field"><option value="all">Semua alert</option><option value="critical">Kritis</option><option value="warning">Peringatan</option><option value="info">Info</option></select></label></div>'+
+ '<div id="intel-alert-saved"></div><div id="intel-alert-results" class="intel-chart-grid"></div>'+
  panel("Analisis otomatis / AI Sales Insight",insightsHtml(items))+
  '<p class="intel-caption">Alert bukan jaminan ketidakpatuhan; verifikasi transaksi dan proses bisnis sebelum mengambil keputusan.</p>';
- mount.querySelectorAll("[data-alert-target]").forEach(b=>b.addEventListener("click",()=>ctx.openSection(b.dataset.alertTarget)));
+ const sel=mount.querySelector("#intel-alert-severity"),grid=mount.querySelector("#intel-alert-results");
+ const redraw=()=>{
+  grid.innerHTML="";const filtered=data.alerts.filter(a=>sel.value==="all"||a.level===sel.value);
+  if(!filtered.length)grid.innerHTML='<div class="intel-zero">Tidak ada alert pada prioritas ini untuk scope akun.</div>';
+  for(const item of filtered){
+   const holder=document.createElement("div");
+   holder.className="intel-card";holder.innerHTML='<h3>'+esc(item.title)+'</h3><p class="intel-alert-number">'+N(item.count)+'</p><p>'+esc(item.desc)+'</p>';
+   const action=document.createElement("button");action.type="button";action.className="intel-link";action.textContent="Lihat data terkait ↗";
+   action.addEventListener("click",()=>ctx.openSection(item.target));holder.appendChild(action);grid.appendChild(holder);
+  }
+ };
+ sel.addEventListener("change",redraw);redraw();
+ if(window.UserPrefs)window.UserPrefs.savedFilterControls({
+  client:ctx.client,profile:ctx.profile,feature:"alerts",mount:mount.querySelector("#intel-alert-saved"),
+  getState:()=>({severity:sel.value}),
+  applyState:s=>{if(typeof s.severity==="string"&&[...sel.options].some(o=>o.value===s.severity))sel.value=s.severity;redraw();}
+ });
 }
 function setupSearch(ctx){
  const input=document.getElementById("global-search"),list=document.getElementById("global-search-results");
@@ -223,6 +246,7 @@ function setupSearch(ctx){
   const entries=[
    ...(c.stores||[]).map(s=>({label:s.site_name+" · "+s.site_id,query:s.site_id,group:"Store",target:role==="ec"?"Target Saya":role==="admin"?"Target":role==="tso"?"Coverage":"Coverage & Toko"})),
    ...(c.manpower||[]).map(m=>({label:m.full_name+" · "+(m.promoter_id||m.employee_id),query:m.promoter_id||m.employee_id,group:"Promoter",target:role==="ec"?"Laporan Saya":"Performa EC"})),
+   ...(c.promos||[]).filter(p=>p.published&&p.verification_state==="verified").map(p=>({label:p.title+" · "+p.model_name,query:p.model_name,group:"Promo",target:"Promo"})),
    ...[...new Set((c.sales||[]).map(s=>s.model).filter(Boolean))].map(model=>({label:model,query:model,group:"Model",target:role==="ec"?"Laporan Saya":"RAW Sellout"}))
   ].filter(e=>(e.label||"").toLocaleLowerCase("id-ID").includes(query)).slice(0,9);
   list.innerHTML="";

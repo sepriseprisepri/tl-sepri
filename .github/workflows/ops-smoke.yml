@@ -4,6 +4,12 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'sales-intelligence.js'
+      - 'promo-center.js'
+      - 'user-experience.js'
+      - 'sales-intelligence.css'
+      - 'tests/intelligence-smoke.cjs'
+      - 'docs/sql/sales-intelligence-promotions-20261106.sql'
       - 'ops-modules.js'
       - 'futuristic-ui.css'
       - 'tests/ui-regression.cjs'
@@ -13,6 +19,12 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'sales-intelligence.js'
+      - 'promo-center.js'
+      - 'user-experience.js'
+      - 'sales-intelligence.css'
+      - 'tests/intelligence-smoke.cjs'
+      - 'docs/sql/sales-intelligence-promotions-20261106.sql'
       - 'ops-modules.js'
       - 'futuristic-ui.css'
       - 'tests/ui-regression.cjs'
@@ -34,3 +46,4 @@ jobs:
           node --version
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs
+          node tests/intelligence-smoke.cjs

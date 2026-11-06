@@ -6,6 +6,9 @@ on:
       - 'index.html'
       - 'sales-intelligence.js'
       - 'promo-center.js'
+      - 'promo-review.js'
+      - 'tests/promo-review-qa.cjs'
+      - 'docs/sql/20261106-promo-review-approval-gate.sql'
       - 'tests/promo-master-20261106.cjs'
       - 'docs/sql/20261106-promo-provenance.sql'
       - 'docs/sql/20261106-promo-master-import.sql'
@@ -24,6 +27,9 @@ on:
       - 'index.html'
       - 'sales-intelligence.js'
       - 'promo-center.js'
+      - 'promo-review.js'
+      - 'tests/promo-review-qa.cjs'
+      - 'docs/sql/20261106-promo-review-approval-gate.sql'
       - 'tests/promo-master-20261106.cjs'
       - 'docs/sql/20261106-promo-provenance.sql'
       - 'docs/sql/20261106-promo-master-import.sql'
@@ -54,3 +60,4 @@ jobs:
           node tests/ui-regression.cjs
           node tests/intelligence-smoke.cjs
           node tests/promo-master-20261106.cjs
+          node tests/promo-review-qa.cjs

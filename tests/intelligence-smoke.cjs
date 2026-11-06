@@ -6,7 +6,7 @@ const vm=require("node:vm");
 const files=["sales-intelligence.js","promo-center.js","user-experience.js","index.html","sales-intelligence.css"];
 files.forEach(path=>assert.ok(fs.existsSync(path),"Missing "+path));
 const window={};
-const context={window,console,Intl,Date,Map,Set,Number,String,Math,Object,Array};
+const context={window,console,Intl,Date,URL,Map,Set,Number,String,Math,Object,Array};
 for(const file of files.filter(path=>path.endsWith(".js"))){
  const code=fs.readFileSync(file,"utf8");
  vm.runInNewContext(code,context,{filename:file});

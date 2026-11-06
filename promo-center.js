@@ -81,7 +81,13 @@ async function render(ctx,mount){
    });
    const currentActive=promos.filter(p=>state(p)==="active");
    const specific=currentActive.filter(p=>p.model_code!=="*"&&p.record_kind==="offer");
-   const covered=new Set(specific.map(p=>norm(p.model_name)));
+   const channelEligible=p=>{
+    if(!filter.channel)return true;
+    const a=p.channel_code||"unspecified",c=filter.channel;
+    return a===c||a==="all"||["traditional","organized"].includes(c)&&a==="offline"||
+      c==="offline"&&["traditional","organized"].includes(a);
+   };
+   const covered=new Set(specific.filter(p=>channelEligible(p)).map(p=>norm(p.model_name)));
    mount.querySelector("#intel-promo-kpis").innerHTML=[
     ["Program model aktif",specific.length],["Kampanye umum",currentActive.filter(p=>p.model_code==="*").length],
     ["Model dalam katalog",models.length],["Model belum ada promo",models.filter(m=>!covered.has(norm(m))).length]

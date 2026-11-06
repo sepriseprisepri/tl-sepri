@@ -47,7 +47,7 @@ async function render(ctx,mount){
   mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Sales enablement · Internal & official sources</p><h3>Promo Samsung</h3>'+
    '<p>Katalog penawaran dan informasi harga berdasarkan sumber resmi atau bulletin internal Samsung Kalteng. Pastikan channel, varian, tanggal, dan syarat transaksi sebelum menawarkan.</p></div>'+
    '<a class="intel-action intel-action-subtle" href="https://www.samsung.com/id/offer/" target="_blank" rel="noopener noreferrer">Samsung Offers Resmi ↗</a></div>'+
-   '<div class="intel-promo-provenance">Sumber data: <strong>Bulletin internal “Master Update Promo Samsung — November 2026” tertanggal 30 Oktober 2026</strong> dan penawaran resmi Samsung.com yang tercatat terpisah. Data bulletin adalah informasi internal yang Anda sampaikan, <strong>bukan hasil verifikasi eksternal oleh Samsung.com</strong>.</div><div id="intel-promo-kpis" class="intel-stat-grid"></div>'+
+   '<div class="intel-promo-provenance">Sumber data: <strong>Bulletin internal “Master Update Promo Samsung — November 2026” tertanggal 30 Oktober 2026</strong> dan penawaran resmi Samsung.com yang tercatat terpisah. Data bulletin adalah informasi internal yang Anda sampaikan, <strong>bukan hasil verifikasi eksternal oleh Samsung.com</strong>.</div><div class="intel-promo-universal-rules">Periode utama program tertentu: <strong>1–17 November</strong>, lainnya mengikuti tanggal masing-masing kartu. Berlaku untuk <strong>Regular Device (Non-PO)</strong> kecuali syarat menyatakan lain. RRP baru berlaku nasional sejak <strong>1 November 2026</strong>. Promo reguler berlaku Traditional & Organized bila tidak ada pengecualian (misalnya S25 FE, Buds 4 Pro, Tab S12). <strong>Biaya Admin Dobel Zero 6%/8% berbeda dari Free Admin & Processing Fee.</strong></div><div id="intel-promo-kpis" class="intel-stat-grid"></div>'+
    '<div class="intel-filters">'+
      '<label>Model atau kata kunci<input id="promo-query" class="field" placeholder="Cari Galaxy A / cashback…" aria-label="Cari promosi"></label>'+
      '<label>Status<select id="promo-status" class="field"><option value="active">Sedang berjalan</option><option value="upcoming">Akan datang</option><option value="expired">Sudah berakhir</option>'+(role==="admin"?'<option value="draft">Draft Admin</option>':'')+'<option value="all">Semua status</option></select></label>'+
@@ -55,13 +55,14 @@ async function render(ctx,mount){
      '<label>Channel<select id="promo-channel" class="field"><option value="">Semua channel</option><option value="traditional">Traditional</option><option value="organized">Organized</option><option value="offline">Offline (Trad + Organized)</option><option value="e_store">E-Store</option><option value="online">Online</option><option value="all">Semua channel</option></select></label>'+
      '<label>Kategori<select id="promo-category" class="field"><option value="">Semua kategori</option><option value="smartphone">Smartphone</option><option value="tablet">Tablet</option><option value="wearable">Watch / Wearable</option><option value="audio">Buds / Audio</option><option value="financing">Finance Plus</option><option value="price">Update Harga</option><option value="information">Info / pengecualian</option></select></label>'+
    '</div><div id="promo-saved-filters"></div>'+
-   '<div id="promo-results" class="intel-promo-grid" aria-live="polite"></div>'+
+   '<p id="promo-results-count" class="intel-caption" aria-live="polite"></p><div id="promo-results" class="intel-promo-grid" aria-live="polite"></div><button id="promo-load-more" class="intel-action intel-action-subtle" type="button" hidden>Muat 18 promo berikutnya</button>'+
    '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Ketersediaan promo bergantung pada model, varian, channel, dan syarat berlaku. Tidak ada data promo = jangan menjanjikan cashback.</p><div id="promo-model-list" class="intel-model-chips"></div></div>'+
    (role==="admin"?'<div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
   const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model"),
    channel=mount.querySelector("#promo-channel"),category=mount.querySelector("#promo-category");
   if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;window.UserPrefs.pendingSearch="";}
   const current=()=>({query:query.value,status:status.value,model:model.value,channel:channel.value,category:category.value});
+  let visibleLimit=18;
   const display=()=>{
    const filter=current(),term=filter.query.trim().toLocaleLowerCase("id-ID");
    const eligiblePromo=promos.filter(p=>{
@@ -86,8 +87,11 @@ async function render(ctx,mount){
     ["Model dalam katalog",models.length],["Model belum ada promo",models.filter(m=>!covered.has(norm(m))).length]
    ].map(([k,v])=>'<div class="intel-stat"><span>'+esc(k)+'</span><strong>'+fmt.format(v)+'</strong></div>').join("");
    const box=mount.querySelector("#promo-results");box.innerHTML="";
+   const more=mount.querySelector("#promo-load-more");
+   more.hidden=eligiblePromo.length<=visibleLimit;
+   mount.querySelector("#promo-results-count").textContent="Menampilkan "+Math.min(visibleLimit,eligiblePromo.length)+" dari "+eligiblePromo.length+" entri sesuai filter. Label 'aktif' menunjukkan tanggal program pada bulletin, bukan verifikasi eksternal.";
    if(!eligiblePromo.length)box.innerHTML='<div class="intel-zero">Belum ada promo terverifikasi yang sesuai filter ini. Periksa kanal resmi Samsung atau hubungi Admin.</div>';
-   for(const p of eligiblePromo){
+   for(const p of eligiblePromo.slice(0,visibleLimit)){
     const node=document.createElement("article");node.className="intel-promo-card";
     const condition=state(p),isGeneral=p.model_code==="*";
     const modelTag=isGeneral?"KAMPANYE UMUM · CEK KELAYAKAN MODEL":p.model_name;
@@ -135,7 +139,8 @@ async function render(ctx,mount){
    }
    if(!models.length)chips.innerHTML='<p class="intel-caption">Belum tersedia master model dari data akun ini. Gunakan pencarian promo atau perbarui data focus model.</p>';
   };
-  [query,status,model,channel,category].forEach(input=>input.addEventListener(input===query?"input":"change",display));
+  [query,status,model,channel,category].forEach(input=>input.addEventListener(input===query?"input":"change",()=>{visibleLimit=18;display();}));
+  mount.querySelector("#promo-load-more").addEventListener("click",()=>{visibleLimit+=18;display();});
   display();
   if(window.UserPrefs)window.UserPrefs.savedFilterControls({
    client:ctx.client,profile:ctx.profile,feature:"promo",mount:mount.querySelector("#promo-saved-filters"),

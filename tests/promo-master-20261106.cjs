@@ -68,7 +68,7 @@ assert.match(ui,/channel_code/);
 assert.match(ui,/record_kind/);
 assert.match(ui,/id="promo-channel"/);
 assert.match(ui,/id="promo-category"/);
-assert.match(ui,/TIDAK ADA cashback/); // must keep no-cashback text in resulting rows
+assert.match(ui,/Tanpa promo cashback/); // no-cashback informational records remain distinct from offers
 assert.match(css,/\.intel-source-internal/);
 assert.match(chart,/p\.record_kind==="offer"/);
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

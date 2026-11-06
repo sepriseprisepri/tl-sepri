@@ -255,7 +255,8 @@ function drawCharts(daily,segments,period){
 }
 async function enterApp(user){
  const {data,error}=await client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active,must_change_password").eq("id",user.id).single();
- if(error||!data||!data.is_active||!roleLabels[data.role]){await client.auth.signOut();throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.")}
+ const rotationOnly=Boolean(data && data.role==="tl" && data.employee_id==="TL_BMU_KAL_02" && data.must_change_password);
+ if(error||!data||!roleLabels[data.role]||(!data.is_active&&!rotationOnly)){await client.auth.signOut();throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.")}
  currentProfile=data;$("login-view").classList.add("hidden");
  $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
  if(data.must_change_password){$("app-view").classList.add("hidden");return}

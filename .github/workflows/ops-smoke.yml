@@ -6,6 +6,9 @@ on:
       - 'index.html'
       - 'sales-intelligence.js'
       - 'promo-center.js'
+      - 'tests/promo-master-20261106.cjs'
+      - 'docs/sql/20261106-promo-provenance.sql'
+      - 'docs/sql/20261106-promo-master-import.sql'
       - 'user-experience.js'
       - 'sales-intelligence.css'
       - 'tests/intelligence-smoke.cjs'
@@ -21,6 +24,9 @@ on:
       - 'index.html'
       - 'sales-intelligence.js'
       - 'promo-center.js'
+      - 'tests/promo-master-20261106.cjs'
+      - 'docs/sql/20261106-promo-provenance.sql'
+      - 'docs/sql/20261106-promo-master-import.sql'
       - 'user-experience.js'
       - 'sales-intelligence.css'
       - 'tests/intelligence-smoke.cjs'
@@ -47,3 +53,4 @@ jobs:
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs
           node tests/intelligence-smoke.cjs
+          node tests/promo-master-20261106.cjs

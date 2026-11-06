@@ -63,7 +63,7 @@ const analytics={
   if(a.missing.length)items.push({type:"risk",title:"Target toko belum tersedia",body:N(a.missing.length)+" store belum memiliki target pada periode ini."});
   if(a.slowStores.length)items.push({type:"recommendation",title:"Prioritaskan toko di bawah pace",body:N(a.slowStores.length)+" toko berada di bawah 65% pace per tanggal berjalan. Validasi target serta rencana aksi lapangan."});
   if(a.promoOpportunity.length)items.push({type:"opportunity",title:"Promo terverifikasi untuk model terjual",body:a.promoOpportunity.map(m=>m.model).join(", ")+" memiliki penawaran model-spesifik terverifikasi. Periksa syarat promo sebelum menawarkan."});
-  if(!a.activePromo.length)items.push({type:"info",title:"Belum ada promo model-spesifik aktif yang tercatat",body:"Admin dapat menerbitkan penawaran yang terverifikasi di Promo Center."});
+  if(!a.activePromo.some(p=>p.model_code!=="*"))items.push({type:"info",title:"Belum ada promo model-spesifik aktif yang tercatat",body:"Admin dapat menerbitkan penawaran yang terverifikasi di Promo Center."});
   return items.slice(0,7);
  }
 };

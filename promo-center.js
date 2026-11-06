@@ -4,6 +4,17 @@
 "use strict";
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=new Intl.NumberFormat("id-ID");
+const rp=new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0});
+const channelName={all:"Seluruh channel (sesuai syarat)",offline:"Traditional + Organized",traditional:"Traditional saja",organized:"Organized saja",e_store:"E-Store",online:"Online saja",unspecified:"Channel belum dipastikan"};
+const kindLabel={offer:"Promo",price_update:"Informasi harga",no_offer:"Tanpa promo cashback",information:"Informasi program",financing:"Skema pembiayaan"};
+function formatOffer(item){
+ let output=String(item.name||"Benefit");
+ if(item.amount_idr!=null)output+=" · "+rp.format(Number(item.amount_idr));
+ if(item.price_idr!=null)output+=" · "+rp.format(Number(item.price_idr));
+ if(item.percent!=null)output+=" · "+String(item.percent)+"%";
+ if(item.estimated_value_idr!=null)output+=" · nilai estimasi "+rp.format(Number(item.estimated_value_idr));
+ return output;
+}
 const today=()=>window.SalesIntelligence?.dateLocal?.()||new Date().toISOString().slice(0,10);
 const norm=x=>String(x||"").trim().toUpperCase().replace(/\s+/g," ");
 const allowedUrl=u=>{try{const x=new URL(u);return x.protocol==="https:"&&(x.hostname==="www.samsung.com"&&x.pathname.startsWith("/id/")||x.hostname==="samsung.com"&&x.pathname.startsWith("/id/")||x.hostname==="news.samsung.com"&&x.pathname.startsWith("/id/"));}catch{return false;}};
@@ -33,7 +44,7 @@ async function render(ctx,mount){
   const relation=new Map();
   for(const item of eligible){const arr=relation.get(item.promo_id)||[];arr.push(item.store_id);relation.set(item.promo_id,arr);}
   const role=ctx.profile.role;
-  mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Sales enablement · Verified offers</p><h3>Promo Samsung</h3>'+
+  mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Sales enablement · Internal & official sources</p><h3>Promo Samsung</h3>'+
    '<p>Katalog penawaran dan informasi harga berdasarkan sumber resmi atau bulletin internal Samsung Kalteng. Pastikan channel, varian, tanggal, dan syarat transaksi sebelum menawarkan.</p></div>'+
    '<a class="intel-action intel-action-subtle" href="https://www.samsung.com/id/offer/" target="_blank" rel="noopener noreferrer">Samsung Offers Resmi ↗</a></div>'+
    '<div class="intel-promo-provenance">Sumber data: <strong>Bulletin internal “Master Update Promo Samsung — November 2026” tertanggal 30 Oktober 2026</strong> dan penawaran resmi Samsung.com yang tercatat terpisah. Data bulletin adalah informasi internal yang Anda sampaikan, <strong>bukan hasil verifikasi eksternal oleh Samsung.com</strong>.</div><div id="intel-promo-kpis" class="intel-stat-grid"></div>'+
@@ -81,13 +92,23 @@ async function render(ctx,mount){
     const condition=state(p),isGeneral=p.model_code==="*";
     const modelTag=isGeneral?"KAMPANYE UMUM · CEK KELAYAKAN MODEL":p.model_name;
     const stores=(relation.get(p.id)||[]).map(id=>storeMap.get(id)?.site_name).filter(Boolean);
-    const source=allowedUrl(p.source_url)?'<a href="'+esc(p.source_url)+'" target="_blank" rel="noopener noreferrer" class="intel-link">Lihat syarat & sumber resmi ↗</a>':
-      '<span class="intel-caption">Sumber bukan domain Samsung Indonesia yang diizinkan — konfirmasi ke Admin.</span>';
-    node.innerHTML='<div class="intel-promo-top"><span class="intel-promo-state state-'+esc(condition)+'">'+esc(label[condition])+'</span><span class="intel-overline">'+esc(p.channel_label)+'</span></div>'+
+    const isInternal=p.source_type==="internal_bulletin";
+    const source=isInternal?
+      '<span class="intel-source-internal">Bulletin internal · '+esc(p.source_date||"30 Oktober 2026")+' · Disalin dari informasi yang diberikan. Bukan verifikasi publik Samsung.com; cek mekanisme dengan TL/TSO.</span>':
+      allowedUrl(p.source_url)?'<a href="'+esc(p.source_url)+'" target="_blank" rel="noopener noreferrer" class="intel-link">Lihat syarat & sumber resmi ↗</a>':
+       '<span class="intel-caption">Tautan resmi belum tersedia — periksa sumber sebelum transaksi.</span>';
+    const items=Array.isArray(p.offer_items)?p.offer_items:[];
+    const itemCards=items.length?
+     '<ul class="intel-offer-items">'+items.map(item=>'<li>'+esc(formatOffer(item))+'</li>').join("")+'</ul>':"";
+    const kind=p.record_kind||"offer";
+    const review=p.review_notes&&p.requires_review?'<p class="intel-review-note">Perlu konfirmasi: '+esc(p.review_notes)+'</p>':"";
+    const sourceLabel=isInternal?"Sumber: bulletin internal":"Sumber: Samsung.com";
+    node.innerHTML='<div class="intel-promo-top"><span class="intel-promo-state state-'+esc(condition)+'">'+esc(kind!=="offer"?(kindLabel[kind]||label[condition]):label[condition])+'</span><span class="intel-overline">'+esc(sourceLabel)+'</span></div>'+
      '<p class="intel-promo-model">'+esc(modelTag)+'</p><h4>'+esc(p.title)+'</h4>'+
-     '<p class="intel-promo-benefit">'+esc(p.benefit)+'</p>'+
+     '<div class="intel-offer-badges"><span>Varian: '+esc(p.sku_variant||"Semua varian")+'</span><span>Channel: '+esc(channelName[p.channel_code]||p.channel_label)+'</span><span>'+esc(kindLabel[kind]||"Promo")+'</span></div>'+
+     '<p class="intel-promo-benefit">'+esc(p.benefit)+'</p>'+itemCards+review+
      '<dl class="intel-promo-meta"><div><dt>Mulai</dt><dd>'+esc(p.start_date)+'</dd></div><div><dt>Berakhir</dt><dd>'+esc(p.end_date)+'</dd></div>'+
-     '<div><dt>Cakupan</dt><dd>'+esc(p.scope_type==="national"?"Kampanye umum nasional":stores.length?stores.join(", "):"Toko tertentu")+'</dd></div></dl>'+
+     '<div><dt>Cakupan toko</dt><dd>'+esc(p.scope_type==="national"?"Mengikuti kanal & syarat masing-masing":stores.length?stores.join(", "):"Toko tertentu")+'</dd></div></dl>'+
      (p.terms?'<details class="intel-terms"><summary>Syarat dan ketentuan</summary><p>'+esc(p.terms)+'</p></details>':"")+
      '<div class="intel-promo-links">'+source+'</div>';
     if(role==="admin"){
@@ -109,12 +130,12 @@ async function render(ctx,mount){
    for(const m of models.filter(m=>!filter.model||norm(m)===norm(filter.model)).slice(0,150)){
     const isActive=covered.has(norm(m)),el=document.createElement("span");
     el.className="intel-model-chip"+(isActive?" active":"");
-    el.textContent=m+" · "+(isActive?"Promo model terverifikasi":"Belum ada promo model");
+    el.textContent=m+" · "+(isActive?"Ada program terdata, cek varian/channel":"Tidak ada promo cashback terdata untuk model/kanal ini");
     chips.appendChild(el);
    }
    if(!models.length)chips.innerHTML='<p class="intel-caption">Belum tersedia master model dari data akun ini. Gunakan pencarian promo atau perbarui data focus model.</p>';
   };
-  [query,status,model].forEach(input=>input.addEventListener(input===query?"input":"change",display));
+  [query,status,model,channel,category].forEach(input=>input.addEventListener(input===query?"input":"change",display));
   display();
   if(window.UserPrefs)window.UserPrefs.savedFilterControls({
    client:ctx.client,profile:ctx.profile,feature:"promo",mount:mount.querySelector("#promo-saved-filters"),
@@ -122,6 +143,8 @@ async function render(ctx,mount){
     if(typeof s.query==="string")query.value=s.query;
     if(typeof s.status==="string"&&[...status.options].some(o=>o.value===s.status))status.value=s.status;
     if(typeof s.model==="string"&&[...model.options].some(o=>o.value===s.model))model.value=s.model;
+    if(typeof s.channel==="string"&&[...channel.options].some(o=>o.value===s.channel))channel.value=s.channel;
+    if(typeof s.category==="string"&&[...category.options].some(o=>o.value===s.category))category.value=s.category;
     display();
    }
   });

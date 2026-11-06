@@ -33,7 +33,7 @@ async function render(ctx,mount){
  const token=++renderToken;mount.innerHTML='<p class="intel-loading" role="status">Memuat katalog promo yang diizinkan akun...</p>';
  try{
   const [promos,focus,raw,eligible]=await Promise.all([
-   loadRows(ctx.client,"sales_promotions","id,title,model_code,model_name,benefit,terms,channel_label,scope_type,start_date,end_date,source_url,verification_state,verified_at,published,created_at,source_type,source_reference,source_date,verified_basis,program_category,sku_variant,channel_code,offer_items,record_kind,review_notes,requires_review",q=>q.order("start_date",{ascending:false})),
+   loadRows(ctx.client,"sales_promotions","id,title,model_code,model_name,benefit,terms,channel_label,scope_type,start_date,end_date,source_url,verification_state,verified_at,published,created_at,source_type,source_reference,source_date,verified_basis,program_category,sku_variant,channel_code,offer_items,record_kind,review_notes,requires_review,import_key",q=>q.order("start_date",{ascending:false})),
    loadRows(ctx.client,"focus_model_settings","model_code,display_name,is_active"),
    loadRows(ctx.client,"raw_sellout","model",q=>q.order("sold_at",{ascending:false})),
    loadRows(ctx.client,"sales_promotion_stores","promo_id,store_id")

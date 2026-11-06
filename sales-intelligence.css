@@ -197,3 +197,14 @@
 #promo-results-count{font-size:11px;}
 #promo-load-more{margin:0 auto 22px;display:flex;}
 #promo-load-more[hidden]{display:none!important;}
+
+/* Admin-only review queue: draft notes are saved without publishing. */
+.intel-review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:12px;margin-top:14px;}
+.intel-review-item{padding:15px;border:1px solid rgba(238,181,101,.25);border-radius:13px;background:rgba(24,35,51,.72);display:grid;gap:12px;}
+.intel-review-item .intel-promo-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.intel-review-item .intel-promo-top strong{font-size:12px;line-height:1.6;color:#e5eff6;}
+.intel-review-item p{font-size:11.5px;line-height:1.7;color:#b8cbd9;}
+.intel-review-item label{display:grid;gap:7px;font-size:11px;color:#c2d8e4;}
+.intel-review-item textarea{width:100%;resize:vertical;min-height:88px;}
+.intel-review-actions{display:flex;flex-wrap:wrap;gap:8px;}
+.intel-review-actions button{font-size:11px;}

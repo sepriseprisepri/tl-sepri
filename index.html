@@ -49,7 +49,7 @@
     <div class="text-xs text-slate-500">Internal workspace · Authorized personnel only</div>
   </section>
   <section class="flex items-center justify-center p-6 sm:p-10"><div class="w-full max-w-md">
-    <div class="lg:hidden flex items-center gap-3 mb-12"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div class="font-bold">TL SEPRI</div></div>
+    <div class="lg:hidden flex items-center gap-3 mb-12"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div class="font-bold">Samsung Kalteng</div></div>
     <div class="mb-8"><p class="text-cyan-300 text-sm font-semibold tracking-widest uppercase">Welcome back</p><h2 class="text-3xl font-semibold mt-2 text-white">Masuk ke akun</h2><p class="text-slate-400 mt-2">Gunakan ID akun, kode TL, atau alias Admin yang terdaftar.</p></div>
     <form id="login-form" class="panel login-glass rounded-2xl p-6 sm:p-8 space-y-5">
       <div><label for="employee-id" class="block text-sm text-slate-300 mb-2">ID akun / Kode TL</label><input id="employee-id" class="field w-full rounded-xl px-4 py-3" autocomplete="username" inputmode="text" autocapitalize="none" spellcheck="false" placeholder="Contoh: TL_BMU_KAL_02" required></div>
@@ -78,7 +78,7 @@
 <main id="app-view" class="hidden min-h-screen">
   <div class="min-h-screen lg:grid lg:grid-cols-[255px_1fr]">
     <aside class="bg-slate-950/90 border-r border-slate-800/80 p-5 lg:min-h-screen">
-      <div class="flex items-center justify-between mb-10"><div class="flex items-center gap-3"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div><div class="font-bold">TL SEPRI</div><div class="text-[11px] text-slate-500">Sales Intelligence</div></div></div><button id="mobile-menu" class="lg:hidden text-slate-400" aria-label="Toggle menu">☰</button></div>
+      <div class="flex items-center justify-between mb-10"><div class="flex items-center gap-3"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div><div class="font-bold">Samsung Kalteng</div><div class="text-[11px] text-slate-500">Sales Intelligence</div></div></div><button id="mobile-menu" class="lg:hidden text-slate-400" aria-label="Toggle menu">☰</button></div>
       <div id="nav-wrap" class="hidden lg:block"><p class="text-[10px] tracking-[.2em] text-slate-600 uppercase font-bold px-3 mb-3">Workspace</p><nav id="nav-list" class="space-y-1"></nav>
         <div class="mt-10 rounded-xl bg-slate-900 p-4"><p class="text-xs text-slate-500">Status sistem</p><div class="flex items-center gap-2 mt-2 text-sm"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Terhubung ke Supabase</div></div>
       </div>
@@ -116,7 +116,7 @@
             <div class="panel rounded-2xl p-5 sm:p-6"><div class="flex items-center justify-between gap-3 mb-4"><div><h3 class="font-semibold" id="performance-title">Performa toko</h3><p class="text-xs text-slate-500 mt-1">Target, realisasi, dan achievement per toko</p></div><span id="store-count-label" class="pill text-slate-400">0 toko</span></div><div class="table-wrap"><table class="w-full text-sm"><thead><tr><th class="text-left">Toko</th><th class="text-right">Target Qty</th><th class="text-right">Actual Qty</th><th class="text-right">Ach.</th></tr></thead><tbody id="store-table"><tr><td colspan="4" class="text-center text-slate-500 py-8">Memuat data…</td></tr></tbody></table></div></div>
             <div class="panel rounded-2xl p-5 sm:p-6"><h3 class="font-semibold">Ringkasan akun</h3><div class="mt-4 space-y-4 text-sm"><div class="flex justify-between gap-3"><span class="text-slate-500">Role</span><span id="access-role" class="text-white"></span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Employee ID</span><span id="access-id" class="text-white"></span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Manpower aktif</span><span id="access-manpower" class="text-white"></span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Transaksi VALID</span><span id="access-valid-count" class="text-white"></span></div></div><div class="mt-6 pt-5 border-t border-slate-800"><p class="text-xs text-slate-500">Catatan perhitungan</p><p class="text-xs text-slate-400 mt-2 leading-6">Achievement resmi hanya menghitung transaksi EULA VALID. PENDING ditampilkan terpisah dan belum masuk realisasi.</p></div></div>
           </div>
-          <p class="text-xs text-slate-600 mt-8">TL SEPRI · Internal use only · Data dibatasi oleh Row Level Security Supabase</p>
+          <p class="text-xs text-slate-600 mt-8">Samsung Kalteng · Internal use only · Data dibatasi oleh Row Level Security Supabase</p>
         </div>
         <div id="section-placeholder" class="hidden panel rounded-2xl p-7 mt-2"><h3 id="section-heading" class="font-semibold text-xl"></h3><p id="section-description" class="text-sm text-slate-400 mt-2 leading-7">Modul ini akan diaktifkan pada tahap integrasi berikutnya.</p><div id="import-hub-container" class="mt-6"></div></div>
       </div>
@@ -142,7 +142,7 @@ const fmtNum=v=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(
 const money=v=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const pct=(a,b)=>b>0?(a/b*100):0;
 const dateFmt=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
-function showLoginError(msg){$("login-error").textContent=msg;$("login-error").classList.remove("hidden")}
+function showLoginError(msg){const el=$("login-error");el.className="text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3";el.textContent=msg}
 function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Refresh"}
 function showDataError(msg){$("data-error").textContent=msg;$("data-error").classList.remove("hidden")}
 function hideDataError(){$("data-error").classList.add("hidden")}

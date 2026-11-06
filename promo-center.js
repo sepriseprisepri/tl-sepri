@@ -22,7 +22,7 @@ async function render(ctx,mount){
  const token=++renderToken;mount.innerHTML='<p class="intel-loading" role="status">Memuat katalog promo yang diizinkan akun...</p>';
  try{
   const [promos,focus,raw,eligible]=await Promise.all([
-   loadRows(ctx.client,"sales_promotions","id,title,model_code,model_name,benefit,terms,channel_label,scope_type,start_date,end_date,source_url,verification_state,verified_at,published,created_at",q=>q.order("start_date",{ascending:false})),
+   loadRows(ctx.client,"sales_promotions","id,title,model_code,model_name,benefit,terms,channel_label,scope_type,start_date,end_date,source_url,verification_state,verified_at,published,created_at,source_type,source_reference,source_date,verified_basis,program_category,sku_variant,channel_code,offer_items,record_kind,review_notes,requires_review",q=>q.order("start_date",{ascending:false})),
    loadRows(ctx.client,"focus_model_settings","model_code,display_name,is_active"),
    loadRows(ctx.client,"raw_sellout","model",q=>q.order("sold_at",{ascending:false})),
    loadRows(ctx.client,"sales_promotion_stores","promo_id,store_id")
@@ -34,33 +34,44 @@ async function render(ctx,mount){
   for(const item of eligible){const arr=relation.get(item.promo_id)||[];arr.push(item.store_id);relation.set(item.promo_id,arr);}
   const role=ctx.profile.role;
   mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Sales enablement · Verified offers</p><h3>Promo Samsung</h3>'+
-   '<p>Promo resmi yang tersedia untuk model Samsung dalam periode dan cakupan Anda. Syarat selalu mengikuti sumber resmi.</p></div>'+
+   '<p>Katalog penawaran dan informasi harga berdasarkan sumber resmi atau bulletin internal Samsung Kalteng. Pastikan channel, varian, tanggal, dan syarat transaksi sebelum menawarkan.</p></div>'+
    '<a class="intel-action intel-action-subtle" href="https://www.samsung.com/id/offer/" target="_blank" rel="noopener noreferrer">Samsung Offers Resmi ↗</a></div>'+
-   '<div id="intel-promo-kpis" class="intel-stat-grid"></div>'+
+   '<div class="intel-promo-provenance">Sumber data: <strong>Bulletin internal “Master Update Promo Samsung — November 2026” tertanggal 30 Oktober 2026</strong> dan penawaran resmi Samsung.com yang tercatat terpisah. Data bulletin adalah informasi internal yang Anda sampaikan, <strong>bukan hasil verifikasi eksternal oleh Samsung.com</strong>.</div><div id="intel-promo-kpis" class="intel-stat-grid"></div>'+
    '<div class="intel-filters">'+
      '<label>Model atau kata kunci<input id="promo-query" class="field" placeholder="Cari Galaxy A / cashback…" aria-label="Cari promosi"></label>'+
      '<label>Status<select id="promo-status" class="field"><option value="active">Sedang berjalan</option><option value="upcoming">Akan datang</option><option value="expired">Sudah berakhir</option>'+(role==="admin"?'<option value="draft">Draft Admin</option>':'')+'<option value="all">Semua status</option></select></label>'+
      '<label>Model<select id="promo-model" class="field"><option value="">Semua model</option>'+models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")+'</select></label>'+
+     '<label>Channel<select id="promo-channel" class="field"><option value="">Semua channel</option><option value="traditional">Traditional</option><option value="organized">Organized</option><option value="offline">Offline (Trad + Organized)</option><option value="e_store">E-Store</option><option value="online">Online</option><option value="all">Semua channel</option></select></label>'+
+     '<label>Kategori<select id="promo-category" class="field"><option value="">Semua kategori</option><option value="smartphone">Smartphone</option><option value="tablet">Tablet</option><option value="wearable">Watch / Wearable</option><option value="audio">Buds / Audio</option><option value="financing">Finance Plus</option><option value="price">Update Harga</option><option value="information">Info / pengecualian</option></select></label>'+
    '</div><div id="promo-saved-filters"></div>'+
    '<div id="promo-results" class="intel-promo-grid" aria-live="polite"></div>'+
-   '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Model yang teridentifikasi dari sellout dan focus model. Tidak ada penawaran terverifikasi = tidak boleh menjanjikan promo.</p><div id="promo-model-list" class="intel-model-chips"></div></div>'+
+   '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Ketersediaan promo bergantung pada model, varian, channel, dan syarat berlaku. Tidak ada data promo = jangan menjanjikan cashback.</p><div id="promo-model-list" class="intel-model-chips"></div></div>'+
    (role==="admin"?'<div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
-  const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model");
+  const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model"),
+   channel=mount.querySelector("#promo-channel"),category=mount.querySelector("#promo-category");
   if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;window.UserPrefs.pendingSearch="";}
-  const current=()=>({query:query.value,status:status.value,model:model.value});
+  const current=()=>({query:query.value,status:status.value,model:model.value,channel:channel.value,category:category.value});
   const display=()=>{
    const filter=current(),term=filter.query.trim().toLocaleLowerCase("id-ID");
    const eligiblePromo=promos.filter(p=>{
     if(filter.status!=="all"&&state(p)!==filter.status)return false;
     if(filter.model&&norm(p.model_name)!==norm(filter.model)&&norm(p.model_code)!==norm(filter.model)&&p.model_code!=="*")return false;
-    const searchable=[p.title,p.model_code,p.model_name,p.benefit,p.channel_label].join(" ").toLocaleLowerCase("id-ID");
+    if(filter.channel){
+     const selected=filter.channel,actual=p.channel_code||"unspecified";
+     const channelMatch=actual===selected||actual==="all"||
+       (selected==="traditional"||selected==="organized")&&actual==="offline"||
+       selected==="offline"&&["traditional","organized"].includes(actual);
+     if(!channelMatch)return false;
+    }
+    if(filter.category&&p.program_category!==filter.category)return false;
+    const searchable=[p.title,p.model_code,p.model_name,p.sku_variant,p.benefit,p.channel_label,p.terms,p.source_reference].join(" ").toLocaleLowerCase("id-ID");
     return !term||searchable.includes(term);
    });
    const currentActive=promos.filter(p=>state(p)==="active");
-   const specific=currentActive.filter(p=>p.model_code!=="*");
+   const specific=currentActive.filter(p=>p.model_code!=="*"&&p.record_kind==="offer");
    const covered=new Set(specific.map(p=>norm(p.model_name)));
    mount.querySelector("#intel-promo-kpis").innerHTML=[
-    ["Promo model aktif",specific.length],["Kampanye umum",currentActive.filter(p=>p.model_code==="*").length],
+    ["Program model aktif",specific.length],["Kampanye umum",currentActive.filter(p=>p.model_code==="*").length],
     ["Model dalam katalog",models.length],["Model belum ada promo",models.filter(m=>!covered.has(norm(m))).length]
    ].map(([k,v])=>'<div class="intel-stat"><span>'+esc(k)+'</span><strong>'+fmt.format(v)+'</strong></div>').join("");
    const box=mount.querySelector("#promo-results");box.innerHTML="";

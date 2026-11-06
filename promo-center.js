@@ -46,6 +46,7 @@ async function render(ctx,mount){
    '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Model yang teridentifikasi dari sellout dan focus model. Tidak ada penawaran terverifikasi = tidak boleh menjanjikan promo.</p><div id="promo-model-list" class="intel-model-chips"></div></div>'+
    (role==="admin"?'<div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
   const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model");
+  if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;window.UserPrefs.pendingSearch="";}
   const current=()=>({query:query.value,status:status.value,model:model.value});
   const display=()=>{
    const filter=current(),term=filter.query.trim().toLocaleLowerCase("id-ID");

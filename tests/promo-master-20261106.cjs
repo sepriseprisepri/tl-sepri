@@ -1,0 +1,74 @@
+/* Master Promo November 2026 — integrity of user-supplied internal bulletin import.
+ * No network calls or database credentials. Run with Node 20+. */
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const vm=require("node:vm");
+
+const sql=fs.readFileSync("docs/sql/20261106-promo-master-import.sql","utf8");
+const schema=fs.readFileSync("docs/sql/20261106-promo-provenance.sql","utf8");
+const ui=fs.readFileSync("promo-center.js","utf8");
+const chart=fs.readFileSync("sales-intelligence.js","utf8");
+const css=fs.readFileSync("sales-intelligence.css","utf8");
+new vm.Script(ui);new vm.Script(chart);
+
+assert.match(schema,/source_type IN \('official_web','internal_bulletin'\)/);
+assert.match(schema,/source_url DROP NOT NULL/);
+assert.match(schema,/source_provenance_chk/);
+assert.match(schema,/channel_code IN \(/);
+assert.match(schema,/offer_items jsonb/);
+assert.match(schema,/record_kind IN \(/);
+assert.match(sql,/ON CONFLICT \(import_key\) DO NOTHING/);
+assert.match(sql,/INTERNAL USER-SUPPLIED BULLETIN/);
+const keys=[...sql.matchAll(/'master-20261030-[a-z0-9-]+'/g)].map(x=>x[0]);
+assert.equal(keys.length,61,"61 records from bulletin expected");
+assert.equal(new Set(keys).size,61,"No duplicate import keys");
+const row=key=>{
+ const s=sql.split("\n").find(x=>x.includes("'master-20261030-"+key+"'"));
+ assert.ok(s,"Missing SKU "+key);return s;
+};
+for(const [key,amounts] of Object.entries({
+ "z-fold8-ultra":["1500000","750000","1250000"],
+ "z-fold8":["1000000","750000","1250000"],
+ "z-flip8":["500000","500000","1000000"],
+ "s26-ultra":["2000000"],"s26-plus":["1500000"],"s26-base":["1000000"],
+ "s25-ultra":["2500000"],"s25-base":["1500000"],
+ "s26fe-12":["1750000","1000000"],"s26fe-8-256":["1250000"],"s26fe-8-128":["1000000"],
+ "s25fe-trad":["2000000"],"a57-off-12-256":["1000000","300000"],
+ "a57-off-8-256":["700000"],"a57-off-8-128":["500000"],
+ "a37-5g":["300000"],"a27-lite":["300000"],"a27-price":["5799900"],
+ "a07s-launch":["2699000"],"a17-5g-online":["4999900"],
+ "a17-lte-4-128":["3999000","3595000"],
+ "tab-s12-trad":["1000000"],"tab-s12-org":["500000"],
+ "watch8":["1000000"],"watch8-classic":["20"],
+ "buds4pro-org":["500000"],"buds4pro-trad":["20"],
+ "finance-flagship":["50000","6"],"finance-a":["8"]
+})){
+ const text=row(key);for(const a of amounts)assert.ok(text.includes(a),key+" lacks "+a);
+}
+assert.match(row("s25fe-trad"),/'traditional'/);
+assert.match(row("s25fe-org"),/'organized'/);
+assert.match(row("a57-online"),/'online'/);
+assert.match(row("buds4pro-org"),/'organized'/);
+assert.match(row("buds4pro-trad"),/'traditional'/);
+assert.match(row("a57-xl-pending"),/'draft',NULL,false/);
+assert.match(row("a17-lte-8-128-price"),/'draft',NULL,false/);
+assert.match(row("buds-core"),/'draft',NULL,false/);
+assert.match(row("easy-galaxy"),/'2026-12-31'/);
+for(const key of keys){
+ const r=sql.split("\n").find(x=>x.includes(key));
+ assert.ok(r.includes("'internal_bulletin'"),key+" must have explicit internal source");
+ assert.ok(r.includes("'bulletin_user_transcription'"),key+" must not claim official-site verification");
+}
+assert.match(ui,/p\.source_type==="internal_bulletin"/);
+assert.match(ui,/bukan hasil verifikasi eksternal/);
+assert.match(ui,/intel-offer-items/);
+assert.match(ui,/sku_variant/);
+assert.match(ui,/channel_code/);
+assert.match(ui,/record_kind/);
+assert.match(ui,/id="promo-channel"/);
+assert.match(ui,/id="promo-category"/);
+assert.match(ui,/TIDAK ADA cashback/); // must keep no-cashback text in resulting rows
+assert.match(css,/\.intel-source-internal/);
+assert.match(chart,/p\.record_kind==="offer"/);
+console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

@@ -186,3 +186,14 @@
 .intel-promo-card .intel-promo-top{align-items:flex-start;}
 .intel-promo-card .intel-overline{line-height:1.5;text-align:right;}
 @media(max-width:639px){.intel-promo-provenance{padding:12px;font-size:11px;}}
+
+.intel-promo-universal-rules{
+ margin:0 0 19px;padding:14px 17px;border-radius:12px;
+ border:1px solid rgba(94,190,210,.23);
+ background:rgba(11,51,71,.33);color:#afcbd9;
+ font-size:11.5px;line-height:1.8;
+}
+.intel-promo-universal-rules strong{color:#d8f1fb;font-weight:700;}
+#promo-results-count{font-size:11px;}
+#promo-load-more{margin:0 auto 22px;display:flex;}
+#promo-load-more[hidden]{display:none!important;}

@@ -5,6 +5,8 @@ on:
     paths:
       - 'index.html'
       - 'ops-modules.js'
+      - 'futuristic-ui.css'
+      - 'tests/ui-regression.cjs'
       - 'tests/ops-smoke.cjs'
       - '.github/workflows/ops-smoke.yml'
   push:
@@ -12,6 +14,8 @@ on:
     paths:
       - 'index.html'
       - 'ops-modules.js'
+      - 'futuristic-ui.css'
+      - 'tests/ui-regression.cjs'
       - 'tests/ops-smoke.cjs'
       - '.github/workflows/ops-smoke.yml'
 
@@ -29,3 +33,4 @@ jobs:
         run: |
           node --version
           node tests/ops-smoke.cjs
+          node tests/ui-regression.cjs

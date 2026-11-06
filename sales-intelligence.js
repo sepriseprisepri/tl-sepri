@@ -42,7 +42,7 @@ const analytics={
   const models=[...group(good,"qty",s=>modelNorm(s.model)||"Tidak diketahui").entries()]
    .map(([model,qty])=>({model,qty})).sort((a,b)=>b.qty-a.qty);
   const activePromo=promos.filter(p=>p.published&&p.verification_state==="verified"&&p.start_date<=localToday&&p.end_date>=localToday);
-  const activeByModel=new Map(activePromo.filter(p=>p.model_code!=="*").map(p=>[modelNorm(p.model_code),p]));
+  const activeByModel=new Map(activePromo.filter(p=>p.model_code!=="*"&&(p.record_kind==="offer"||!p.record_kind)).map(p=>[modelNorm(p.model_code),p]));
   const promoOpportunity=models.filter(m=>activeByModel.has(m.model)&&m.qty>0).slice(-3);
   const alerts=[];
   if(pending.length)alerts.push({id:"pending",level:"warning",count:pending.length,title:"EULA PENDING",desc:pending.length+" transaksi belum masuk pencapaian resmi.",target:profile.role==="ec"?"Laporan Saya":"RAW Sellout"});
@@ -63,7 +63,7 @@ const analytics={
   if(a.missing.length)items.push({type:"risk",title:"Target toko belum tersedia",body:N(a.missing.length)+" store belum memiliki target pada periode ini."});
   if(a.slowStores.length)items.push({type:"recommendation",title:"Prioritaskan toko di bawah pace",body:N(a.slowStores.length)+" toko berada di bawah 65% pace per tanggal berjalan. Validasi target serta rencana aksi lapangan."});
   if(a.promoOpportunity.length)items.push({type:"opportunity",title:"Promo terverifikasi untuk model terjual",body:a.promoOpportunity.map(m=>m.model).join(", ")+" memiliki penawaran model-spesifik terverifikasi. Periksa syarat promo sebelum menawarkan."});
-  if(!a.activePromo.some(p=>p.model_code!=="*"))items.push({type:"info",title:"Belum ada promo model-spesifik aktif yang tercatat",body:"Admin dapat menerbitkan penawaran yang terverifikasi di Promo Center."});
+  if(!a.activePromo.some(p=>p.model_code!=="*"&&(p.record_kind==="offer"||!p.record_kind)))items.push({type:"info",title:"Belum ada promo model-spesifik aktif yang tercatat",body:"Admin dapat menerbitkan penawaran yang terverifikasi di Promo Center."});
   return items.slice(0,7);
  }
 };
@@ -105,15 +105,15 @@ function renderDashboard(ctx){
    try{await navigator.clipboard.writeText(text);document.getElementById("intel-copy-insights").textContent="Disalin ✓";}catch{document.getElementById("intel-copy-insights").textContent="Tidak dapat menyalin"; }
  };
  if(ctx.client){
-  ctx.client.from("sales_promotions").select("id,title,model_code,model_name,start_date,end_date,published,verification_state,source_url")
+  ctx.client.from("sales_promotions").select("id,title,model_code,model_name,start_date,end_date,published,verification_state,source_url,source_type,record_kind,channel_code,sku_variant")
    .then(({data,error})=>{
      if(token!==lastToken||!root.isConnected)return;
      const now=dateLocal(),active=error?[]:(data||[]).filter(p=>p.published&&p.verification_state==="verified"&&p.start_date<=now&&p.end_date>=now);
-     const modelSpecific=active.filter(p=>p.model_code!=="*");
+     const modelSpecific=active.filter(p=>p.model_code!=="*"&&(p.record_kind==="offer"||!p.record_kind));
      const div=document.getElementById("intel-promo-summary");
      div.textContent=error?"Promo tidak dapat dimuat; cek koneksi.":modelSpecific.length?
-       N(modelSpecific.length)+" promo model-spesifik aktif terverifikasi.":"Belum ada promo model-spesifik terverifikasi untuk cakupan Anda.";
-     if(active.some(p=>p.model_code==="*"))div.textContent+=" Ada kampanye resmi umum yang dapat diperiksa di Promo Center.";
+       N(modelSpecific.length)+" entri program model aktif dari sumber resmi atau bulletin internal.":"Belum ada promo model-spesifik terverifikasi untuk cakupan Anda.";
+     if(active.some(p=>p.model_code==="*"))div.textContent+=" Tersedia kampanye umum yang syaratnya perlu diperiksa secara terpisah.";
      activeContext={...ctx,promos:data||[]};
      document.getElementById("intel-insight-items").innerHTML=insightsHtml(analytics.insights(activeContext,ctx.profile.role));
    });

@@ -125,7 +125,7 @@
         </div>
         <div id="global-search-wrapper" role="search">
           <input id="global-search" type="search" placeholder="Cari toko, model, promoter…" aria-label="Pencarian global sesuai hak akses" autocomplete="off" aria-controls="global-search-results">
-          <div id="global-search-results" hidden role="listbox" aria-label="Saran pencarian"></div>
+          <div id="global-search-results" hidden role="region" aria-label="Saran pencarian" aria-live="polite"></div>
         </div>
         <div class="flex items-center gap-3 sm:gap-4">
           <div class="head-user">
@@ -256,6 +256,7 @@ function renderNav(role){
  });
 }
 function openSection(label){
+ if(label!=="Grafik Sellout")window.SalesIntelligence?.clearCharts();
  const home=label==="Dashboard";$("page-title").textContent=label;$("page-kicker").textContent=home?"Overview":"Workspace";
  $("dashboard-content").classList.toggle("hidden",!home);$("section-placeholder").classList.toggle("hidden",home);
  if(!home){

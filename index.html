@@ -201,6 +201,27 @@ function showLoginError(msg){const el=$("login-error");el.className="text-sm tex
 function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Perbarui"}
 function showDataError(msg){$("data-error").textContent=msg;$("data-error").classList.remove("hidden")}
 function hideDataError(){$("data-error").classList.add("hidden")}
+function menuIcon(label){
+ const paths={
+  "Dashboard":'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  "Data & Import":'<path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+  "Target":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  "Target Saya":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  "RAW Sellout":'<path d="M4 19h16M7 16v-5M12 16V5M17 16V8"/><circle cx="7" cy="9" r="1"/><circle cx="12" cy="3" r="1"/><circle cx="17" cy="6" r="1"/>',
+  "Manpower":'<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
+  "Coverage":'<path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',
+  "Coverage & Toko":'<path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',
+  "Store Shadow":'<path d="M4 21V7l8-4 8 4v14M8 9h2m4 0h2M8 13h2m4 0h2M10 21v-4h4v4M3 21h18"/>',
+  "Focus Model":'<path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2Z"/>',
+  "Survey":'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 10h6M9 14h6M9 18h4"/>',
+  "Laporan":'<path d="M4 20h16M5 17V9M10 17V5M15 17v-7M20 17V3"/>',
+  "Laporan Saya":'<path d="M4 20h16M5 17V9M10 17V5M15 17v-7M20 17V3"/>',
+  "Performa EC":'<path d="M3 20h18M6 17v-7M12 17V4M18 17v-4"/><circle cx="12" cy="3" r=".8"/>',
+  "Input Sellout":'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 12h6m-3-3v6"/>',
+  "Pengaturan":'<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .8 1.4-1.7 1.7-1.4-.8a7 7 0 0 1-2 .8l-.4 1.6H9.3l-.4-1.6a7 7 0 0 1-2-.8l-1.4.8-1.7-1.7.8-1.4a7 7 0 0 1-.8-2l-1.6-.4V10l1.6-.4a7 7 0 0 1 .8-2l-.8-1.4 1.7-1.7 1.4.8a7 7 0 0 1 2-.8l.4-1.6h5.4l.4 1.6a7 7 0 0 1 2 .8l1.4-.8 1.7 1.7-.8 1.4a7 7 0 0 1 .8 2l1.6.4v2.4l-1.6.4a7 7 0 0 1-.8 2Z"/>'
+ };
+ return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">'+(paths[label]||paths.Dashboard)+'</svg>';
+}
 function renderNav(role){
  const menu=menus[role]||[];
  $("nav-list").innerHTML="";
@@ -209,7 +230,7 @@ function renderNav(role){
   b.type="button";b.className="nav-item"+(i===0?" active":"");
   b.dataset.label=label;
   b.setAttribute("aria-current",i===0?"page":"false");
-  b.innerHTML='<span aria-hidden="true">'+icon+'</span><span>'+label+'</span>';
+  b.innerHTML='<span aria-hidden="true">'+menuIcon(label)+'</span><span>'+label+'</span>';
   b.addEventListener("click",()=>openSection(label));
   $("nav-list").appendChild(b);
  });

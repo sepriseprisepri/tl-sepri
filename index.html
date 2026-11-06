@@ -123,6 +123,7 @@
     </section>
   </div>
 </main>
+<script src="/ops-modules.js"></script>
 <script src="/master-import.js"></script>
 <script src="/raw-import.js"></script>
 <script>
@@ -155,6 +156,10 @@ function openSection(label){
   if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
    renderBmuActivation();
+  }else if(window.SamsungOps&&window.SamsungOps.supports(label)){
+   $("section-description").textContent="Data operasional langsung dari Supabase, dibatasi sesuai role dan coverage Anda.";
+   const selected=periods.find(p=>p.id===$("period-select").value)||periods[0];
+   window.SamsungOps.render({label,client,profile:currentProfile,mount:$("import-hub-container"),period:selected});
   }else if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
    if(window.renderImportHub)window.renderImportHub();

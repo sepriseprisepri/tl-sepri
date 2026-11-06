@@ -39,7 +39,9 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
   const { data: caller, error: callerError } = await admin.from("profiles")
     .select("id,role,employee_id,is_active,must_change_password")
     .eq("id", userId).maybeSingle();
-  if (callerError || !caller || !caller.is_active) {
+  if (callerError || !caller ||
+      (!caller.is_active &&
+        !(caller.role === "tl" && caller.employee_id === "TL_BMU_KAL_02" && caller.must_change_password))) {
     return reply(request, { error: "Unauthorized user" }, 403);
   }
 
@@ -63,6 +65,7 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
     if (passwordError) return reply(request, { error: "Gagal mengganti password" }, 500);
     const { error: profileError } = await admin.from("profiles").update({
       must_change_password: false,
+      is_active: true,
       updated_at: new Date().toISOString(),
     }).eq("id", userId).eq("employee_id", "TL_BMU_KAL_02");
     if (profileError) return reply(request, { error: "Password diperbarui; status akun memerlukan bantuan admin" }, 500);
@@ -92,15 +95,16 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
 
   const email = "tl_bmu_kal_02@login.tlsepri.internal";
   const { data: existingProfile, error: profileLookupError } = await admin.from("profiles")
-    .select("id,employee_id,role,manpower_id")
+    .select("id,employee_id,role,manpower_id,is_active,must_change_password")
     .eq("employee_id", "TL_BMU_KAL_02").maybeSingle();
   if (profileLookupError) return reply(request, { error: "Cannot inspect target TL profile" }, 500);
 
   const { data: users, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (listError) return reply(request, { error: "Could not check Auth users" }, 500);
   let authUser = (users.users ?? []).find((user) => user.email?.toLowerCase() === email);
-  if (authUser && existingProfile && existingProfile.id !== authUser.id) {
-    return reply(request, { error: "Account identity conflict" }, 409);
+  if (authUser && (!existingProfile || existingProfile.id !== authUser.id ||
+      existingProfile.role !== "tl" || existingProfile.manpower_id !== manpower.id)) {
+    return reply(request, { error: "Auth identity conflict; manual review required" }, 409);
   }
 
   if (authUser) {
@@ -129,20 +133,23 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
     created = true;
   }
 
-  const { error: upsertError } = await admin.from("profiles").upsert({
-    id: authUser.id,
-    email,
-    employee_id: "TL_BMU_KAL_02",
-    full_name: "TL_BMU_KAL_02",
-    role: "tl",
-    manpower_id: manpower.id,
-    is_active: true,
-    must_change_password: true,
-  }, { onConflict: "id" });
-  if (upsertError) {
-    // Leave the newly created user inactive/pending if profile linking did not work.
-    if (created) await admin.auth.admin.updateUserById(authUser.id, { ban_duration: "876000h" });
-    return reply(request, { error: "Auth dibuat tetapi profil tidak dapat ditautkan; hubungi administrator" }, 500);
+  const fullyActivated = Boolean(existingProfile?.is_active && !existingProfile?.must_change_password);
+  if (!fullyActivated) {
+    // Fail-closed: an account has no RLS-authorized data access until password rotation completes.
+    const { error: upsertError } = await admin.from("profiles").upsert({
+      id: authUser.id,
+      email,
+      employee_id: "TL_BMU_KAL_02",
+      full_name: "TL_BMU_KAL_02",
+      role: "tl",
+      manpower_id: manpower.id,
+      is_active: false,
+      must_change_password: true,
+    }, { onConflict: "id" });
+    if (upsertError) {
+      if (created) await admin.auth.admin.updateUserById(authUser.id, { ban_duration: "876000h" });
+      return reply(request, { error: "Auth dibuat tetapi profil tidak dapat ditautkan; hubungi administrator" }, 500);
+    }
   }
 
   if ((oldCoverage?.length ?? 0) > 0) {
@@ -167,7 +174,7 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
     coverage_stores: count,
     username: "TL_BMU_KAL_02",
     temporary_password: created ? password : undefined,
-    requires_password_change: true,
+    requires_password_change: !fullyActivated,
     message: created ? "Akun baru berhasil dibuat. Simpan password sementara sekarang." :
       "Akun sudah ada dan coverage telah diverifikasi. Password lama tidak ditampilkan.",
   });

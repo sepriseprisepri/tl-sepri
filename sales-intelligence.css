@@ -153,3 +153,36 @@
 }
 
 .intel-alert-number{font-family:"Rajdhani",sans-serif;font-size:36px;font-weight:700;color:#80e8fa;margin:14px 0 6px;line-height:1.15;}
+
+
+/* Promo master bulletin — provenance first, mechanisms and channel must remain visible. */
+.intel-promo-provenance{
+ padding:15px 17px;margin:12px 0 20px;border-radius:14px;
+ color:#c4dce9;font-size:12px;line-height:1.7;
+ background:linear-gradient(120deg,rgba(35,72,100,.45),rgba(17,32,57,.53));
+ border:1px solid rgba(111,193,223,.35);
+}
+.intel-promo-provenance strong{color:#e0f7fd;font-weight:700;}
+.intel-source-internal{font-size:11px;color:#dbb67b;line-height:1.7;display:block;
+ border:1px solid rgba(227,188,101,.22);padding:10px 12px;border-radius:10px;background:rgba(121,82,29,.12);}
+.intel-offer-badges{display:flex;flex-wrap:wrap;gap:7px;}
+.intel-offer-badges span{
+ padding:5px 8px;border-radius:7px;font-size:10px;line-height:1.5;
+ background:rgba(47,105,142,.20);border:1px solid rgba(97,173,218,.17);color:#9fcbdf;
+}
+.intel-offer-items{display:grid;gap:7px;margin-top:5px;}
+.intel-offer-items li{
+ font-size:11.5px;color:#d9ecf4;line-height:1.55;padding:9px 10px 9px 29px;
+ border:1px solid rgba(95,174,214,.16);border-radius:10px;background:rgba(12,31,53,.42);
+ position:relative;
+}
+.intel-offer-items li:before{
+ content:"";position:absolute;left:12px;top:15px;width:7px;height:7px;
+ border-radius:50%;background:#68c8df;box-shadow:0 0 7px rgba(108,217,237,.28);
+}
+.intel-review-note{background:rgba(125,78,35,.22);color:#ffda9d;border-radius:10px;
+ border:1px solid rgba(244,181,109,.32);padding:11px;font-size:11px;line-height:1.7;}
+.intel-promo-card .intel-promo-state.state-no-offer{background:rgba(218,162,85,.11);color:#eec596;}
+.intel-promo-card .intel-promo-top{align-items:flex-start;}
+.intel-promo-card .intel-overline{line-height:1.5;text-align:right;}
+@media(max-width:639px){.intel-promo-provenance{padding:12px;font-size:11px;}}

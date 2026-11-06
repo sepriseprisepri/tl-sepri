@@ -151,3 +151,5 @@
 @media(prefers-reduced-motion:reduce){
  .intel-card,.intel-promo-card,.intel-link,.intel-action,.intel-alert,.intel-search-result{transition:none!important;animation:none!important;}
 }
+
+.intel-alert-number{font-family:"Rajdhani",sans-serif;font-size:36px;font-weight:700;color:#80e8fa;margin:14px 0 6px;line-height:1.15;}

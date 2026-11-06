@@ -326,8 +326,9 @@ async function loadDashboard(){
   }else{
    targets=await fetchAll("store_targets","id,period_id,store_id,target_qty,target_amt",q=>q.eq("period_id",period.id));
   }
-  const sales=await fetchAll("raw_sellout","id,site_id,site_name,promoter_id,model,segment,qty,amt,eula_status,sold_at",q=>q.gte("sold_at",period.period_start).lte("sold_at",period.period_end).order("sold_at",{ascending:true}));
-  renderDashboard({period,stores,manpower,targets,sales});
+  const sales=await fetchAll("raw_sellout","id,site_id,site_name,promoter_id,model,segment,qty,amt,eula_status,sold_at,promoter_mapping_status",q=>q.gte("sold_at",period.period_start).lte("sold_at",period.period_end).order("sold_at",{ascending:true}));
+  lastSalesData={period,stores,manpower,targets,sales};
+  renderDashboard(lastSalesData);
   $("sync-status").classList.remove("error");
   $("sync-status").textContent="Data dimuat pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB · Perbarui untuk memuat data terbaru.";
  }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));}
@@ -382,6 +383,7 @@ function renderDashboard(d){
  if(sales.length===0){$("data-notice").textContent="Belum ada data RAW Sellout pada database untuk periode ini. Target sudah tersedia, tetapi realisasi dan achievement akan mulai terisi setelah RAW Sellout diimpor."; $("data-notice").classList.remove("hidden")}
  else if(pending.length){$("data-notice").textContent=fmtNum(pending.length)+" transaksi berstatus PENDING dipisahkan dan tidak dihitung ke achievement resmi."; $("data-notice").classList.remove("hidden")}
  drawCharts(daily,segments,period);
+ if(window.SalesIntelligence)window.SalesIntelligence.renderDashboard({...d,client,profile:currentProfile,openSection});
 }
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function drawCharts(daily,segments,period){
@@ -405,6 +407,7 @@ async function enterApp(user){
  $("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
  $("access-role").textContent=roleLabels[data.role];$("access-id").textContent=data.employee_id||"-";
  renderNav(data.role);await loadPeriods();await loadDashboard();
+ if(window.UserPrefs)window.UserPrefs.init({client,profile:data}).catch(err=>console.warn("[Preferences]",err));
 }
 
 function renderBmuActivation(){
@@ -474,7 +477,7 @@ $("login-form").addEventListener("submit",async e=>{e.preventDefault();$("login-
  const {data,error}=await client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password});
  if(error)throw new Error("ID akun atau password tidak sesuai.");await enterApp(data.user)}
  catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").innerHTML='<span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>'}});
-$("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
+$("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;lastSalesData=null;window.UserPrefs?.reset();window.SalesIntelligence?.clearCharts();Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
 $("mobile-menu").addEventListener("click",()=>{
  const opened=$("nav-wrap").classList.toggle("hidden")===false;
  $("mobile-menu").setAttribute("aria-expanded",String(opened));
@@ -493,6 +496,7 @@ $("password-visibility").addEventListener("click",()=>{
  button.textContent=visible?"Tutup":"Lihat";
  input.focus({preventScroll:true});
 });
+$("density-toggle").addEventListener("click",()=>window.UserPrefs?.toggleDensity());
 $("period-select").addEventListener("change",loadDashboard);$("refresh-button").addEventListener("click",loadDashboard);
 client.auth.getSession().then(({data})=>{if(data.session)enterApp(data.session.user).catch(err=>{console.error(err);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})});
 </script>

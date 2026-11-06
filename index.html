@@ -198,10 +198,29 @@ const money=v=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",ma
 const pct=(a,b)=>b>0?(a/b*100):0;
 const dateFmt=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
 function showLoginError(msg){const el=$("login-error");el.className="text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3";el.textContent=msg}
-function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Refresh"}
+function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Perbarui"}
 function showDataError(msg){$("data-error").textContent=msg;$("data-error").classList.remove("hidden")}
 function hideDataError(){$("data-error").classList.add("hidden")}
-function renderNav(role){$("nav-list").innerHTML="";(menus[role]||[]).forEach(([label,icon],i)=>{const b=document.createElement("button");b.className="nav-item"+(i===0?" active":"");b.dataset.label=label;b.innerHTML='<span class="w-5 text-center">'+icon+'</span><span>'+label+'</span>';b.addEventListener("click",()=>openSection(label));$("nav-list").appendChild(b)})}
+function renderNav(role){
+ const menu=menus[role]||[];
+ $("nav-list").innerHTML="";
+ menu.forEach(([label,icon],i)=>{
+  const b=document.createElement("button");
+  b.type="button";b.className="nav-item"+(i===0?" active":"");
+  b.dataset.label=label;
+  b.setAttribute("aria-current",i===0?"page":"false");
+  b.innerHTML='<span aria-hidden="true">'+icon+'</span><span>'+label+'</span>';
+  b.addEventListener("click",()=>openSection(label));
+  $("nav-list").appendChild(b);
+ });
+ const quickLabels=["Coverage & Toko","Coverage","Target","Target Saya","RAW Sellout","Performa EC","Laporan Saya","Laporan","Focus Model"];
+ const quick=quickLabels.filter(label=>menu.some(([name])=>name===label)).slice(0,3);
+ const container=$("quick-actions");container.innerHTML="";
+ quick.forEach(label=>{
+  const b=document.createElement("button");b.type="button";b.className="quick-action";
+  b.textContent=label;b.addEventListener("click",()=>openSection(label));container.appendChild(b);
+ });
+}
 function openSection(label){
  const home=label==="Dashboard";$("page-title").textContent=label;$("page-kicker").textContent=home?"Overview":"Workspace";
  $("dashboard-content").classList.toggle("hidden",!home);$("section-placeholder").classList.toggle("hidden",home);
@@ -219,8 +238,11 @@ function openSection(label){
    if(window.renderImportHub)window.renderImportHub();
   }else $("section-description").textContent="Kerangka menu "+label+" sudah disiapkan. Modul operasional akan diintegrasikan pada tahap berikutnya.";
  }
- $("nav-list").querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.label===label));
- if(window.innerWidth<1024)$("nav-wrap").classList.add("hidden");
+ $("nav-list").querySelectorAll("button").forEach(b=>{
+  const active=b.dataset.label===label;
+  b.classList.toggle("active",active);b.setAttribute("aria-current",active?"page":"false");
+ });
+ if(window.innerWidth<1024){$("nav-wrap").classList.add("hidden");$("mobile-menu").setAttribute("aria-expanded","false");}
 }
 async function fetchAll(table,columns,configure){
  const out=[],size=1000;
@@ -244,7 +266,7 @@ async function loadDashboard(){
  if(!currentProfile)return;setBusy(true);hideDataError();$("data-notice").classList.add("hidden");
  try{
   const period=periods.find(p=>p.id===$("period-select").value)||periods[0];
-  if(!period){renderDashboard({stores:[],targets:[],sales:[],targetQty:0,targetAmt:0});$("data-notice").textContent="Belum ada periode target yang tersedia untuk akun ini.";$("data-notice").classList.remove("hidden");return}
+  if(!period){renderDashboard({stores:[],targets:[],sales:[],targetQty:0,targetAmt:0});$("data-notice").textContent="Belum ada periode target yang tersedia untuk akun ini.";$("data-notice").classList.remove("hidden");$("sync-status").textContent="Belum ada periode untuk ditampilkan.";return}
   const [stores,manpower]=await Promise.all([
    fetchAll("stores","id,site_id,site_name,channel_category"),
    fetchAll("manpower","id,employee_id,full_name,fieldforce_position,promoter_id,site_id,is_active",q=>q.eq("is_active",true))
@@ -257,7 +279,9 @@ async function loadDashboard(){
   }
   const sales=await fetchAll("raw_sellout","id,site_id,site_name,promoter_id,model,segment,qty,amt,eula_status,sold_at",q=>q.gte("sold_at",period.period_start).lte("sold_at",period.period_end).order("sold_at",{ascending:true}));
   renderDashboard({period,stores,manpower,targets,sales});
- }catch(err){console.error(err);showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));}
+  $("sync-status").classList.remove("error");
+  $("sync-status").textContent="Data dimuat pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB · Perbarui untuk memuat data terbaru.";
+ }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));}
  finally{setBusy(false)}
 }
 function renderDashboard(d){
@@ -288,6 +312,13 @@ function renderDashboard(d){
  $("kpi-target-qty").textContent=fmtNum(targetQty);$("kpi-actual-qty").textContent=fmtNum(actualQty);
  $("kpi-qty-progress").textContent="Achievement: "+fmtNum(pct(actualQty,targetQty))+"%";
  $("kpi-actual-amt").textContent=money(actualAmt);$("kpi-amt-progress").textContent="Achievement: "+fmtNum(pct(actualAmt,targetAmt))+"%";
+ for(const [id,actual,target] of [["qty",actualQty,targetQty],["amt",actualAmt,targetAmt]]){
+  const rate=target>0?actual/target*100:0;
+  const safe=Math.min(100,Math.max(0,rate));
+  $(id+"-progress-fill").style.width=safe+"%";
+  $(id+"-progress-track").setAttribute("aria-valuenow",safe.toFixed(0));
+  $(id+"-progress-track").setAttribute("aria-valuetext",fmtNum(rate)+"% pencapaian");
+ }
  $("small-target-amt").textContent=money(targetAmt);$("small-gap-qty").textContent=fmtNum(targetQty-actualQty);
  $("small-gap-amt").textContent=money(targetAmt-actualAmt);$("small-pending").textContent=fmtNum(pending.length)+" transaksi";
  $("target-label").textContent=currentProfile.role==="ec"?"Target Qty Pribadi":"Target Qty";
@@ -320,7 +351,9 @@ async function enterApp(user){
  $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
  if(data.must_change_password){$("app-view").classList.add("hidden");return}
  $("app-view").classList.remove("hidden");
- $("user-name").textContent=data.full_name||"Pengguna";$("user-role").textContent=roleLabels[data.role];$("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
+ $("user-name").textContent=data.full_name||"Pengguna";$("user-role").textContent=roleLabels[data.role];
+ $("user-avatar").textContent=(data.full_name||"S").trim().split(/\s+/).map(t=>t[0]).slice(0,2).join("").toUpperCase();
+ $("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
  $("access-role").textContent=roleLabels[data.role];$("access-id").textContent=data.employee_id||"-";
  renderNav(data.role);await loadPeriods();await loadDashboard();
 }
@@ -391,9 +424,26 @@ $("login-form").addEventListener("submit",async e=>{e.preventDefault();$("login-
  const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
  const {data,error}=await client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password});
  if(error)throw new Error("ID akun atau password tidak sesuai.");await enterApp(data.user)}
- catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").textContent="Masuk"}});
+ catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").innerHTML='<span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>'}});
 $("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
-$("mobile-menu").addEventListener("click",()=>$("nav-wrap").classList.toggle("hidden"));
+$("mobile-menu").addEventListener("click",()=>{
+ const opened=$("nav-wrap").classList.toggle("hidden")===false;
+ $("mobile-menu").setAttribute("aria-expanded",String(opened));
+ $("mobile-menu").setAttribute("aria-label",opened?"Tutup menu navigasi":"Buka menu navigasi");
+});
+document.addEventListener("keydown",event=>{
+ if(event.key==="Escape"&&window.innerWidth<1024){
+  $("nav-wrap").classList.add("hidden");$("mobile-menu").setAttribute("aria-expanded","false");
+ }
+});
+$("password-visibility").addEventListener("click",()=>{
+ const input=$("password"),button=$("password-visibility"),visible=input.type==="password";
+ input.type=visible?"text":"password";
+ button.setAttribute("aria-pressed",String(visible));
+ button.setAttribute("aria-label",visible?"Sembunyikan password":"Tampilkan password");
+ button.textContent=visible?"Tutup":"Lihat";
+ input.focus({preventScroll:true});
+});
 $("period-select").addEventListener("change",loadDashboard);$("refresh-button").addEventListener("click",loadDashboard);
 client.auth.getSession().then(({data})=>{if(data.session)enterApp(data.session.user).catch(err=>{console.error(err);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})});
 </script>

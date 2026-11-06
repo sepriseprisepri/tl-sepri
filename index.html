@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1220"><title>TL SEPRI | Dashboard</title>
+  <meta name="theme-color" content="#060b14"><meta name="description" content="Samsung Kalteng Sales Intelligence: pantau target, coverage dan sellout sesuai hak akses."><title>Samsung Kalteng | Sales Intelligence</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -17,26 +17,63 @@
     .pill{border:1px solid rgba(148,163,184,.18);border-radius:999px;padding:4px 9px;font-size:11px}
     .skeleton{background:linear-gradient(90deg,#18263b,#25364e,#18263b);background-size:200% 100%;animation:shine 1.4s infinite}
     @keyframes shine{to{background-position:-200% 0}}
+    /* Login-only futuristic visual treatment. Dashboard styles remain unchanged. */
+    @keyframes grid-shift { to { background-position: 0 78px; } }
+    @keyframes luminous-pulse { 50% { opacity: .75; box-shadow: 0 0 25px rgba(34,211,238,.26); } }
+    @keyframes float-up { from { transform: translateY(0); } to { transform: translateY(-14px); } }
+    #login-view { position:relative; isolation:isolate; background:#060b14; overflow:hidden; }
+    #login-view:before { content:""; pointer-events:none; position:absolute; inset:0; z-index:-1; background:
+       radial-gradient(circle at 26% 24%,rgba(20,122,196,.22),transparent 35%),
+       radial-gradient(circle at 76% 68%,rgba(5,99,141,.22),transparent 33%),
+       linear-gradient(rgba(31,134,200,.09) 1px,transparent 1px),
+       linear-gradient(90deg,rgba(31,134,200,.09) 1px,transparent 1px);
+       background-size:auto,auto,78px 78px,78px 78px; animation:grid-shift 25s linear infinite; opacity:.75; }
+    #login-view .login-glass { background:linear-gradient(142deg,rgba(23,39,62,.82),rgba(5,11,22,.82)); border:1px solid rgba(66,208,255,.34);
+      backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); box-shadow:0 0 38px rgba(0,147,234,.1),0 26px 80px rgba(0,0,0,.38); }
+    #login-view .login-trigger { position:relative; overflow:hidden; box-shadow:0 0 25px rgba(34,211,238,.3); animation:luminous-pulse 4s ease-in-out infinite; }
+    #login-view .login-trigger:before {content:""; position:absolute; top:-150%; left:-36%; height:380%; width:38%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.48),transparent); transform:rotate(25deg); transition:left .6s ease; }
+    #login-view .login-trigger:hover:before {left:135%;}
+    #login-view .field:focus { outline:none; border-color:#22d3ee; box-shadow:0 0 0 1px #22d3ee,0 0 22px rgba(34,211,238,.17); }
+    #login-view .brand-orb {box-shadow:0 0 28px rgba(34,211,238,.24); animation:float-up 5s ease-in-out infinite alternate;}
+    @media (prefers-reduced-motion:reduce) {
+      #login-view:before,#login-view .login-trigger,#login-view .brand-orb {animation:none;}
+      #login-view .login-trigger:before {transition:none;}
+    }
   </style>
 </head>
 <body class="min-h-screen">
 <main id="login-view" class="min-h-screen grid lg:grid-cols-2">
   <section class="hidden lg:flex flex-col justify-between p-12 xl:p-16 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950">
-    <div class="flex items-center gap-3"><div class="h-11 w-11 rounded-2xl bg-cyan-400 text-slate-950 grid place-items-center font-black text-xl">S</div><div><div class="font-bold tracking-wide">TL SEPRI</div><div class="text-xs text-slate-400">Sales Performance Intelligence</div></div></div>
-    <div class="max-w-xl"><div class="text-cyan-300 text-sm font-semibold tracking-[.24em] uppercase mb-5">Samsung · Central Kalimantan</div><h1 class="text-5xl xl:text-6xl font-semibold leading-tight text-white">Satu pusat kendali untuk <span class="text-cyan-300">performa penjualan.</span></h1><p class="mt-6 text-slate-300 text-lg leading-8">Pantau target, sellout, coverage, dan produktivitas tim dalam satu ruang kerja.</p></div>
+    <div class="flex items-center gap-3"><div class="h-11 w-11 rounded-2xl brand-orb bg-cyan-400 text-slate-950 grid place-items-center font-black text-xl">S</div><div><div class="font-bold tracking-wide">Samsung Kalteng</div><div class="text-xs text-slate-400">Sales Performance Intelligence</div></div></div>
+    <div class="max-w-xl"><div class="text-cyan-300 text-sm font-semibold tracking-[.24em] uppercase mb-5">Samsung · Central Kalimantan</div><h1 class="text-5xl xl:text-6xl font-semibold leading-tight text-white">Sistem intelijen penjualan <span class="text-cyan-300">Kalimantan Tengah.</span></h1><p class="mt-6 text-slate-300 text-lg leading-8">Pantau EULA VALID, target November, dan coverage RSO Ryan Cipta secara aman.</p></div>
     <div class="text-xs text-slate-500">Internal workspace · Authorized personnel only</div>
   </section>
   <section class="flex items-center justify-center p-6 sm:p-10"><div class="w-full max-w-md">
     <div class="lg:hidden flex items-center gap-3 mb-12"><div class="h-10 w-10 rounded-xl bg-cyan-400 text-slate-950 grid place-items-center font-black">S</div><div class="font-bold">TL SEPRI</div></div>
-    <div class="mb-8"><p class="text-cyan-300 text-sm font-semibold tracking-widest uppercase">Welcome back</p><h2 class="text-3xl font-semibold mt-2 text-white">Masuk ke akun</h2><p class="text-slate-400 mt-2">Gunakan Employee ID dan password terdaftar.</p></div>
-    <form id="login-form" class="panel rounded-2xl p-6 sm:p-8 space-y-5">
-      <div><label for="employee-id" class="block text-sm text-slate-300 mb-2">Employee ID</label><input id="employee-id" class="field w-full rounded-xl px-4 py-3" autocomplete="username" inputmode="numeric" placeholder="Masukkan Employee ID" required></div>
+    <div class="mb-8"><p class="text-cyan-300 text-sm font-semibold tracking-widest uppercase">Welcome back</p><h2 class="text-3xl font-semibold mt-2 text-white">Masuk ke akun</h2><p class="text-slate-400 mt-2">Gunakan ID akun, kode TL, atau alias Admin yang terdaftar.</p></div>
+    <form id="login-form" class="panel login-glass rounded-2xl p-6 sm:p-8 space-y-5">
+      <div><label for="employee-id" class="block text-sm text-slate-300 mb-2">ID akun / Kode TL</label><input id="employee-id" class="field w-full rounded-xl px-4 py-3" autocomplete="username" inputmode="text" autocapitalize="none" spellcheck="false" placeholder="Contoh: TL_BMU_KAL_02" required></div>
       <div><label for="password" class="block text-sm text-slate-300 mb-2">Password</label><input id="password" type="password" class="field w-full rounded-xl px-4 py-3" autocomplete="current-password" placeholder="Masukkan password" required></div>
       <div id="login-error" class="hidden text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3" role="alert"></div>
-      <button id="login-button" class="w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold py-3 transition disabled:opacity-50">Masuk</button>
-      <p class="text-xs text-slate-500 text-center">Akses hanya untuk akun TL SEPRI yang aktif.</p>
-    </form><p class="text-xs text-slate-600 mt-8 text-center">© 2026 TL SEPRI · Secure internal portal</p>
+      <button id="login-button" class="login-trigger w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold py-3 transition disabled:opacity-50">Masuk</button>
+      <p class="text-xs text-slate-500 text-center">Akses hanya untuk akun yang diotorisasi. Akun TL_BMU diaktifkan oleh Admin.</p>
+    </form><p class="text-xs text-slate-600 mt-8 text-center">© 2026 Samsung Kalteng · Secure internal portal</p>
   </div></section>
+</main>
+<main id="password-rotation-view" class="hidden min-h-screen bg-slate-950 px-5 py-14 flex items-center justify-center">
+  <section class="panel w-full max-w-md p-7 rounded-2xl border border-cyan-700/50" aria-labelledby="rotate-title">
+    <div class="h-12 w-12 rounded-xl bg-cyan-400 text-slate-950 font-black grid place-items-center mb-6">S</div>
+    <p class="text-xs uppercase tracking-widest text-cyan-300">Samsung Kalteng · Keamanan Akun</p>
+    <h2 id="rotate-title" class="text-2xl text-white font-semibold mt-2">Ganti password pertama kali</h2>
+    <p class="text-sm text-slate-400 leading-6 mt-3">Gunakan password baru dengan minimal 14 karakter, huruf, dan angka. Jangan gunakan password sementara kembali.</p>
+    <form id="rotate-form" class="space-y-5 mt-6">
+      <div><label for="rotate-new" class="block text-sm text-slate-300 mb-2">Password baru</label><input id="rotate-new" type="password" required minlength="14" maxlength="128" autocomplete="new-password" class="field w-full rounded-xl px-4 py-3"></div>
+      <div><label for="rotate-confirm" class="block text-sm text-slate-300 mb-2">Konfirmasi password</label><input id="rotate-confirm" type="password" required minlength="14" maxlength="128" autocomplete="new-password" class="field w-full rounded-xl px-4 py-3"></div>
+      <div id="rotate-error" class="hidden text-sm text-rose-300" role="alert"></div>
+      <button id="rotate-submit" class="w-full py-3 rounded-xl bg-cyan-400 text-slate-950 font-semibold">Simpan password baru</button>
+    </form>
+    <button id="rotate-logout" type="button" class="text-xs text-slate-400 hover:text-white mt-5">Keluar dari akun</button>
+  </section>
 </main>
 <main id="app-view" class="hidden min-h-screen">
   <div class="min-h-screen lg:grid lg:grid-cols-[255px_1fr]">
@@ -115,7 +152,10 @@ function openSection(label){
  $("dashboard-content").classList.toggle("hidden",!home);$("section-placeholder").classList.toggle("hidden",home);
  if(!home){
   $("section-heading").textContent=label;$("import-hub-container").innerHTML="";
-  if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
+  if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
+   $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
+   renderBmuActivation();
+  }else if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
    if(window.renderImportHub)window.renderImportHub();
   }else $("section-description").textContent="Kerangka menu "+label+" sudah disiapkan. Modul operasional akan diintegrasikan pada tahap berikutnya.";
@@ -214,18 +254,85 @@ function drawCharts(daily,segments,period){
  charts.segment=new Chart($("segment-chart"),{type:"doughnut",data:{labels:entries.map(x=>x[0]),datasets:[{data:entries.map(x=>x[1]),backgroundColor:["#22d3ee","#60a5fa","#a78bfa","#34d399","#fbbf24","#fb7185","#818cf8","#2dd4bf","#c084fc","#94a3b8"],borderColor:"#132033",borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%",plugins:{legend:{position:"right",labels:{color:"#a8b6c9",boxWidth:10,padding:13,font:{size:10}}}}}});
 }
 async function enterApp(user){
- const {data,error}=await client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active").eq("id",user.id).single();
+ const {data,error}=await client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active,must_change_password").eq("id",user.id).single();
  if(error||!data||!data.is_active||!roleLabels[data.role]){await client.auth.signOut();throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.")}
- currentProfile=data;$("login-view").classList.add("hidden");$("app-view").classList.remove("hidden");
+ currentProfile=data;$("login-view").classList.add("hidden");
+ $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
+ if(data.must_change_password){$("app-view").classList.add("hidden");return}
+ $("app-view").classList.remove("hidden");
  $("user-name").textContent=data.full_name||"Pengguna";$("user-role").textContent=roleLabels[data.role];$("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
  $("access-role").textContent=roleLabels[data.role];$("access-id").textContent=data.employee_id||"-";
  renderNav(data.role);await loadPeriods();await loadDashboard();
 }
+
+function renderBmuActivation(){
+ const mount=$("import-hub-container");
+ mount.innerHTML='<div class="rounded-2xl border border-cyan-700/40 bg-slate-950/50 p-5 sm:p-7 max-w-2xl">'+
+  '<p class="text-xs text-cyan-300 tracking-widest uppercase">Admin-only provisioning</p>'+
+  '<h4 class="font-semibold text-lg mt-2">Aktivasi TL_BMU_KAL_02</h4>'+
+  '<p class="text-sm text-slate-400 mt-3 leading-6">Coverage terbaru: 32 store. Akun Andre Randicky lama tidak dipakai ulang. Password sementara dihasilkan secara acak dan hanya ditampilkan satu kali.</p>'+
+  '<p class="text-xs text-amber-300 mt-3">Lakukan aktivasi hanya setelah identitas pemegang akun baru diverifikasi. Jangan mengirim password melalui grup publik.</p>'+
+  '<button id="bmu-activate" class="mt-5 rounded-xl bg-cyan-400 text-slate-950 px-5 py-3 font-semibold">Verifikasi & aktifkan akun TL_BMU</button>'+
+  '<div id="bmu-result" role="status" class="mt-4 text-sm text-slate-300" aria-live="polite"></div>'+
+  '<div id="bmu-secret" class="hidden mt-4 p-4 rounded-xl border border-amber-800 bg-amber-950/20">'+
+  '<p class="text-amber-200 text-xs">Salin password sementara sekarang. Informasi ini tidak disimpan di browser.</p>'+
+  '<code id="bmu-password" class="block text-white text-base mt-3 break-all"></code>'+
+  '<button id="bmu-copy" type="button" class="rounded-lg border border-cyan-600 px-3 py-2 mt-3 text-sm text-cyan-300">Salin password</button></div></div>';
+ const button=$("bmu-activate"),result=$("bmu-result"),secret=$("bmu-secret");
+ button.addEventListener("click",async()=>{
+  button.disabled=true;button.textContent="Memverifikasi 32 store…";secret.classList.add("hidden");
+  result.textContent="Menghubungi layanan aktivasi...";
+  try{
+    const {data,error}=await client.functions.invoke("provision-tl-bmu",{body:{action:"activate"}});
+    if(error||!data?.ok)throw new Error(data?.error||"Aktivasi gagal. Pastikan sedang login sebagai Admin.");
+    result.textContent=(data.message||"Selesai")+" Coverage: "+data.coverage_stores+" store. Username: "+data.username+".";
+    if(data.temporary_password){
+      $("bmu-password").textContent=data.temporary_password;
+      secret.classList.remove("hidden");
+      $("bmu-copy").onclick=async()=>{
+        try{await navigator.clipboard.writeText(data.temporary_password);$("bmu-copy").textContent="Tersalin";}catch{result.textContent="Gagal menyalin. Salin password secara manual.";}
+      };
+    }
+  }catch(err){result.textContent=err.message||"Gagal mengaktifkan akun.";}
+  finally{button.disabled=false;button.textContent="Verifikasi & aktifkan akun TL_BMU";}
+ });
+}
+$("rotate-form").addEventListener("submit",async event=>{
+ event.preventDefault();const password=$("rotate-new").value,confirmation=$("rotate-confirm").value;
+ const errorBox=$("rotate-error"),button=$("rotate-submit");
+ errorBox.classList.add("hidden");
+ if(password!==confirmation||password.length<14||!/[A-Za-z]/.test(password)||!/[0-9]/.test(password)){
+   errorBox.textContent="Password harus sama, minimal 14 karakter, serta berisi huruf dan angka.";
+   errorBox.classList.remove("hidden");return;
+ }
+ button.disabled=true;button.textContent="Menyimpan...";
+ try{
+   const {data,error}=await client.functions.invoke("provision-tl-bmu",{body:{action:"rotate_password",new_password:password}});
+   if(error||!data?.ok)throw new Error(data?.error||"Password gagal diperbarui. Silakan coba lagi.");
+   await client.auth.signOut();
+   currentProfile=null;$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");
+   $("password").value="";$("rotate-new").value="";$("rotate-confirm").value="";
+   const info=$("login-error");
+   info.className="text-sm text-emerald-200 bg-emerald-950/40 border border-emerald-800 rounded-xl p-3";
+   info.textContent="Password berhasil diperbarui. Silakan masuk kembali dengan password baru.";
+ }catch(err){
+   errorBox.textContent=err.message||"Gagal memperbarui password.";errorBox.classList.remove("hidden");
+ }finally{button.disabled=false;button.textContent="Simpan password baru";}
+});
+$("rotate-logout").addEventListener("click",async()=>{
+ await client.auth.signOut();currentProfile=null;$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");
+ $("password").value="";
+});
+
 $("login-form").addEventListener("submit",async e=>{e.preventDefault();$("login-error").classList.add("hidden");$("login-button").disabled=true;$("login-button").textContent="Memeriksa akun…";
  const employeeId=$("employee-id").value.trim(),password=$("password").value;
- try{if(!/^\d{4,12}$/.test(employeeId))throw new Error("Employee ID harus berupa angka.");const {data,error}=await client.auth.signInWithPassword({email:employeeId+"@login.tlsepri.internal",password});if(error)throw new Error("Employee ID atau password tidak sesuai.");await enterApp(data.user)}
+ try{if(!/^[A-Za-z0-9_-]{4,40}$/.test(employeeId))throw new Error("ID harus 4–40 karakter (huruf, angka, '-' atau '_').");
+ const alias=employeeId.toUpperCase();
+ const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
+ const {data,error}=await client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password});
+ if(error)throw new Error("ID akun atau password tidak sesuai.");await enterApp(data.user)}
  catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").textContent="Masuk"}});
-$("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
+$("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
 $("mobile-menu").addEventListener("click",()=>$("nav-wrap").classList.toggle("hidden"));
 $("period-select").addEventListener("change",loadDashboard);$("refresh-button").addEventListener("click",loadDashboard);
 client.auth.getSession().then(({data})=>{if(data.session)enterApp(data.session.user).catch(err=>{console.error(err);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})});

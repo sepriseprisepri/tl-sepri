@@ -57,7 +57,7 @@ async function render(ctx,mount){
    '</div><div id="promo-saved-filters"></div>'+
    '<p id="promo-results-count" class="intel-caption" aria-live="polite"></p><div id="promo-results" class="intel-promo-grid" aria-live="polite"></div><button id="promo-load-more" class="intel-action intel-action-subtle" type="button" hidden>Muat 18 promo berikutnya</button>'+
    '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Ketersediaan promo bergantung pada model, varian, channel, dan syarat berlaku. Tidak ada data promo = jangan menjanjikan cashback.</p><div id="promo-model-list" class="intel-model-chips"></div></div>'+
-   (role==="admin"?'<div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
+   (role==="admin"?'<div class="intel-card"><div class="intel-card-head"><h3>Admin · Antrean klarifikasi promo</h3></div><p class="intel-caption">Entri draft tidak terlihat oleh TL/TSO/EC. Catat hasil pemeriksaan; menyimpan catatan TIDAK menerbitkan promo.</p><div id="promo-review-queue"></div></div><div class="intel-card"><div class="intel-card-head"><h3>Admin · Publikasikan promo terverifikasi</h3></div><p class="intel-caption">Verifikasi sumber, cakupan toko dan tanggal terlebih dahulu. Hanya admin aktif yang dapat membuat atau menonaktifkan promo.</p><div id="promo-admin"></div></div>':"");
   const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model"),
    channel=mount.querySelector("#promo-channel"),category=mount.querySelector("#promo-category");
   if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;window.UserPrefs.pendingSearch="";}
@@ -124,7 +124,7 @@ async function render(ctx,mount){
     if(role==="admin"){
      const toggle=document.createElement("button");toggle.className="intel-action intel-action-subtle";toggle.type="button";
      toggle.textContent=p.published?"Nonaktifkan promo":"Terbitkan ulang";
-     toggle.disabled=!p.published&&p.verification_state!=="verified";
+     toggle.disabled=!p.published&&(p.verification_state!=="verified"||p.requires_review);
      toggle.addEventListener("click",async()=>{
       toggle.disabled=true;
       const update={published:!p.published,updated_by:ctx.profile.id,updated_at:new Date().toISOString()};
@@ -159,11 +159,63 @@ async function render(ctx,mount){
     display();
    }
   });
-  if(role==="admin")adminEditor(ctx,mount.querySelector("#promo-admin"),models,ctx.stores||[],()=>render(ctx,mount));
+  if(role==="admin"){
+   adminReviewQueue(ctx,mount.querySelector("#promo-review-queue"),promos);
+   adminEditor(ctx,mount.querySelector("#promo-admin"),models,ctx.stores||[],()=>render(ctx,mount));
+  }
  }catch(error){
   if(token!==renderToken)return;
   console.error("[PromoCenter]",error);
   mount.innerHTML='<div role="alert" class="intel-zero">Gagal memuat promo: '+esc(error.message||"Periksa koneksi dan izin data.")+'</div>';
+ }
+}
+const reviewChecklist={
+ "a57-xl-pending":"Minta daftar Site ID sekitar 6 toko, syarat XL Prioritas, nominal tambahan dan periode dari Shoppel.",
+ "a18-adaptor-review":"Konfirmasi apakah istilah 'Apple Adaptor' adalah salah tulis dan SKU adaptor yang benar.",
+ "a08-adaptor-review":"Konfirmasi SKU adaptor yang benar dan apakah berlaku semua varian A08.",
+ "a07-lte-adaptor":"Konfirmasi SKU adaptor bundling dan syarat A07 LTE.",
+ "a17-lte-8-128-price":"Minta RRP final A17 LTE 8/128GB dari price list terbaru. Modal bukan harga jual.",
+ "buds-core":"Konfirmasi nama model Buds SCORE vs Buds Core dan SKU yang mendapatkan PWP 10%."
+};
+function adminReviewQueue(ctx,mount,promos){
+ const pending=promos.filter(p=>p.requires_review&&!p.published);
+ mount.innerHTML='<p class="intel-caption" role="status">'+pending.length+' entri menunggu pemeriksaan. Tidak ada penerbitan otomatis.</p>'+
+  (pending.length?'<div class="intel-review-grid"></div>':'<p class="intel-caption">Tidak ada draft yang perlu diklarifikasi.</p>');
+ const grid=mount.querySelector(".intel-review-grid");if(!grid)return;
+ for(const p of pending){
+  const key=String(p.import_key||"").replace(/^master-20261030-/,"");
+  const checklist=reviewChecklist[key]||"Konfirmasi model, varian, channel, nominal dan periode pada sumber internal.";
+  const item=document.createElement("section");item.className="intel-review-item";
+  item.innerHTML='<div class="intel-promo-top"><strong>'+esc(p.model_name)+' · '+esc(p.sku_variant||"Semua varian")+'</strong><span class="intel-promo-state state-draft">Draft tertahan</span></div>'+
+   '<p>'+esc(checklist)+'</p>'+
+   '<label>Catatan verifikasi Admin<textarea class="field intel-review-input" maxlength="1200" rows="3" aria-label="Catatan verifikasi '+esc(p.model_name)+'">'+esc(p.review_notes||"")+'</textarea></label>'+
+   '<div class="intel-review-actions"><button class="intel-action intel-action-subtle" type="button" data-action="copy">Salin daftar pemeriksaan</button>'+
+   '<button class="intel-action intel-action-primary" type="button" data-action="save">Simpan catatan (tetap draft)</button></div>'+
+   '<p class="intel-caption" role="status" aria-live="polite"></p>';
+  const input=item.querySelector("textarea"),status=item.querySelector('[role="status"]');
+  item.querySelector('[data-action="copy"]').addEventListener("click",async()=>{
+   const text="Review Promo Samsung Kalteng\nModel: "+p.model_name+"\nVarian: "+(p.sku_variant||"Semua varian")+
+     "\nChannel: "+(channelName[p.channel_code]||p.channel_label)+"\nPertanyaan: "+checklist+
+     "\nSumber: "+(p.source_reference||"Bulletin internal")+"\nStatus: DRAFT — belum boleh dijanjikan";
+   try{await navigator.clipboard.writeText(text);status.textContent="Daftar pemeriksaan disalin.";}
+   catch{status.textContent="Tidak dapat menyalin otomatis. Silakan salin teks pemeriksaan di atas.";}
+  });
+  const save=item.querySelector('[data-action="save"]');
+  save.addEventListener("click",async()=>{
+   const note=input.value.trim();
+   if(note.length<10){status.textContent="Isi catatan minimal 10 karakter.";return;}
+   save.disabled=true;status.textContent="Menyimpan catatan tanpa menerbitkan...";
+   try{
+    const {data,error}=await ctx.client.from("sales_promotions").update({
+     review_notes:note,updated_by:ctx.profile.id,updated_at:new Date().toISOString()
+    }).eq("id",p.id).eq("published",false).eq("requires_review",true).select("id,review_notes").single();
+    if(error||!data)throw new Error(error?.message||"Data draft tidak ditemukan");
+    p.review_notes=data.review_notes;
+    status.textContent="Catatan tersimpan. Promo tetap draft dan tidak terlihat oleh pengguna operasional.";
+   }catch(e){status.textContent="Gagal menyimpan: "+String(e.message||e);}
+   finally{save.disabled=false;}
+  });
+  grid.appendChild(item);
  }
 }
 function adminEditor(ctx,mount,models,stores,reload){

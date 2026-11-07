@@ -61,7 +61,7 @@ for(const key of keys){
  assert.ok(r.includes("'bulletin_user_transcription'"),key+" must not claim official-site verification");
 }
 assert.match(ui,/p\.source_type==="internal_bulletin"/);
-assert.match(ui,/bukan hasil verifikasi eksternal/);
+assert.match(ui,/Sumber internal bukan verifikasi publik/);
 assert.match(ui,/intel-offer-items/);
 assert.match(ui,/sku_variant/);
 assert.match(ui,/channel_code/);
@@ -78,6 +78,21 @@ assert.doesNotMatch(ui,/adminReviewQueue|adminEditor|promo-review-queue|promo-ad
 assert.doesNotMatch(ui,/role==="admin"|focus_model_settings|raw_sellout|sales_promotion_stores/);
 assert.doesNotMatch(ui,/\.from\("sales_promotions"\)\.(?:insert|update|delete|upsert)\(/);
 assert.doesNotMatch(ui,/Nonaktifkan promo|Terbitkan ulang|Simpan catatan \(tetap draft\)/);
+// Monthly updates must not inherit a fixed November banner or hide other-channel offers.
+assert.match(ui,/const latestBulletinDate=/);
+assert.match(ui,/Tanggal sumber bulletin internal terbaru/);
+assert.match(ui,/tidak tersinkron otomatis/);
+assert.doesNotMatch(ui,/Master Update Promo Samsung — November 2026/);
+assert.doesNotMatch(ui,/1–17 November|30 Oktober 2026/);
+assert.match(ui,/const daysUntil=value=>/);
+assert.match(ui,/Segera berakhir/);
+assert.match(ui,/Berakhir hari ini/);
+assert.match(ui,/Program berakhir/);
+assert.match(ui,/Tidak ada program nasional yang masih berlaku/);
+assert.match(ui,/class="intel-promo-timing/);
+assert.match(ui,/id="promo-channel" class="field"><option value="">Semua channel<\/option>/);
+assert.doesNotMatch(ui,/<option value="all">Semua channel<\/option>/);
+assert.match(css,/\.intel-promo-timing-soon/);
 assert.match(ui,/Tanpa promo cashback/); // no-cashback informational records remain distinct from offers
 assert.match(css,/\.intel-source-internal/);
 assert.match(chart,/p\.record_kind==="offer"/);

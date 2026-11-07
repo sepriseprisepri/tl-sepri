@@ -65,3 +65,13 @@ Browser E2E per role masih perlu verifikasi dengan sesi akun yang sah. Jangan me
 ## Pembaruan UI 7 November 2026
 
 Katalog dipresentasikan secara nasional untuk semua peran aktif dan hanya memuat entri terbit. Dua panel Admin (verifikasi dan publikasi) serta tombol Admin untuk menonaktifkan/menerbitkan ulang tidak tersedia lagi. Pembaruan penawaran di masa depan memerlukan pengelolaan data terkontrol di luar UI. Kebijakan RLS/tabel database dan enam draft arsip tidak berubah.
+
+## Siklus pembaruan katalog nasional — 7 November 2026
+
+- Frontend tidak memuat teks bulan November sebagai judul sumber global. Sumber bulletin internal terbaru dihitung dari `source_date` pada entri nasional yang sedang diterbitkan.
+- Filter default **Semua channel** berarti tidak memfilter channel; pilihan ganda `all` dihapus agar tidak sengaja menyembunyikan Traditional, Organized, E-Store, atau Online.
+- Kartu promo menandai penawaran yang berakhir paling lambat dalam 7 hari, termasuk **Berakhir hari ini**. Kartu dengan status berakhir atau akan datang dilabel dengan jelas ketika pengguna memakai filter semua status.
+- KPI tambahan menampilkan jumlah entri yang akan berakhir dalam 3 hari.
+- Entri yang telah berakhir tetap ada untuk riwayat, tetapi tidak muncul pada filter awal **Sedang berjalan**. Saat tidak ada promo aktif, pengguna diarahkan untuk tidak menjanjikan cashback lama.
+- Tanggal sumber internal **tidak sama** dengan pembuktian Samsung.com, dan tidak berarti katalog tersinkron otomatis.
+- Alur update data yang dikendalikan tim: terima bulletin nasional → cek sumber, varian, channel, masa berlaku, dan informasi harga → hasilkan impor idempoten berprovenansi → jalankan uji integritas → rilis melalui staging → publikasikan setelah disetujui. Tidak ada form publikasi Admin di UI. Entri baru tidak otomatis dibuat atau diimpor oleh perubahan frontend.

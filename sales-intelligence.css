@@ -197,3 +197,15 @@
 #promo-results-count{font-size:11px;}
 #promo-load-more{margin:0 auto 22px;display:flex;}
 #promo-load-more[hidden]{display:none!important;}
+
+/* National catalog lifecycle indicators: consistent across all roles. */
+.intel-promo-timing{
+ align-self:flex-start;margin:0;padding:5px 9px;border-radius:7px;
+ color:#c4d5e3;background:rgba(94,127,147,.12);
+ font-size:11px;line-height:1.5;font-weight:650;
+ border:1px solid rgba(128,174,204,.18);
+}
+.intel-promo-timing-soon{
+ color:#ffe0a1;background:rgba(144,96,31,.14);
+ border-color:rgba(235,181,91,.38);
+}

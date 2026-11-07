@@ -7,6 +7,13 @@ const fmt=new Intl.NumberFormat("id-ID");
 const rp=new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0});
 const channelName={all:"Seluruh channel (sesuai syarat)",offline:"Traditional + Organized",traditional:"Traditional saja",organized:"Organized saja",e_store:"E-Store",online:"Online saja",unspecified:"Channel belum dipastikan"};
 const kindLabel={offer:"Promo",price_update:"Informasi harga",no_offer:"Tanpa promo cashback",information:"Informasi program",financing:"Skema pembiayaan"};
+// One eligibility rule for cards, model coverage, and KPI totals.
+const matchesChannel=(actualCode,selected)=>{
+ const actual=actualCode||"unspecified";
+ if(!selected||selected==="all"||actual==="all"||actual===selected)return true;
+ if(selected==="offline")return actual==="traditional"||actual==="organized";
+ return (selected==="traditional"||selected==="organized")&&actual==="offline";
+};
 function formatOffer(item){
  let output=String(item.name||"Benefit");
  if(item.amount_idr!=null)output+=" · "+rp.format(Number(item.amount_idr));
@@ -67,29 +74,17 @@ async function render(ctx,mount){
    const eligiblePromo=promos.filter(p=>{
     if(filter.status!=="all"&&state(p)!==filter.status)return false;
     if(filter.model&&norm(p.model_name)!==norm(filter.model)&&norm(p.model_code)!==norm(filter.model)&&p.model_code!=="*")return false;
-    if(filter.channel){
-     const selected=filter.channel,actual=p.channel_code||"unspecified";
-     const channelMatch=actual===selected||actual==="all"||
-       (selected==="traditional"||selected==="organized")&&actual==="offline"||
-       selected==="offline"&&["traditional","organized"].includes(actual);
-     if(!channelMatch)return false;
-    }
+    if(!matchesChannel(p.channel_code,filter.channel))return false;
     if(filter.category&&p.program_category!==filter.category)return false;
     const searchable=[p.title,p.model_code,p.model_name,p.sku_variant,p.benefit,p.channel_label,p.terms,p.source_reference].join(" ").toLocaleLowerCase("id-ID");
     return !term||searchable.includes(term);
    });
-   const currentActive=promos.filter(p=>state(p)==="active");
+   const currentActive=promos.filter(p=>state(p)==="active"&&matchesChannel(p.channel_code,filter.channel));
    const specific=currentActive.filter(p=>p.model_code!=="*"&&p.record_kind==="offer");
-   const channelEligible=p=>{
-    if(!filter.channel)return true;
-    const a=p.channel_code||"unspecified",c=filter.channel;
-    return a===c||a==="all"||["traditional","organized"].includes(c)&&a==="offline"||
-      c==="offline"&&["traditional","organized"].includes(a);
-   };
-   const covered=new Set(specific.filter(p=>channelEligible(p)).map(p=>norm(p.model_name)));
+   const covered=new Set(specific.map(p=>norm(p.model_name)));
    mount.querySelector("#intel-promo-kpis").innerHTML=[
     ["Program model aktif",specific.length],["Kampanye umum",currentActive.filter(p=>p.model_code==="*").length],
-    ["Model dalam katalog",models.length],["Segera berakhir (≤ 3 hari)",currentActive.filter(p=>{const d=daysUntil(p.end_date);return d!=null&&d>=0&&d<=3;}).length]
+    ["Total model katalog",models.length],["Segera berakhir (≤ 3 hari)",currentActive.filter(p=>{const d=daysUntil(p.end_date);return d!=null&&d>=0&&d<=3;}).length]
    ].map(([k,v])=>'<div class="intel-stat"><span>'+esc(k)+'</span><strong>'+fmt.format(v)+'</strong></div>').join("");
    const box=mount.querySelector("#promo-results");box.innerHTML="";
    const more=mount.querySelector("#promo-load-more");
@@ -113,7 +108,7 @@ async function render(ctx,mount){
     const kind=p.record_kind||"offer";
     // The read-only viewer does not expose internal draft review notes.
     const sourceLabel=isInternal?"Sumber: bulletin internal":"Sumber: Samsung.com";
-    node.innerHTML='<div class="intel-promo-top"><span class="intel-promo-state state-'+esc(condition)+'">'+esc(kind!=="offer"?(kindLabel[kind]||label[condition]):label[condition])+'</span><span class="intel-overline">'+esc(sourceLabel)+'</span></div>'+
+    node.innerHTML='<div class="intel-promo-top"><span class="intel-promo-state state-'+esc(condition)+'">'+esc(label[condition])+'</span><span class="intel-overline">'+esc(sourceLabel)+'</span></div>'+
      '<p class="intel-promo-model">'+esc(modelTag)+'</p><h4>'+esc(p.title)+'</h4>'+(timing?'<p class="intel-promo-timing'+(condition==="active"&&days!=null&&days<=3?" intel-promo-timing-soon":"")+'">'+esc(timing)+'</p>':"")+
      '<div class="intel-offer-badges"><span>Varian: '+esc(p.sku_variant||"Semua varian")+'</span><span>Channel: '+esc(channelName[p.channel_code]||p.channel_label)+'</span><span>'+esc(kindLabel[kind]||"Promo")+'</span></div>'+
      '<p class="intel-promo-benefit">'+esc(p.benefit)+'</p>'+itemCards+
@@ -152,5 +147,5 @@ async function render(ctx,mount){
   mount.innerHTML='<div role="alert" class="intel-zero">Gagal memuat promo: '+esc(error.message||"Periksa koneksi dan izin data.")+'</div>';
  }
 }
-window.PromoCenter={render,allowedUrl,state,norm};
+window.PromoCenter={render,allowedUrl,state,norm,matchesChannel,daysUntil};
 })();

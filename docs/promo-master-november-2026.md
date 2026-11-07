@@ -75,3 +75,9 @@ Katalog dipresentasikan secara nasional untuk semua peran aktif dan hanya memuat
 - Entri yang telah berakhir tetap ada untuk riwayat, tetapi tidak muncul pada filter awal **Sedang berjalan**. Saat tidak ada promo aktif, pengguna diarahkan untuk tidak menjanjikan cashback lama.
 - Tanggal sumber internal **tidak sama** dengan pembuktian Samsung.com, dan tidak berarti katalog tersinkron otomatis.
 - Alur update data yang dikendalikan tim: terima bulletin nasional → cek sumber, varian, channel, masa berlaku, dan informasi harga → hasilkan impor idempoten berprovenansi → jalankan uji integritas → rilis melalui staging → publikasikan setelah disetujui. Tidak ada form publikasi Admin di UI. Entri baru tidak otomatis dibuat atau diimpor oleh perubahan frontend.
+
+## Konsistensi filter channel — 7 November 2026
+
+- Satu aturan kelayakan channel digunakan oleh kartu promo, angka KPI aktif, dan indikator cakupan model. Saat memilih Traditional, yang terlihat adalah entri Traditional/Offline/Semua channel; Organized tidak disisipkan secara keliru. Pilihan Offline mencakup Traditional dan Organized, tetapi bukan E-Store/Online. Filter tanpa pilihan berlaku untuk seluruh channel.
+- Status tanggal program (**Aktif**, **Akan datang**, **Berakhir**) ditampilkan tersendiri, termasuk untuk entri harga, pembiayaan, informasi, dan tanpa cashback. Jenis informasi tetap dijelaskan pada chip kategori kartu; kedaluwarsa tidak tertutupi oleh label jenis.
+- QA menguji matriks channel dan kasus tanggal tepat pada akhir periode maupun hari sesudah berakhir tanpa memakai akun atau database produksi.

@@ -65,7 +65,7 @@ assert.match(ui,/Sumber internal bukan verifikasi publik/);
 assert.match(ui,/intel-offer-items/);
 assert.match(ui,/sku_variant/);
 assert.match(ui,/channel_code/);
-assert.match(ui,/const channelEligible=p=>/);
+assert.match(ui,/const matchesChannel=/);
 assert.match(ui,/record_kind/);
 assert.match(ui,/id="promo-channel"/);
 assert.match(ui,/id="promo-category"/);
@@ -93,6 +93,33 @@ assert.match(ui,/class="intel-promo-timing/);
 assert.match(ui,/id="promo-channel" class="field"><option value="">Semua channel<\/option>/);
 assert.doesNotMatch(ui,/<option value="all">Semua channel<\/option>/);
 assert.match(css,/\.intel-promo-timing-soon/);
+// Runtime channel matrix prevents cards, KPI totals and model chips from diverging.
+const sandbox={window:{SalesIntelligence:{dateLocal:()=>"2026-11-07"}},Date,Intl,URL};
+vm.runInNewContext(ui,sandbox);
+const api=sandbox.window.PromoCenter;
+assert.equal(typeof api.matchesChannel,"function");
+for(const [actual,selected,expected] of [
+ ["traditional","",true],["organized","",true],["e_store","all",true],
+ ["traditional","traditional",true],["organized","traditional",false],
+ ["offline","traditional",true],["traditional","offline",true],
+ ["organized","offline",true],["online","offline",false],
+ ["e_store","online",false],["all","online",true],
+ ["unspecified","organized",false],["online","online",true]
+]){
+ assert.equal(api.matchesChannel(actual,selected),expected,actual+" / "+selected);
+}
+assert.equal(api.daysUntil("2026-11-07"),0);
+assert.equal(api.daysUntil("2026-11-10"),3);
+assert.equal(api.daysUntil("2026-11-06"),-1);
+const promo=(kind,end_date)=>({published:true,verification_state:"verified",start_date:"2026-11-01",end_date,record_kind:kind});
+for(const kind of ["offer","information","price_update","no_offer","financing"]){
+ assert.equal(api.state(promo(kind,"2026-11-06")),"expired",kind);
+ assert.equal(api.state(promo(kind,"2026-11-07")),"active",kind);
+}
+assert.match(ui,/const currentActive=promos\.filter\(p=>state\(p\)==="active"&&matchesChannel\(p.channel_code,filter\.channel\)\)/);
+assert.match(ui,/const covered=new Set\(specific\.map/);
+assert.match(ui,/esc\(label\[condition\]\)/);
+assert.doesNotMatch(ui,/const channelEligible=p=>|const channelMatch=/);
 assert.match(ui,/Tanpa promo cashback/); // no-cashback informational records remain distinct from offers
 assert.match(css,/\.intel-source-internal/);
 assert.match(chart,/p\.record_kind==="offer"/);

@@ -61,7 +61,7 @@ for(const key of keys){
  assert.ok(r.includes("'bulletin_user_transcription'"),key+" must not claim official-site verification");
 }
 assert.match(ui,/p\.source_type==="internal_bulletin"/);
-assert.match(ui,/bukan hasil verifikasi eksternal/);
+assert.match(ui,/Sumber internal bukan verifikasi publik/);
 assert.match(ui,/intel-offer-items/);
 assert.match(ui,/sku_variant/);
 assert.match(ui,/channel_code/);

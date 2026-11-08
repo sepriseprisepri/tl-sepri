@@ -141,6 +141,7 @@
           <label for="period-select" class="text-xs text-slate-300">Periode target</label>
           <select id="period-select" class="field" aria-label="Pilih periode target"></select>
           <button id="refresh-button" type="button">↻ Perbarui data</button>
+          <p id="workspace-feedback" class="text-xs text-slate-400" role="status" aria-live="polite"></p>
         </div>
         <div id="dashboard-content">
           <section class="dashboard-intro mb-6" aria-label="Ringkasan kerja">
@@ -295,11 +296,11 @@ function openSection(label){
    const mount=$("import-hub-container");
    if(!selected && ["Target","Target Saya","Laporan","Laporan Saya","Coverage","Coverage & Toko"].includes(label)){
     mount.innerHTML='<div role="status" class="rounded-xl border border-amber-700/40 p-5 text-sm text-amber-200">Periode target belum tersedia untuk akun ini. Ketuk <strong>↻ Perbarui data</strong> atau hubungi Admin jika daftar masih kosong.</div>';
-    return;
+   }else{
+    Promise.resolve(window.SamsungOps.render({label,client,profile:currentProfile,mount,period:selected}))
+     .then(()=>{if($("section-heading").textContent===label&&window.UserPrefs)window.UserPrefs.attachOpsSearch({client,profile:currentProfile,label,mount});})
+     .catch(err=>console.error("[SavedFilters]",err));
    }
-   Promise.resolve(window.SamsungOps.render({label,client,profile:currentProfile,mount,period:selected}))
-    .then(()=>{if($("section-heading").textContent===label&&window.UserPrefs)window.UserPrefs.attachOpsSearch({client,profile:currentProfile,label,mount});})
-    .catch(err=>console.error("[SavedFilters]",err));
   }else if(label==="Survey"){
    $("section-description").textContent="Pusat survei lapangan Samsung Kalteng. Modul pengisian dan pelaporan belum diaktifkan.";
    $("import-hub-container").innerHTML=
@@ -656,11 +657,15 @@ $("password-visibility").addEventListener("click",()=>{
 });
 $("density-toggle").addEventListener("click",()=>window.UserPrefs?.toggleDensity());
 async function refreshWorkspace(reloadPeriodList=false){
+ const status=$("workspace-feedback");
+ status.textContent=reloadPeriodList?"Memeriksa daftar periode…":"Memperbarui periode terpilih…";
  if(reloadPeriodList){
-  try{await loadPeriods();}catch(err){showDataError("Periode gagal diperbarui: "+(err.message||"Periksa koneksi."));}
+  try{await loadPeriods();}catch(err){showDataError("Periode gagal diperbarui: "+(err.message||"Periksa koneksi."));status.textContent="Periode gagal diperbarui.";}
  }
  await loadDashboard();
  if(activeSection!=="Dashboard" && currentProfile)openSection(activeSection);
+ if(!$("data-error").classList.contains("hidden"))status.textContent="Pembaruan bermasalah. Periksa koneksi.";
+ else status.textContent="Data diperbarui pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB.";
 }
 $("period-select").addEventListener("change",()=>refreshWorkspace());
 $("refresh-button").addEventListener("click",()=>refreshWorkspace(true));

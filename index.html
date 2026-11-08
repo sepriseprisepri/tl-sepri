@@ -137,6 +137,12 @@
         </div>
       </header>
       <div class="app-main">
+        <div id="workspace-controls" class="dashboard-controls" role="group" aria-label="Kontrol data dashboard dan modul">
+          <label for="period-select" class="text-xs text-slate-300">Periode target</label>
+          <select id="period-select" class="field" aria-label="Pilih periode target"></select>
+          <button id="refresh-button" type="button">↻ Perbarui data</button>
+          <p id="workspace-feedback" class="text-xs text-slate-400" role="status" aria-live="polite"></p>
+        </div>
         <div id="dashboard-content">
           <section class="dashboard-intro mb-6" aria-label="Ringkasan kerja">
             <div class="flex flex-wrap items-center justify-between gap-6">
@@ -145,11 +151,7 @@
                 <h2 id="welcome-title" class="mt-2">Dashboard</h2>
                 <p id="welcome-subtitle">Ringkasan target dan sellout sesuai hak akses akun.</p>
               </div>
-              <div class="dashboard-controls">
-                <label for="period-select" class="text-xs text-slate-400">Periode</label>
-                <select id="period-select" class="field" aria-label="Pilih periode target"></select>
-                <button id="refresh-button" type="button">↻ Perbarui</button>
-              </div>
+
             </div>
             <p class="sync-caption" id="sync-status" role="status" aria-live="polite">Memuat data dashboard saat Anda masuk.</p>
             <nav id="quick-actions" class="quick-actions" aria-label="Akses cepat modul"></nav>
@@ -205,13 +207,13 @@ const menus={
  tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
  ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Competitor","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
 };
-let currentProfile=null,periods=[],charts={},lastSalesData=null;
+let currentProfile=null,periods=[],charts={},lastSalesData=null,activeSection="Dashboard";
 const fmtNum=v=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(Number(v||0));
 const money=v=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const pct=(a,b)=>b>0?(a/b*100):0;
 const dateFmt=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
 function showLoginError(msg){const el=$("login-error");el.className="text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3";el.textContent=msg}
-function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Perbarui"}
+function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Perbarui data"}
 function showDataError(msg){$("data-error").textContent=msg;$("data-error").classList.remove("hidden")}
 function hideDataError(){$("data-error").classList.add("hidden")}
 function menuIcon(label){
@@ -260,6 +262,7 @@ function renderNav(role){
  });
 }
 function openSection(label){
+ activeSection=label;
  if(label!=="Grafik Sellout")window.SalesIntelligence?.clearCharts();
  const home=label==="Dashboard";$("page-title").textContent=label;$("page-kicker").textContent=home?"Overview":"Workspace";
  $("dashboard-content").classList.toggle("hidden",!home);$("section-placeholder").classList.toggle("hidden",home);
@@ -279,7 +282,7 @@ function openSection(label){
    if(window.PromoCenter)window.PromoCenter.render({...data,client,profile:currentProfile,openSection},$("import-hub-container"));
   }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
    $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";
-   if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile},$("import-hub-container"));
+   if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile,accessToken:activeAuthAccessToken,apiUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY},$("import-hub-container"));
   }else if(label==="Aktivasi Akun EC"&&currentProfile?.role==="admin"){
    $("section-description").textContent="Pembuatan akun EC berdasarkan master aktif dan penugasan toko, dilindungi hak akses Admin.";
    window.ECAccountProvision?.render({client,profile:currentProfile},$("import-hub-container"));
@@ -289,11 +292,23 @@ function openSection(label){
    renderBmuActivation();
   }else if(window.SamsungOps&&window.SamsungOps.supports(label)){
    $("section-description").textContent="Data operasional langsung dari Supabase, dibatasi sesuai role dan coverage Anda.";
-   const selected=periods.find(p=>p.id===$("period-select").value)||periods[0];
+   const selected=periods.find(p=>p.id===$("period-select").value)||periods[0]||null;
    const mount=$("import-hub-container");
-   Promise.resolve(window.SamsungOps.render({label,client,profile:currentProfile,mount,period:selected}))
-    .then(()=>{if($("section-heading").textContent===label&&window.UserPrefs)window.UserPrefs.attachOpsSearch({client,profile:currentProfile,label,mount});})
-    .catch(err=>console.error("[SavedFilters]",err));
+   if(!selected && ["Target","Target Saya","Laporan","Laporan Saya","Coverage","Coverage & Toko"].includes(label)){
+    mount.innerHTML='<div role="status" class="rounded-xl border border-amber-700/40 p-5 text-sm text-amber-200">Periode target belum tersedia untuk akun ini. Ketuk <strong>↻ Perbarui data</strong> atau hubungi Admin jika daftar masih kosong.</div>';
+   }else{
+    Promise.resolve(window.SamsungOps.render({label,client,profile:currentProfile,mount,period:selected}))
+     .then(()=>{if($("section-heading").textContent===label&&window.UserPrefs)window.UserPrefs.attachOpsSearch({client,profile:currentProfile,label,mount});})
+     .catch(err=>console.error("[SavedFilters]",err));
+   }
+  }else if(label==="Survey"){
+   $("section-description").textContent="Pusat survei lapangan Samsung Kalteng. Modul pengisian dan pelaporan belum diaktifkan.";
+   $("import-hub-container").innerHTML=
+    '<section class="rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-5 sm:p-7 space-y-4">'+
+    '<div class="flex items-center gap-3"><span class="rounded-xl bg-cyan-500/10 px-3 py-2 text-cyan-300" aria-hidden="true">☷</span><div><h3 class="font-semibold text-white">Survey Lapangan</h3><p class="text-xs text-cyan-200">Tahap persiapan · Belum menerima input</p></div></div>'+
+    '<p class="text-sm text-slate-300 leading-6">Kerangka Survey sudah tersedia untuk EC dan tim pengelola. Formulir survei, daftar pertanyaan, bukti kunjungan, dan integrasi laporan akan disiapkan pada tahap pengembangan selanjutnya.</p>'+
+    '<div class="grid sm:grid-cols-3 gap-3 text-sm"><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Pengisian EC</b><span class="text-slate-400">Menunggu definisi formulir</span></div><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Riwayat kunjungan</b><span class="text-slate-400">Belum terhubung ke database</span></div><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Laporan Survey</b><span class="text-slate-400">Direncanakan tahap berikutnya</span></div></div>'+
+    '<p class="text-xs text-amber-200">Belum ada data yang dikirim atau disimpan dari menu ini.</p></section>';
   }else if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
    if(window.renderImportHub)window.renderImportHub();
@@ -317,11 +332,14 @@ async function fetchAll(table,columns,configure){
  return out;
 }
 async function loadPeriods(){
+ const selector=$("period-select"),previous=selector.value;
  const {data,error}=await client.from("target_periods").select("id,period_name,period_start,period_end,status").order("period_start",{ascending:false});
  if(error)throw error;periods=data||[];
- $("period-select").innerHTML="";
- periods.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.period_name;$("period-select").appendChild(o)});
- if(!periods.length){const o=document.createElement("option");o.textContent="Belum ada periode target";o.value="";$("period-select").appendChild(o)}
+ selector.replaceChildren();
+ periods.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.period_name+(p.status==="draft"?" · Draft":"");selector.appendChild(o)});
+ if(!periods.length){const o=document.createElement("option");o.textContent="Belum ada periode target";o.value="";selector.appendChild(o)}
+ if(periods.some(p=>p.id===previous))selector.value=previous;
+ selector.disabled=!periods.length;
 }
 async function loadDashboard(){
  if(!currentProfile)return;setBusy(true);hideDataError();$("data-notice").classList.add("hidden");
@@ -638,7 +656,19 @@ $("password-visibility").addEventListener("click",()=>{
  input.focus({preventScroll:true});
 });
 $("density-toggle").addEventListener("click",()=>window.UserPrefs?.toggleDensity());
-$("period-select").addEventListener("change",loadDashboard);$("refresh-button").addEventListener("click",loadDashboard);
+async function refreshWorkspace(reloadPeriodList=false){
+ const status=$("workspace-feedback");
+ status.textContent=reloadPeriodList?"Memeriksa daftar periode…":"Memperbarui periode terpilih…";
+ if(reloadPeriodList){
+  try{await loadPeriods();}catch(err){showDataError("Periode gagal diperbarui: "+(err.message||"Periksa koneksi."));status.textContent="Periode gagal diperbarui.";}
+ }
+ await loadDashboard();
+ if(activeSection!=="Dashboard" && currentProfile)openSection(activeSection);
+ if(!$("data-error").classList.contains("hidden"))status.textContent="Pembaruan bermasalah. Periksa koneksi.";
+ else status.textContent="Data diperbarui pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB.";
+}
+$("period-select").addEventListener("change",()=>refreshWorkspace());
+$("refresh-button").addEventListener("click",()=>refreshWorkspace(true));
 withLoginDeadline(client.auth.getSession(),6000,"").then(({data})=>{if(data?.session?.access_token)enterApp(data.session.user,data.session.access_token).catch(err=>{console.warn("[Login] Restore failed:",err.message);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})}).catch(()=>{ /* Page remains on usable login screen if browser session lock persists. */ });
 </script>
 </body></html>

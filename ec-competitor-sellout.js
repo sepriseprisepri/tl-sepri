@@ -23,7 +23,7 @@
   mount.innerHTML='<div class="space-y-5 max-w-4xl">'+
    '<div class="rounded-xl border border-cyan-700/30 bg-cyan-950/20 p-4 text-sm text-slate-200"><p class="font-semibold text-cyan-200">Sellout Brand Competitor · EC</p><p class="mt-2 leading-6">Form ini hanya untuk penjualan brand kompetitor. Sellout Samsung tidak boleh diinput di sini dan tetap diperbarui oleh Admin melalui file RAW Sellout.</p></div>'+
    '<div id="competitor-status" role="status" aria-live="polite" class="text-sm text-amber-200"></div>'+
-   '<form id="competitor-form" class="hidden panel rounded-2xl p-5 sm:p-6 grid sm:grid-cols-2 gap-4" hidden>'+
+   '<form id="competitor-form" class="hidden panel rounded-2xl p-4 sm:p-6 grid sm:grid-cols-2 gap-4 min-w-0" hidden>'+
     '<div class="sm:col-span-2"><h3 class="font-semibold text-white">Catat transaksi kompetitor</h3><p class="text-xs text-slate-400 mt-1">Toko dipilih dari daftar penugasan aktif Anda. Tidak mengubah KPI Samsung.</p></div>'+
     '<label class="block text-sm text-slate-300">Toko penempatan<select name="store_id" class="field block w-full rounded-xl p-3 mt-2" required></select></label>'+
     '<label class="block text-sm text-slate-300">Tanggal penjualan<input type="date" name="sold_at" class="field block w-full rounded-xl p-3 mt-2" required></label>'+
@@ -36,21 +36,56 @@
     '<label class="sm:col-span-2 block text-sm text-slate-300">Catatan (opsional)<textarea name="notes" maxlength="500" rows="2" class="field block w-full rounded-xl p-3 mt-2"></textarea></label>'+
     '<div class="sm:col-span-2"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button></div>'+
    '</form>'+
-   '<section class="panel rounded-2xl p-5 sm:p-6"><h3 class="font-semibold text-white">Riwayat input saya</h3><p class="text-xs text-slate-400 mt-1">Hanya transaksi kompetitor yang dicatat melalui akun ini.</p><div id="competitor-history" class="mt-4 text-sm text-slate-400">Memuat…</div></section></div>';
+   '<section class="panel rounded-2xl p-4 sm:p-6 min-w-0"><h3 class="font-semibold text-white">Riwayat input saya</h3><p class="text-xs text-slate-400 mt-1">Hanya transaksi kompetitor yang dicatat melalui akun ini.</p><div id="competitor-history" class="mt-4 text-sm text-slate-400">Memuat…</div></section></div>';
   const status=mount.querySelector("#competitor-status"),form=mount.querySelector("#competitor-form"),history=mount.querySelector("#competitor-history");
   const say=(s,error=false)=>{status.textContent=s;status.className="text-sm "+(error?"text-rose-300":"text-emerald-300");};
   const missing=e=>e?.code==="42P01"||e?.code==="PGRST205"||/competitor_sellout.*(not found|does not exist|schema cache)/i.test(e?.message||"");
+  // The signed-in user's JWT keeps exactly the same RLS policies as supabase-js.
+  // Direct REST avoids stalled browser Auth session locks observed on mobile.
+  const useRest=Boolean(ctx.accessToken&&ctx.apiUrl&&ctx.publishableKey);
+  async function rest(path,method="GET",body){
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   try{
+    const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
+     method,signal:controller.signal,cache:"no-store",
+     headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
+       ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+     ...(body?{body:JSON.stringify(body)}:{})
+    });
+    if(!response.ok){
+     if(response.status===401)throw Error("Sesi EC sudah kedaluwarsa. Silakan login kembali.");
+     if(response.status===403)throw Error("Akses transaksi ditolak. Periksa status EC dan toko penempatan.");
+     const details=await response.json().catch(()=>({}));
+     throw Error(details.message||details.error||"Permintaan database gagal (HTTP "+response.status+").");
+    }
+    return method==="GET"?{data:await response.json(),error:null}:{data:null,error:null};
+   }catch(err){
+    if(err.name==="AbortError")throw Error("Koneksi ke database tidak merespons. Periksa koneksi dan muat ulang menu.");
+    throw err;
+   }finally{clearTimeout(timer);}
+  }
+  const storeQuery=()=>useRest?rest("stores?select=id,site_id,site_name&order=site_name.asc"):
+    ctx.client.from("stores").select("id,site_id,site_name").order("site_name");
+  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,created_at&order=created_at.desc&limit=20"):
+    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+  const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
+    ctx.client.from("competitor_sellout").insert(record);
   let stores=[];
   try{
-   const results=await Promise.all([
-    ctx.client.from("stores").select("id,site_id,site_name").order("site_name"),
-    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20)
-   ]);
-   const [storeResult,salesResult]=results;
+   // Do not block the input form just because history failed to load.
+   const requestWithDeadline=async(query,label)=>{
+    let timer;
+    try{
+     return await Promise.race([
+      Promise.resolve(query),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+" tidak merespons. Periksa koneksi lalu buka ulang menu.")),12000);})
+     ]);
+    }finally{clearTimeout(timer);}
+   };
+   const storeResult=await requestWithDeadline(storeQuery(),"Daftar toko");
    if(storeResult.error)throw storeResult.error;
-   if(salesResult.error)throw salesResult.error;
    stores=storeResult.data||[];
-   if(!stores.length){say("Akun EC belum memiliki toko yang bisa diakses. Hubungi Admin untuk mengecek penugasan.",true);history.textContent="Belum dapat memuat transaksi.";return;}
+   if(!stores.length){say("Toko belum tersedia bagi akun EC ini. Pastikan profil EC aktif dan penugasan tokonya sudah sesuai; hubungi Admin.",true);history.textContent="Riwayat belum dapat ditampilkan.";return;}
    const select=form.elements.namedItem("store_id");
    stores.forEach(s=>{const option=document.createElement("option");option.value=s.id;option.textContent=s.site_name+" · "+s.site_id;select.appendChild(option);});
    const date=form.elements.namedItem("sold_at");date.value=localDate();date.max=date.value;
@@ -59,8 +94,15 @@
     history.innerHTML='<div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>Brand / Model</th><th>Qty</th><th>Total</th></tr></thead><tbody>'+
      rows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td></tr>').join("")+'</tbody></table></div>';
    };
-   paintHistory(salesResult.data||[]);
-   form.classList.remove("hidden");form.hidden=false;say("Silakan input penjualan kompetitor sesuai toko penempatan.");
+   form.classList.remove("hidden");form.hidden=false;
+   say("Form siap. Pilih brand dan isi penjualan kompetitor pada toko penempatan Anda.");
+   try{
+    const salesResult=await requestWithDeadline(historyQuery(),"Riwayat input");
+    if(salesResult.error)throw salesResult.error;
+    paintHistory(salesResult.data||[]);
+   }catch(historyError){
+    history.textContent="Riwayat sementara tidak dapat dimuat. Form tetap tersedia; periksa koneksi jika hendak memverifikasi transaksi.";
+   }
    const updateAmount=()=>{const qty=Number(form.elements.namedItem("qty").value),price=Number(form.elements.namedItem("unit_price").value);mount.querySelector("#competitor-amount").textContent=currency.format(Math.max(0,(Number.isFinite(qty)?qty:0)*(Number.isFinite(price)?price:0)));};
    form.addEventListener("input",updateAmount);
    form.addEventListener("submit",async event=>{
@@ -71,19 +113,19 @@
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
      const record={...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
-     const {error}=await ctx.client.from("competitor_sellout").insert(record);
+     const {error}=await requestWithDeadline(insertQuery(record),"Penyimpanan transaksi");
      if(error)throw error;
      const selectedStore=form.elements.namedItem("store_id").value;
      form.reset();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
      say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");
      try{
-      const {data,error:loadError}=await ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+      const {data,error:loadError}=await requestWithDeadline(historyQuery(),"Riwayat input");
       if(loadError)throw loadError;
       paintHistory(data||[]);
      }catch(refreshError){
       say("Transaksi berhasil disimpan, tetapi riwayat belum dapat dimuat. Jangan kirim ulang transaksi yang sama.",true);
      }
-    }catch(err){say(missing(err)?"Modul database kompetitor belum diaktifkan. Tidak ada transaksi disimpan.":(err.message||"Gagal menyimpan transaksi kompetitor."),true);}
+    }catch(err){say(missing(err)?"Modul database kompetitor belum tersedia. Hubungi Admin.":(err.message||"Gagal menyimpan transaksi kompetitor. Jika koneksi terputus, periksa riwayat sebelum mengulangi input."),true);}
     finally{button.disabled=false;}
    });
   }catch(err){

@@ -1,0 +1,46 @@
+"use strict";
+const fs=require("node:fs"),assert=require("node:assert/strict"),vm=require("node:vm");
+const ui=fs.readFileSync("survey-affordability.js","utf8");
+const sql=fs.readFileSync("docs/sql/20261108-affordability-survey-draft.sql","utf8");
+const html=fs.readFileSync("index.html","utf8");
+new vm.Script(ui);
+const scope={window:{},Intl,Date,Number,String,Error,Map,URLSearchParams,console};
+vm.runInNewContext(ui,scope);
+const {validateSurvey,summarize,PROVIDERS}=scope.window.SamsungAffordability;
+const store="00000000-0000-0000-0000-000000000111",stores=[{id:store}];
+assert.equal(PROVIDERS.length,12);
+for(const p of ["HCI","KREDIVO","FIF","SPEKTRA","YESSSKREDIT","AKULAKU","SPAYLATER","INDODANA","SAMSUNG FINANCE+","KREDITPLUS","BAF","KARTU KREDIT BANK"])assert.ok(PROVIDERS.includes(p));
+const no=validateSurvey({answer:"no",confirmed:true,closings:[]},stores,store);
+assert.equal(no.has_multifinance,false);assert.equal(no.no_finance_confirmed,true);assert.equal(no.closings.length,0);
+assert.throws(()=>validateSurvey({answer:"no",confirmed:false,closings:[]},stores,store),/Konfirmasi wajib/);
+assert.throws(()=>validateSurvey({answer:"no",confirmed:true,closings:[]},stores,"invalid"),/Toko tidak sesuai/);
+const yes=validateSurvey({answer:"yes",confirmed:false,closings:[{model:"A08 4/64",provider:"HCI",qty:"1"},{model:"A57 12/256",provider:"KREDIVO",qty:"2"}]},stores,store);
+assert.equal(yes.has_multifinance,true);assert.equal(yes.closings[1].qty,2);
+assert.throws(()=>validateSurvey({answer:"yes",closings:[]},stores,store),/minimal satu/);
+assert.throws(()=>validateSurvey({answer:"yes",closings:[{model:"A08",provider:"LAINNYA",qty:"1"}]},stores,store),/daftar resmi/);
+assert.throws(()=>validateSurvey({answer:"yes",closings:[{model:"A08",provider:"HCI",qty:"0"}]},stores,store),/1–100/);
+assert.throws(()=>validateSurvey({answer:"yes",closings:[{model:"A",provider:"HCI",qty:1}]},stores,store),/Model harus diisi/);
+const x=summarize([
+ {survey_date:"2026-11-08",has_multifinance:false,closings:[]},
+ {survey_date:"2026-11-08",has_multifinance:true,closings:[{model:"A08 4/64",provider:"HCI",qty:1},{model:"A57 12/256",provider:"KREDIVO",qty:2}]}
+]);
+assert.equal(x.surveys,2);assert.equal(x.yes,1);assert.equal(x.no,1);assert.equal(x.units,3);assert.equal(x.byProvider.length,2);assert.equal(x.details.length,2);
+assert.match(sql,/CREATE TABLE public\.affordability_surveys/);
+assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
+assert.match(sql,/UNIQUE\(ec_profile_id,store_id,survey_date\)/);
+assert.match(sql,/survey_date=\(now\(\) AT TIME ZONE 'Asia\/Pontianak'\)::date/);
+assert.match(sql,/ec_profile_id=\(SELECT auth\.uid\(\)\)/);
+assert.match(sql,/m\.fieldforce_position='EC'/);
+assert.match(sql,/public\.can_access_store\(store_id\)/);
+assert.match(sql,/no_finance_confirmed=true AND closings='\[\]'::jsonb/);
+assert.match(sql,/affordability_closings_valid\(closings\)/);
+assert.doesNotMatch(sql,/INSERT INTO\s+(public\.)?raw_sellout/i);
+assert.doesNotMatch(sql,/CREATE POLICY .* FOR UPDATE/i);
+assert.doesNotMatch(sql,/CREATE POLICY .* FOR DELETE/i);
+assert.match(html,/src="\/survey-affordability\.js"/);
+assert.match(html,/window\.SamsungAffordability\.render/);
+assert.match(ui,/XLSX\.writeFile/);
+assert.match(ui,/Unduh Dashboard XLSX/);
+assert.match(ui,/Authorization:"Bearer "\+ctx\.accessToken/);
+assert.doesNotMatch(ui,/raw_sellout"\)\.insert/);
+console.log("Affordability survey regression passed: yes/no confirmation, 12 providers, RLS guards, Excel dashboard and isolation.");

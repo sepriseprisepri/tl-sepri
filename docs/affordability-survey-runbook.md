@@ -19,15 +19,16 @@ EC answers **"Apakah ada unit sellout menggunakan multifinance?"** for the *surv
 - TSO: not enabled for affordability reports (not requested).
 - Anonymous: no access. `authenticated` role has SELECT and INSERT but not UPDATE/DELETE; RLS further restricts the data.
 
-TL and Admin open **Survey** to see KPI cards for total surveys, answers Ya/Tidak and multifinance units; provider- and model-breakdown bars; a detailed closing list; start/end date filter. **Unduh Dashboard XLSX** generates workbook sheets `Dashboard`, `Multifinance`, `Model`, `Harian`, and `Detail`. Workbook content is sanitized against spreadsheet formula injection. Dashboard figures reflect the current user's RLS coverage, and are not audited sales totals.
+TL and Admin open **Survey** to see KPI cards for total surveys, answers Ya/Tidak and multifinance units; provider- and model-breakdown bars; a detailed closing list; start/end date filter. **Unduh Dashboard XLSX** generates workbook sheets `Dashboard`, `Multifinance`, `Model`, `Harian`, and `Detail`. Workbook includes a sixth sheet **Respons Harian**, which preserves both **Ya** and **Tidak** (including confirmation) and the reporting EC ID. Workbook content is sanitized against spreadsheet formula injection. Dashboard figures reflect the current user's RLS coverage, and are not audited sales totals.
 
-TL profiles RLS grants only own/admin profile reads, so a TL's Detail sheet may label EC ID as unavailable. This **does not** widen the TL's access to personal profiles; potential future enhancement: a restricted coverage-scoped EC metadata endpoint.
+Each submitted survey stores the EC employee ID, verified against the caller's active EC profile and linked manpower in the INSERT RLS policy. TL sees employee IDs only on surveys already visible through store coverage RLS; no broader profile access is granted.
 
 ## Implementation
 
 - `survey-affordability.js` — responsive EC questionnaire and TL/Admin report, provider/model breakdown, workbook export; uses user-scoped JWT REST requests on browsers whose Supabase JS session locks are unreliable.
 - `index.html` — Survey menu routed by role; EC form vs TL/Admin dashboard.
-- `docs/sql/20261108-affordability-survey-draft.sql` — new table, JSON validity function and RLS. **DRAFT ONLY, NOT APPLIED TO PRODUCTION**.
+- `docs/sql/20261108-affordability-survey-draft.sql` — new table, JSON validity function and RLS. Applied to Supabase production (migration `20261108063434_ec_affordability_survey_rls_20261108`) after user requested proceeding to the database activation stage.
+- `docs/sql/20261108-affordability-employee-id-followup.sql` — applied follow-up migration for RLS-verified EC employee ID (the table was still empty).
 - `tests/affordability-survey.cjs` — branching, validation, lender list, summaries, SQL RLS structure, and Samsung RAW separation.
 
 ## Activation gate / security regression
@@ -35,16 +36,25 @@ TL profiles RLS grants only own/admin profile reads, so a TL's Detail sheet may 
 1. Review migration by owner, including the `jsonb` validity function, store assignment on the survey date, unique constraint, management RLS and no UPDATE/DELETE access.
 2. Run SQL first in an isolated database / test fixture, verify authenticated JWT paths: correct EC/day/store insert succeeds, wrong EC, wrong store, outdated date, fake provider, invalid quantities, duplicate responses, unconfirmed `Tidak` and anonymous all fail.
 3. Verify TL covered store read succeeds and cross-coverage read denied; Admin can export all data; TSO is denied. Verify user-specific row restrictions under real JWT, not `SET ROLE` alone.
-4. Obtain explicit production schema activation approval; apply migration through reviewed change control and verify RLS, API exposure and zero initial rows.
-5. Only then merge/deploy frontend, observing Vercel free build quota. If frontend goes live before migration, it reports Survey unavailable and does not save deceptive data.
-6. Submit a genuine EC daily survey (do not manufacture sales or survey data in production), validate TL/Admin report and Excel export, and monitor runtime/DB errors.
+4. **Production migration applied**, with 20/20 public tables under RLS, 3 Survey policies, anon denied, authenticated INSERT/SELECT only, and zero survey records. The RAW Sellout baseline remained 315 rows.
+5. **Website deployment explicitly held by user** until free Vercel build capacity recovers. Keep PR #20 draft and separate from production main until free build and final regression readiness.
+6. After deployment, submit a genuine EC daily survey (do not manufacture sales or survey data in production), validate TL/Admin report and Excel export, and monitor runtime/DB errors. Real JWT-role end-to-end tests remain outstanding.
 
 ## Rollback
 
-If a new issue occurs, disable Survey navigation or hide form, keep RLS ON, and leave submitted user records intact for audit. Revoke insert privilege temporarily only under approved security change; do not drop tables holding real responses without a verified recovery plan. The survey never mutates `raw_sellout`.
+If a new issue occurs, disable Survey navigation or hide form, keep RLS ON, and leave submitted user records intact for audit. Revoke insert privilege temporarily only under approved security change; do not drop tables holding real responses without a verified recovery plan. The survey never mutates `raw_sellout`. **No background deployment may be forced while the free build limit remains blocked.**
+
+## Verification performed 2026-11-08
+
+- Schema migration `20261108063434_ec_affordability_survey_rls_20261108` applied successfully; follow-up EC employee ID migration also applied.
+- 20 of 20 public tables have RLS enabled; anonymous SELECT/INSERT denied, authenticated UPDATE/DELETE denied.
+- JSON validation: valid HCI and Samsung Finance+ accepted; invalid provider, missing quantity, empty list, zero, decimals and quantity 101 rejected.
+- Initial survey row count 0 and RAW Samsung 315 rows; no synthetic production sales were inserted.
+- Supabase security advisors showed only six pre-existing warnings (five SECURITY DEFINER functions, leaked-password protection) and no new Survey-specific security finding.
+- JWT-role end-to-end tests with actual EC/TL/Admin are still pending until frontend deployment.
 
 ## Open business decisions
 
-- Does reporting require respondent full names for TL? Currently coverage-safe survey data is available but existing `profiles` RLS may conceal respondent IDs from TL.
+- TL report exposes verified employee IDs on the survey records in covered stores. Full names are intentionally not exposed through expanded profile permissions.
 - Do ECs require correction/reopen of a submitted report? Current specification intentionally permits a single immutable survey per day and store.
 - Payment amount and cross-checking against sellout imports are not requested and are intentionally excluded.

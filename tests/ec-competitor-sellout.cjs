@@ -1,0 +1,48 @@
+/* Competitor EC security regression — static + live validation, no network/database. */
+"use strict";
+const fs=require("node:fs");
+const assert=require("node:assert/strict");
+const vm=require("node:vm");
+const ui=fs.readFileSync("ec-competitor-sellout.js","utf8");
+const html=fs.readFileSync("index.html","utf8");
+const sql=fs.readFileSync("docs/sql/20261108-ec-competitor-sellout-draft.sql","utf8");
+new vm.Script(ui);
+const scope={window:{},Intl,Date,Number,String,Error,FormData,console,crypto:{randomUUID:()=>"test-uuid"}};
+vm.runInNewContext(ui,scope);
+const {validate,BRANDS}=scope.window.ECCompetitorSellout;
+assert.ok(BRANDS.includes("Apple"));
+assert.ok(!BRANDS.includes("Samsung"));
+assert.match(html,/\["Input Competitor","＋"\]/);
+assert.match(html,/ECCompetitorSellout\.render/);
+assert.match(html,/src="\/ec-competitor-sellout\.js"/);
+assert.doesNotMatch(html,/\["Input Sellout","＋"\]/);
+assert.match(ui,/from\("competitor_sellout"\)\.insert\(record\)/);
+assert.doesNotMatch(ui,/from\(["']raw_sellout["']\)\.(insert|upsert|update)/);
+assert.match(sql,/CREATE TABLE IF NOT EXISTS public\.competitor_sellout/);
+assert.match(sql,/ALTER TABLE public\.competitor_sellout ENABLE ROW LEVEL SECURITY/);
+assert.match(sql,/ec_profile_id=\(SELECT auth\.uid\(\)\)/);
+assert.match(sql,/sa\.store_id=competitor_sellout\.store_id/);
+assert.match(sql,/sa\.valid_from/);
+assert.match(sql,/FOR INSERT TO authenticated/);
+assert.doesNotMatch(sql,/CREATE POLICY\s+\w+\s+ON\s+public\.raw_sellout/i);
+assert.doesNotMatch(sql,/INSERT INTO public\.raw_sellout/i);
+const store="00000000-0000-0000-0000-000000000001";
+const base={store_id:store,sold_at:"2026-11-07",brand:"Apple",model:"iPhone 16",variant:"128GB",qty:"2",unit_price:"12500000",notes:""};
+const assigned=[{id:store}];
+assert.equal(validate(base,assigned).qty,2);
+assert.equal(validate(base,assigned).unit_price,12500000);
+function rejects(changes,err,scopeStores=assigned){
+ assert.throws(()=>validate({...base,...changes},scopeStores),err);
+}
+rejects({brand:"Samsung"},/brand kompetitor/);
+rejects({brand:"Other"},/brand kompetitor/);
+rejects({brand:"Xiaomi",model:"Samsung A55"},/bukan Samsung/);
+rejects({brand:"Apple",model:"Galaxy S26"},/bukan Samsung/);
+rejects({store_id:"00000000-0000-0000-0000-000000000099"},/Toko tidak terdaftar/);
+rejects({qty:"0"},/Jumlah unit/);
+rejects({qty:"1.5"},/Jumlah unit/);
+rejects({unit_price:"-1"},/Harga per unit/);
+rejects({sold_at:"2026-02-30"},/Tanggal transaksi/);
+rejects({sold_at:"2039-01-01"},/Tanggal transaksi/);
+rejects({model:"A"},/Model harus kompetitor/);
+console.log("EC competitor sellout checks passed: Samsung isolation, model/brand guards, store scope and RLS draft.");

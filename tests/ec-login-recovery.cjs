@@ -1,0 +1,27 @@
+"use strict";
+const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
+const index=fs.readFileSync("index.html","utf8");
+const css=fs.readFileSync("futuristic-ui.css","utf8");
+assert.match(index,/function withLoginDeadline\(/);
+assert.match(index,/client\.auth\.onAuthStateChange/);
+assert.match(index,/event==="SIGNED_IN"/);
+assert.match(index,/session\.user\.email\?\.toLowerCase\(\)===loginAuthSignal\.expectedEmail/);
+assert.match(index,/Promise\.race\(\[client\.auth\.signInWithPassword/);
+assert.match(index,/await enterApp\(response\.data\.user\)/);
+assert.match(index,/15000,/);
+assert.match(index,/12000,"Profil akun tidak merespons/);
+assert.match(index,/button\.disabled=false/);
+assert.match(index,/Memuat profil EC/);
+assert.match(index,/void withLoginDeadline\(client\.auth\.signOut\(\),4000/);
+assert.match(index,/const rotationOnly=Boolean\(data && data\.must_change_password/);
+assert.match(css,/\.login-password-wrap \.login-input \{padding-right:94px/);
+const source=index.match(/function withLoginDeadline\(promise,ms,message\)\{[\s\S]*?\n\}/)?.[0];
+assert.ok(source,"deadline helper extract");
+const ctx={Promise,setTimeout,clearTimeout,Error};
+vm.runInNewContext(source,ctx);
+(async()=>{
+ const value=await ctx.withLoginDeadline(Promise.resolve("ok"),300,"timeout");
+ assert.equal(value,"ok");
+ await assert.rejects(ctx.withLoginDeadline(new Promise(()=>{}),20,"Tidak merespons"),/Tidak merespons/);
+ console.log("EC login recovery checks passed: session-event fallback, timeout, profile rotation gate, mobile password spacing.");
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -186,6 +186,7 @@
 </main>
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
+<script src="/ec-account-provision.js"></script>
 <script src="/user-experience.js"></script>
 <script src="/sales-intelligence.js"></script>
 <script src="/promo-center.js"></script>
@@ -198,7 +199,7 @@ const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)
 const $=id=>document.getElementById(id);
 const roleLabels={admin:"Administrator",tl:"Team Leader",tso:"TSO",ec:"Experience Consultant"};
 const menus={
- admin:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
+ admin:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Aktivasi Akun EC","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
  tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
  tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
  ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Competitor","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
@@ -222,6 +223,7 @@ function menuIcon(label){
   "Target":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   "Target Saya":'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   "RAW Sellout":'<path d="M4 19h16M7 16v-5M12 16V5M17 16V8"/><circle cx="7" cy="9" r="1"/><circle cx="12" cy="3" r="1"/><circle cx="17" cy="6" r="1"/>',
+  "Aktivasi Akun EC":'<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M18 10v8m-4-4h8"/>',
   "Manpower":'<circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
   "Coverage":'<path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',
   "Coverage & Toko":'<path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',
@@ -277,6 +279,9 @@ function openSection(label){
   }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
    $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";
    if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile},$("import-hub-container"));
+  }else if(label==="Aktivasi Akun EC"&&currentProfile?.role==="admin"){
+   $("section-description").textContent="Pembuatan akun EC berdasarkan master aktif dan penugasan toko, dilindungi hak akses Admin.";
+   window.ECAccountProvision?.render({client,profile:currentProfile},$("import-hub-container"));
   }else if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
    renderBmuActivation();
@@ -401,7 +406,7 @@ function drawCharts(daily,segments,period){
 }
 async function enterApp(user){
  const {data,error}=await client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active,must_change_password").eq("id",user.id).single();
- const rotationOnly=Boolean(data && data.role==="tl" && data.employee_id==="TL_BMU_KAL_02" && data.must_change_password);
+ const rotationOnly=Boolean(data && data.must_change_password && ((data.role==="tl" && data.employee_id==="TL_BMU_KAL_02") || data.role==="ec"));
  if(error||!data||!roleLabels[data.role]||(!data.is_active&&!rotationOnly)){await client.auth.signOut();throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.")}
  currentProfile=data;$("login-view").classList.add("hidden");
  $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
@@ -457,7 +462,8 @@ $("rotate-form").addEventListener("submit",async event=>{
  }
  button.disabled=true;button.textContent="Menyimpan...";
  try{
-   const {data,error}=await client.functions.invoke("provision-tl-bmu",{body:{action:"rotate_password",new_password:password}});
+   const functionName=currentProfile?.role==="ec"?"provision-ec-accounts":"provision-tl-bmu";
+   const {data,error}=await client.functions.invoke(functionName,{body:{action:"rotate_password",new_password:password}});
    if(error||!data?.ok)throw new Error(data?.error||"Password gagal diperbarui. Silakan coba lagi.");
    await client.auth.signOut();
    currentProfile=null;$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");

@@ -407,9 +407,17 @@ function drawCharts(daily,segments,period){
  charts.segment=new Chart($("segment-chart"),{type:"doughnut",data:{labels:entries.map(x=>x[0]),datasets:[{data:entries.map(x=>x[1]),backgroundColor:["#22d3ee","#60a5fa","#a78bfa","#34d399","#fbbf24","#fb7185","#818cf8","#2dd4bf","#c084fc","#94a3b8"],borderColor:"#132033",borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%",plugins:{legend:{position:"right",labels:{color:"#a8b6c9",boxWidth:10,padding:13,font:{size:10}}}}}});
 }
 async function enterApp(user){
- const {data,error}=await client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active,must_change_password").eq("id",user.id).single();
+ const {data,error}=await withLoginDeadline(
+  client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active,must_change_password").eq("id",user.id).single(),
+  12000,"Profil akun tidak merespons. Periksa koneksi, lalu muat ulang halaman."
+ );
  const rotationOnly=Boolean(data && data.must_change_password && ((data.role==="tl" && data.employee_id==="TL_BMU_KAL_02") || data.role==="ec"));
- if(error||!data||!roleLabels[data.role]||(!data.is_active&&!rotationOnly)){await client.auth.signOut();throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.")}
+ if(error)throw new Error("Gagal membaca profil akun: "+(error.message||"periksa koneksi dan coba lagi."));
+ if(!data||!roleLabels[data.role]||(!data.is_active&&!rotationOnly)){
+  // Do not block the interface indefinitely if signOut is stalled by browser auth locks.
+  void withLoginDeadline(client.auth.signOut(),4000,"").catch(()=>{});
+  throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.");
+ }
  currentProfile=data;$("login-view").classList.add("hidden");
  $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
  if(data.must_change_password){$("app-view").classList.add("hidden");return}
@@ -482,14 +490,53 @@ $("rotate-logout").addEventListener("click",async()=>{
  $("password").value="";
 });
 
-$("login-form").addEventListener("submit",async e=>{e.preventDefault();$("login-error").classList.add("hidden");$("login-button").disabled=true;$("login-button").textContent="Memeriksa akun…";
+// Supabase Auth can complete on the server while a browser's session lock delays
+// the signInWithPassword promise. A SIGNED_IN event can unblock navigation; all
+// network stages have a deadline so a mobile user is never stuck on the button.
+function withLoginDeadline(promise,ms,message){
+ let timer;
+ const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message||"Operasi login tidak merespons.")),ms);});
+ return Promise.race([Promise.resolve(promise),deadline]).finally(()=>clearTimeout(timer));
+}
+let loginAuthSignal=null;
+client.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_IN" && session?.user && loginAuthSignal){
+  loginAuthSignal.resolve({data:{user:session.user},error:null});
+ }
+});
+$("login-form").addEventListener("submit",async e=>{
+ e.preventDefault();
+ $("login-error").classList.add("hidden");
+ const button=$("login-button");
+ if(button.disabled)return;
+ button.disabled=true;button.textContent="Menghubungi server login…";
  const employeeId=$("employee-id").value.trim(),password=$("password").value;
- try{if(!/^[A-Za-z0-9_-]{4,40}$/.test(employeeId))throw new Error("ID harus 4–40 karakter (huruf, angka, '-' atau '_').");
- const alias=employeeId.toUpperCase();
- const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
- const {data,error}=await client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password});
- if(error)throw new Error("ID akun atau password tidak sesuai.");await enterApp(data.user)}
- catch(err){showLoginError(err.message||"Login gagal. Coba kembali.")}finally{$("login-button").disabled=false;$("login-button").innerHTML='<span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>'}});
+ let resolveSignal;
+ const authEvent=new Promise(resolve=>{resolveSignal=resolve;});
+ loginAuthSignal={resolve:resolveSignal};
+ try{
+  if(!/^[A-Za-z0-9_-]{4,40}$/.test(employeeId))throw new Error("ID harus 4–40 karakter (huruf, angka, '-' atau '_').");
+  const alias=employeeId.toUpperCase();
+  const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
+  const response=await withLoginDeadline(
+   Promise.race([client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password}),authEvent]),
+   15000,
+   "Login tidak selesai di browser meskipun server mungkin menerima password. Tutup tab lain untuk website ini, muat ulang halaman, lalu coba lagi."
+  );
+  if(response.error)throw new Error("ID akun atau password tidak sesuai.");
+  if(!response.data?.user)throw new Error("Sesi login belum tersedia. Muat ulang halaman.");
+  button.textContent="Memuat profil EC…";
+  await enterApp(response.data.user);
+  $("password").value="";
+ }catch(err){
+  showLoginError(err.message||"Login gagal. Coba kembali.");
+  $("password").value="";
+ }finally{
+  loginAuthSignal=null;
+  button.disabled=false;
+  button.innerHTML='<span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>';
+ }
+});
 $("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;lastSalesData=null;window.UserPrefs?.reset();window.SalesIntelligence?.clearCharts();Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
 $("mobile-menu").addEventListener("click",()=>{
  const opened=$("nav-wrap").classList.toggle("hidden")===false;

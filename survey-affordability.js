@@ -29,34 +29,57 @@ async function request(ctx,table,options={}){
   filters.forEach(([key,operator,value])=>params.set(key,operator+"."+value));
   if(method==="GET"&&table==="stores")params.set("order","site_name.asc");
   if(method==="GET"&&table==="affordability_surveys")params.set("order","survey_date.desc");
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
-  try{
-   const response=await fetch(ctx.apiUrl+"/rest/v1/"+table+"?"+params.toString(),{
-    method,signal:controller.signal,cache:"no-store",
-    headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
-       ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
-    ...(method==="POST"?{body:JSON.stringify(payload)}:{})
-   });
-   if(!response.ok){
-    const info=await response.json().catch(()=>({}));
-    if(response.status===409||info.code==="23505")throw Error("Survey hari ini untuk toko tersebut sudah dikirim. Tidak perlu dikirim ulang.");
-    if(response.status===401)throw Error("Sesi berakhir. Silakan login kembali.");
-    if(response.status===403||info.code==="42501")throw Error("Akses ditolak. Periksa penugasan toko dan status EC.");
-    if(info.code==="42P01"||info.code==="PGRST205")throw Error("Database Survey belum diaktifkan. Form belum dapat menyimpan.");
-    throw Error(info.message||"Permintaan ditolak (HTTP "+response.status+").");
+  const pageSize=500,all=[];
+  // Supabase Data API commonly caps response size: paginate to prevent truncated
+  // monthly dashboards when >1000 EC/store/day responses exist.
+  for(let offset=0;offset<20000;offset+=pageSize){
+   if(method==="GET" && table==="affordability_surveys"){
+    params.set("limit",String(pageSize));params.set("offset",String(offset));
    }
-   return method==="POST"?[]:response.json();
-  }catch(err){
-   if(err.name==="AbortError")throw Error("Koneksi survey tidak merespons. Cek riwayat sebelum mengulangi pengiriman.");
-   throw err;
-  }finally{clearTimeout(timer)}
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+   let rows;
+   try{
+    const response=await fetch(ctx.apiUrl+"/rest/v1/"+table+"?"+params.toString(),{
+     method,signal:controller.signal,cache:"no-store",
+     headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
+        ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+     ...(method==="POST"?{body:JSON.stringify(payload)}:{})
+    });
+    if(!response.ok){
+     const info=await response.json().catch(()=>({}));
+     if(response.status===409||info.code==="23505")throw Error("Survey hari ini untuk toko tersebut sudah dikirim. Tidak perlu dikirim ulang.");
+     if(response.status===401)throw Error("Sesi berakhir. Silakan login kembali.");
+     if(response.status===403||info.code==="42501")throw Error("Akses ditolak. Periksa penugasan toko dan status EC.");
+     if(info.code==="42P01"||info.code==="PGRST205")throw Error("Database Survey belum diaktifkan. Form belum dapat menyimpan.");
+     throw Error(info.message||"Permintaan ditolak (HTTP "+response.status+").");
+    }
+    rows=method==="POST"?[]:await response.json();
+   }catch(err){
+    if(err.name==="AbortError")throw Error("Koneksi survey tidak merespons. Cek riwayat sebelum mengulangi pengiriman.");
+    throw err;
+   }finally{clearTimeout(timer)}
+   if(method==="POST"||table!=="affordability_surveys")return rows;
+   all.push(...rows);
+   if(rows.length<pageSize)return all;
+  }
+  throw Error("Hasil survei lebih dari 20.000 baris. Persempit rentang tanggal laporan.");
  }
- let q=ctx.client.from(table).select(select);
- filters.forEach(([k,op,value])=>{q=q[op](k,value)});
- if(method==="POST")q=ctx.client.from(table).insert(payload);
- const {data,error}=await q;
- if(error)throw Error(error.message);
- return data||[];
+ if(method==="POST"){
+  const {error}=await ctx.client.from(table).insert(payload);
+  if(error)throw Error(error.message);
+  return [];
+ }
+ const all=[],pageSize=500;
+ for(let from=0;from<20000;from+=pageSize){
+  let q=ctx.client.from(table).select(select);
+  filters.forEach(([k,op,value])=>{q=q[op](k,value)});
+  if(table==="affordability_surveys")q=q.order("survey_date",{ascending:false});
+  const {data,error}=await q.range(from,from+pageSize-1);
+  if(error)throw Error(error.message);
+  all.push(...(data||[]));
+  if(!data||data.length<pageSize)return all;
+ }
+ throw Error("Hasil survei lebih dari 20.000 baris. Persempit rentang tanggal laporan.");
 }
 function renderEC(ctx,mount){
  const today=localDate();

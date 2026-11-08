@@ -323,29 +323,59 @@ function openSection(label){
 async function fetchAll(table,columns,configure){
  const out=[],size=1000;
  for(let from=0;;from+=size){
-  let q=client.from(table).select(columns);
-  if(configure)q=configure(q);
-  const {data,error}=await q.range(from,from+size-1);
-  if(error)throw error;
+  let data,error;
+  if(currentProfile?.role==="ec" && activeAuthAccessToken){
+   // Use the EC's own JWT: all existing PostgREST RLS policies still apply.
+   // Supabase JS session locks can leave mobile dashboard requests pending.
+   const params=new URLSearchParams({select:columns,offset:String(from),limit:String(size)});
+   const q={
+    eq(k,v){params.set(k,"eq."+v);return this;},
+    gte(k,v){params.set(k,"gte."+v);return this;},
+    lte(k,v){params.set(k,"lte."+v);return this;},
+    order(k,options={}){params.set("order",k+(options.ascending===false?".desc":".asc"));return this;}
+   };
+   if(configure)configure(q);
+   const response=await authorizedLoginFetch("/rest/v1/"+encodeURIComponent(table)+"?"+params.toString(),activeAuthAccessToken);
+   if(!response.ok)throw new Error("Data "+table+" gagal dimuat (HTTP "+response.status+").");
+   data=await response.json();
+  }else{
+   let q=client.from(table).select(columns);
+   if(configure)q=configure(q);
+   ({data,error}=await q.range(from,from+size-1));
+   if(error)throw error;
+  }
   out.push(...(data||[]));if(!data||data.length<size)break;
  }
  return out;
 }
 async function loadPeriods(){
  const selector=$("period-select"),previous=selector.value;
- const {data,error}=await client.from("target_periods").select("id,period_name,period_start,period_end,status").order("period_start",{ascending:false});
- if(error)throw error;periods=data||[];
+ let data,error;
+ if(currentProfile?.role==="ec" && activeAuthAccessToken){
+  const params=new URLSearchParams({select:"id,period_name,period_start,period_end,status",order:"period_start.desc"});
+  const response=await authorizedLoginFetch("/rest/v1/target_periods?"+params.toString(),activeAuthAccessToken);
+  if(!response.ok)throw new Error("Daftar periode tidak dapat diperbarui (HTTP "+response.status+").");
+  data=await response.json();
+ }else{
+  ({data,error}=await client.from("target_periods").select("id,period_name,period_start,period_end,status").order("period_start",{ascending:false}));
+  if(error)throw error;
+ }
+ periods=data||[];
  selector.replaceChildren();
  periods.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.period_name+(p.status==="draft"?" · Draft":"");selector.appendChild(o)});
  if(!periods.length){const o=document.createElement("option");o.textContent="Belum ada periode target";o.value="";selector.appendChild(o)}
  if(periods.some(p=>p.id===previous))selector.value=previous;
  selector.disabled=!periods.length;
+ const feedback=$("workspace-feedback");
+ feedback.textContent=periods.length===1
+  ?"1 periode tersedia: "+periods[0].period_name+". Pilihannya bertambah setelah Admin menambahkan periode baru."
+  :periods.length+" periode target tersedia.";
 }
 async function loadDashboard(){
  if(!currentProfile)return;setBusy(true);hideDataError();$("data-notice").classList.add("hidden");
  try{
   const period=periods.find(p=>p.id===$("period-select").value)||periods[0];
-  if(!period){renderDashboard({stores:[],targets:[],sales:[],targetQty:0,targetAmt:0});$("data-notice").textContent="Belum ada periode target yang tersedia untuk akun ini.";$("data-notice").classList.remove("hidden");$("sync-status").textContent="Belum ada periode untuk ditampilkan.";return}
+  if(!period){renderDashboard({stores:[],targets:[],sales:[],targetQty:0,targetAmt:0});$("data-notice").textContent="Belum ada periode target yang tersedia untuk akun ini.";$("data-notice").classList.remove("hidden");$("sync-status").textContent="Belum ada periode untuk ditampilkan.";return false}
   const [stores,manpower]=await Promise.all([
    fetchAll("stores","id,site_id,site_name,channel_category"),
    fetchAll("manpower","id,employee_id,full_name,fieldforce_position,promoter_id,site_id,is_active",q=>q.eq("is_active",true))
@@ -361,7 +391,8 @@ async function loadDashboard(){
   renderDashboard(lastSalesData);
   $("sync-status").classList.remove("error");
   $("sync-status").textContent="Data dimuat pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB · Perbarui untuk memuat data terbaru.";
- }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));}
+  return true;
+ }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));return false;}
  finally{setBusy(false)}
 }
 function renderDashboard(d){
@@ -656,16 +687,40 @@ $("password-visibility").addEventListener("click",()=>{
  input.focus({preventScroll:true});
 });
 $("density-toggle").addEventListener("click",()=>window.UserPrefs?.toggleDensity());
+let refreshingWorkspace=false;
 async function refreshWorkspace(reloadPeriodList=false){
- const status=$("workspace-feedback");
+ if(refreshingWorkspace||!currentProfile)return;
+ refreshingWorkspace=true;
+ const status=$("workspace-feedback"),button=$("refresh-button");
+ button.disabled=true;button.textContent="Memperbarui…";
  status.textContent=reloadPeriodList?"Memeriksa daftar periode…":"Memperbarui periode terpilih…";
- if(reloadPeriodList){
-  try{await loadPeriods();}catch(err){showDataError("Periode gagal diperbarui: "+(err.message||"Periksa koneksi."));status.textContent="Periode gagal diperbarui.";}
+ let periodError=false;
+ try{
+  if(reloadPeriodList){
+   try{
+    await withLoginDeadline(loadPeriods(),12000,"Daftar periode tidak merespons.");
+   }catch(err){
+    periodError=true;
+    showDataError("Periode gagal diperbarui: "+(err.message||"Periksa koneksi."));
+    status.textContent="Periode gagal diperbarui. Coba lagi.";
+   }
+  }
+  const successful=await withLoginDeadline(loadDashboard(),30000,"Dashboard tidak merespons. Periksa koneksi.");
+  if(activeSection!=="Dashboard" && currentProfile)openSection(activeSection);
+  if(!successful||periodError||!$("data-error").classList.contains("hidden")){
+   status.textContent="Sebagian data tidak berhasil diperbarui. Periksa pesan kesalahan.";
+  }else{
+   const selected=periods.find(p=>p.id===$("period-select").value)||periods[0];
+   status.textContent=(selected?selected.period_name+": ":"")+"data dimuat ulang pukul "+
+    new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB.";
+  }
+ }catch(err){
+  status.textContent="Pembaruan gagal: "+(err.message||"Periksa koneksi.");
+  showDataError(status.textContent);
+ }finally{
+  refreshingWorkspace=false;
+  button.disabled=false;button.textContent="↻ Perbarui data";
  }
- await loadDashboard();
- if(activeSection!=="Dashboard" && currentProfile)openSection(activeSection);
- if(!$("data-error").classList.contains("hidden"))status.textContent="Pembaruan bermasalah. Periksa koneksi.";
- else status.textContent="Data diperbarui pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB.";
 }
 $("period-select").addEventListener("change",()=>refreshWorkspace());
 $("refresh-button").addEventListener("click",()=>refreshWorkspace(true));

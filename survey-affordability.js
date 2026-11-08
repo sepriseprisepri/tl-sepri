@@ -138,7 +138,7 @@ function renderEC(ctx,mount){
    if(answer==="yes"&&!window.confirm("Kirim "+validated.closings.length+" baris model closing multifinance untuk "+today+"?"))return;
    const submit=mount.querySelector("#aff-submit");submit.disabled=true;status.textContent="Mengirim survey…";
    try{
-    await request(ctx,"affordability_surveys",{method:"POST",payload:{ec_profile_id:ctx.profile.id,store_id:select.value,survey_date:today,...validated}});
+    await request(ctx,"affordability_surveys",{method:"POST",payload:{ec_profile_id:ctx.profile.id,employee_id:ctx.profile.employee_id,store_id:select.value,survey_date:today,...validated}});
     saved=await request(ctx,"affordability_surveys",{select:"id,store_id,survey_date,has_multifinance,closings,created_at"});paint();
     status.textContent="Survey tersimpan. Terima kasih. Jawaban hari ini tidak dapat dikirim dua kali.";
    }catch(err){status.textContent=err.message||"Gagal mengirim survey. Periksa riwayat sebelum mengulangi.";submit.disabled=false}
@@ -147,9 +147,11 @@ function renderEC(ctx,mount){
  load().catch(err=>{status.textContent=err.message||"Modul survey belum tersedia.";history.textContent="Riwayat belum bisa dimuat."});
 }
 function summarize(rows){
- const byProvider=new Map(),byModel=new Map(),daily=new Map(),details=[];
+ const byProvider=new Map(),byModel=new Map(),daily=new Map(),details=[],responses=[];
  let yes=0,no=0,units=0;
  for(const r of rows){
+  const totalUnits=(r.closings||[]).reduce((n,c)=>n+Number(c.qty||0),0);
+  responses.push({date:r.survey_date,employee_id:r.employee_id||"",store:r.site_name||"",answer:r.has_multifinance?"Ya":"Tidak",confirmed:r.no_finance_confirmed===true,units:totalUnits});
   if(!r.has_multifinance){no++;continue}
   yes++;
   for(const c of r.closings||[]){
@@ -161,7 +163,7 @@ function summarize(rows){
   }
  }
  const sorted=m=>[...m].sort((a,b)=>b[1]-a[1]).map(([name,qty])=>({name,qty}));
- return {yes,no,units,surveys:rows.length,byProvider:sorted(byProvider),byModel:sorted(byModel),daily:[...daily].sort(([a],[b])=>a.localeCompare(b)).map(([date,qty])=>({date,qty})),details};
+ return {yes,no,units,surveys:rows.length,byProvider:sorted(byProvider),byModel:sorted(byModel),daily:[...daily].sort(([a],[b])=>a.localeCompare(b)).map(([date,qty])=>({date,qty})),details,responses};
 }
 function downloadDashboard(summary,period){
  if(!window.XLSX)throw Error("Fitur ekspor XLSX belum dimuat pada browser ini. Muat ulang halaman.");
@@ -182,6 +184,7 @@ function downloadDashboard(summary,period){
  add("Model",[["Model","Unit"],...summary.byModel.map(x=>[x.name,x.qty])]);
  add("Harian",[["Tanggal","Unit"],...summary.daily.map(x=>[x.date,x.qty])]);
  add("Detail",[["Tanggal","ID EC","Toko","Model","Multifinance","Qty"],...summary.details.map(x=>[x.date,x.employee_id,x.store,x.model,x.provider,x.qty])]);
+ add("Respons Harian",[["Tanggal","ID EC","Toko","Jawaban","Konfirmasi Tidak","Unit Multifinance"],...summary.responses.map(x=>[x.date,x.employee_id,x.store,x.answer,x.confirmed?"Ya":"—",x.units])]);
  window.XLSX.writeFile(wb,"survey-affordability-"+period.replace(/[^0-9-]/g,"")+"-dashboard.xlsx");
 }
 function renderReport(ctx,mount){
@@ -209,15 +212,12 @@ function renderReport(ctx,mount){
   if(!from.value||!to.value||from.value>to.value){status.textContent="Rentang tanggal tidak valid.";return}
   const btn=mount.querySelector("#aff-load");btn.disabled=true;download.disabled=true;status.textContent="Mengambil survey sesuai cakupan…";
   try{
-   const [surveys,stores,profiles]=await Promise.all([
-    request(ctx,"affordability_surveys",{select:"ec_profile_id,store_id,survey_date,has_multifinance,closings",filters:[["survey_date","gte",from.value],["survey_date","lte",to.value]]}),
-    request(ctx,"stores",{select:"id,site_name,site_id"}),
-    // profiles access remains subject to its existing RLS. Missing names never widen survey access.
-    request(ctx,"profiles",{select:"id,employee_id"})
+   const [surveys,stores]=await Promise.all([
+    request(ctx,"affordability_surveys",{select:"employee_id,store_id,survey_date,has_multifinance,no_finance_confirmed,closings",filters:[["survey_date","gte",from.value],["survey_date","lte",to.value]]}),
+    request(ctx,"stores",{select:"id,site_name,site_id"})
    ]);
    const storeMap=new Map(stores.map(s=>[s.id,s.site_name]));
-   const profileMap=new Map(profiles.map(p=>[p.id,p.employee_id]));
-   summary=summarize(surveys.map(s=>({...s,site_name:storeMap.get(s.store_id)||s.store_id,employee_id:profileMap.get(s.ec_profile_id)||"—"})));
+   summary=summarize(surveys.map(s=>({...s,site_name:storeMap.get(s.store_id)||s.store_id})));
    const metrics=[["Survey terkumpul",summary.surveys],["Jawaban Ya",summary.yes],["Jawaban Tidak",summary.no],["Unit via multifinance",summary.units]];
    mount.querySelector("#aff-metrics").innerHTML=metrics.map(([l,n])=>'<div class="metric p-4 rounded-xl"><p class="text-xs">'+esc(l)+'</p><p class="text-2xl font-semibold mt-2">'+num(n)+'</p></div>').join("");
    mount.querySelector("#aff-providers").innerHTML=bars(summary.byProvider,summary.units);

@@ -16,7 +16,7 @@ assert.match(ui,/secret\.textContent=""/);
 assert.match(ui,/temporaryPassword=null/);
 assert.match(edge,/body\.action==="list_ec_accounts" \|\| body\.action==="reset_password"/);
 assert.match(edge,/caller\.role!=="admin" \|\| caller\.is_active!==true/);
-assert.match(edge,/person\.employee_id===employeeId/);
+assert.match(edge,/m=>m\.employee_id===employeeId/);
 assert.match(edge,/targetProfile\.role!=="ec"/);
 assert.match(edge,/targetProfile\.employee_id!==person\.employee_id/);
 assert.match(edge,/admin\.auth\.admin\.getUserById\(targetProfile\.id\)/);

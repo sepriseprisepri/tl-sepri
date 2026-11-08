@@ -73,12 +73,16 @@
      const record={...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
      const {error}=await ctx.client.from("competitor_sellout").insert(record);
      if(error)throw error;
-     say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");
-     const {data,error:loadError}=await ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
-     if(loadError)throw loadError;
-     paintHistory(data||[]);
      const selectedStore=form.elements.namedItem("store_id").value;
      form.reset();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
+     say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");
+     try{
+      const {data,error:loadError}=await ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+      if(loadError)throw loadError;
+      paintHistory(data||[]);
+     }catch(refreshError){
+      say("Transaksi berhasil disimpan, tetapi riwayat belum dapat dimuat. Jangan kirim ulang transaksi yang sama.",true);
+     }
     }catch(err){say(missing(err)?"Modul database kompetitor belum diaktifkan. Tidak ada transaksi disimpan.":(err.message||"Gagal menyimpan transaksi kompetitor."),true);}
     finally{button.disabled=false;}
    });

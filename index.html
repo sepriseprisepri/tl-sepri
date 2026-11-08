@@ -406,11 +406,39 @@ function drawCharts(daily,segments,period){
  const entries=[...segments.entries()].sort((a,b)=>b[1]-a[1]);
  charts.segment=new Chart($("segment-chart"),{type:"doughnut",data:{labels:entries.map(x=>x[0]),datasets:[{data:entries.map(x=>x[1]),backgroundColor:["#22d3ee","#60a5fa","#a78bfa","#34d399","#fbbf24","#fb7185","#818cf8","#2dd4bf","#c084fc","#94a3b8"],borderColor:"#132033",borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:"65%",plugins:{legend:{position:"right",labels:{color:"#a8b6c9",boxWidth:10,padding:13,font:{size:10}}}}}});
 }
-async function enterApp(user){
- const {data,error}=await withLoginDeadline(
-  client.from("profiles").select("id,role,full_name,employee_id,manpower_id,is_active,must_change_password").eq("id",user.id).single(),
-  12000,"Profil akun tidak merespons. Periksa koneksi, lalu muat ulang halaman."
- );
+// The auth endpoint can return HTTP 200 while the Supabase JS browser session
+// lock is still unresolved. Fetch the first profile directly with the signed-in
+// user's JWT; PostgREST enforces the existing RLS just as the SDK does.
+let activeAuthAccessToken=null;
+async function authorizedLoginFetch(path,token,init={}){
+ if(!token)throw new Error("Token login belum tersedia. Masuk kembali.");
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),10000);
+ try{
+  return await fetch(SUPABASE_URL+path,{
+   ...init,
+   headers:{apikey:SUPABASE_PUBLISHABLE_KEY,Authorization:"Bearer "+token,
+     ...(init.headers||{})},
+   signal:controller.signal,
+   cache:"no-store"
+  });
+ }catch(error){
+  if(error?.name==="AbortError")throw new Error("Server profil tidak merespons. Coba ulangi setelah memeriksa jaringan.");
+  throw error;
+ }finally{clearTimeout(timeout);}
+}
+async function getLoginProfile(user,token){
+ const columns="id,role,full_name,employee_id,manpower_id,is_active,must_change_password";
+ const path="/rest/v1/profiles?select="+encodeURIComponent(columns)+"&id=eq."+encodeURIComponent(user.id)+"&limit=1";
+ const response=await authorizedLoginFetch(path,token);
+ if(!response.ok)throw new Error("Profil akun tidak dapat dibaca (HTTP "+response.status+").");
+ const rows=await response.json();
+ if(!Array.isArray(rows)||rows.length!==1)throw new Error("Profil EC belum dapat ditemukan untuk akun ini. Hubungi Admin.");
+ return rows[0];
+}
+async function enterApp(user,token,preloadedProfile=null){
+ const data=preloadedProfile||await getLoginProfile(user,token);
+ const error=null;
  const rotationOnly=Boolean(data && data.must_change_password && ((data.role==="tl" && data.employee_id==="TL_BMU_KAL_02") || data.role==="ec"));
  if(error)throw new Error("Gagal membaca profil akun: "+(error.message||"periksa koneksi dan coba lagi."));
  if(!data||!roleLabels[data.role]||(!data.is_active&&!rotationOnly)){
@@ -418,6 +446,7 @@ async function enterApp(user){
   void withLoginDeadline(client.auth.signOut(),4000,"").catch(()=>{});
   throw new Error("Profil tidak aktif atau belum memiliki role yang valid. Hubungi administrator.");
  }
+ activeAuthAccessToken=token;
  currentProfile=data;$("login-view").classList.add("hidden");
  $("password-rotation-view").classList.toggle("hidden",!data.must_change_password);
  if(data.must_change_password){$("app-view").classList.add("hidden");return}
@@ -473,9 +502,23 @@ $("rotate-form").addEventListener("submit",async event=>{
  button.disabled=true;button.textContent="Menyimpan...";
  try{
    const functionName=currentProfile?.role==="ec"?"provision-ec-accounts":"provision-tl-bmu";
-   const {data,error}=await client.functions.invoke(functionName,{body:{action:"rotate_password",new_password:password}});
+   let data,error;
+   if(currentProfile?.role==="ec"){
+    // Direct authenticated request avoids a second browser SDK auth lock during
+    // the mandatory first-password change.
+    const response=await authorizedLoginFetch("/functions/v1/provision-ec-accounts",activeAuthAccessToken,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action:"rotate_password",new_password:password})
+    });
+    data=await response.json();
+    if(!response.ok)error=new Error(data?.error||"Tidak dapat mengganti password EC.");
+   }else{
+    ({data,error}=await client.functions.invoke(functionName,{body:{action:"rotate_password",new_password:password}}));
+   }
    if(error||!data?.ok)throw new Error(data?.error||"Password gagal diperbarui. Silakan coba lagi.");
-   await client.auth.signOut();
+   // A browser lock must not freeze the UI after the server saved the password.
+   await withLoginDeadline(client.auth.signOut(),4000,"").catch(()=>{});
+   activeAuthAccessToken=null;
    currentProfile=null;$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");
    $("password").value="";$("rotate-new").value="";$("rotate-confirm").value="";
    const info=$("login-error");
@@ -490,45 +533,81 @@ $("rotate-logout").addEventListener("click",async()=>{
  $("password").value="";
 });
 
-// Supabase Auth can complete on the server while a browser's session lock delays
-// the signInWithPassword promise. A SIGNED_IN event can unblock navigation; all
-// network stages have a deadline so a mobile user is never stuck on the button.
+// Supabase Auth may return success yet the SDK's session-lock promise remains
+// pending on privacy-focused mobile browsers. Use a JWT from SIGNED_IN when it
+// arrives, and a direct password-token fallback only after an SDK timeout.
 function withLoginDeadline(promise,ms,message){
  let timer;
  const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message||"Operasi login tidak merespons.")),ms);});
  return Promise.race([Promise.resolve(promise),deadline]).finally(()=>clearTimeout(timer));
 }
+async function directPasswordLogin(email,password){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),10000);
+ try{
+  const response=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+   method:"POST",cache:"no-store",signal:controller.signal,
+   headers:{"Content-Type":"application/json",apikey:SUPABASE_PUBLISHABLE_KEY},
+   body:JSON.stringify({email,password})
+  });
+  if(!response.ok)throw new Error("ID akun atau password tidak sesuai.");
+  const session=await response.json();
+  if(!session.access_token||!session.user?.id||session.user.email?.toLowerCase()!==email)throw new Error("Respons login tidak lengkap.");
+  return {data:{user:session.user,session},error:null,fromDirect:true};
+ }catch(err){
+  if(err?.name==="AbortError")throw new Error("Koneksi login terlalu lama. Periksa jaringan lalu coba lagi.");
+  throw err;
+ }finally{clearTimeout(timer);}
+}
 let loginAuthSignal=null;
 client.auth.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_IN" && session?.user && loginAuthSignal && session.user.email?.toLowerCase()===loginAuthSignal.expectedEmail){
-  loginAuthSignal.resolve({data:{user:session.user},error:null});
+ if(event==="SIGNED_IN" && session?.user && loginAuthSignal &&
+    session.user.email?.toLowerCase()===loginAuthSignal.expectedEmail){
+  loginAuthSignal.resolve({data:{user:session.user,session},error:null});
  }
 });
 $("login-form").addEventListener("submit",async e=>{
- e.preventDefault();
- $("login-error").classList.add("hidden");
+ e.preventDefault();$("login-error").classList.add("hidden");
  const button=$("login-button");
  if(button.disabled)return;
  button.disabled=true;button.textContent="Menghubungi server login…";
  const employeeId=$("employee-id").value.trim(),password=$("password").value;
  let resolveSignal;
  const authEvent=new Promise(resolve=>{resolveSignal=resolve;});
- loginAuthSignal={resolve:resolveSignal};
+ loginAuthSignal={resolve:resolveSignal,expectedEmail:null};
  try{
   if(!/^[A-Za-z0-9_-]{4,40}$/.test(employeeId))throw new Error("ID harus 4–40 karakter (huruf, angka, '-' atau '_').");
   const alias=employeeId.toUpperCase();
   const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
   const expectedEmail=authId.toLowerCase()+"@login.tlsepri.internal";
   loginAuthSignal.expectedEmail=expectedEmail;
-  const response=await withLoginDeadline(
-   Promise.race([client.auth.signInWithPassword({email:expectedEmail,password}),authEvent]),
-   15000,
-   "Login tidak selesai di browser meskipun server mungkin menerima password. Tutup tab lain untuk website ini, muat ulang halaman, lalu coba lagi."
-  );
+  let response;
+  try{
+   response=await withLoginDeadline(
+    Promise.race([client.auth.signInWithPassword({email:expectedEmail,password}),authEvent]),
+    7000,"Sesi SDK belum selesai"
+   );
+  }catch(err){
+   if(err?.message!=="Sesi SDK belum selesai")throw err;
+   button.textContent="Memulihkan sesi login…";
+   response=await directPasswordLogin(expectedEmail,password);
+  }
   if(response.error)throw new Error("ID akun atau password tidak sesuai.");
-  if(!response.data?.user)throw new Error("Sesi login belum tersedia. Muat ulang halaman.");
+  const user=response.data?.user,token=response.data?.session?.access_token;
+  if(!user||!token)throw new Error("Token login tidak tersedia. Silakan coba kembali.");
   button.textContent="Memuat profil EC…";
-  await enterApp(response.data.user);
+  const profile=await getLoginProfile(user,token);
+  if(response.fromDirect && profile.is_active && !profile.must_change_password){
+   // An active account needs a Supabase JS session for the rest of the dashboard.
+   // EC accounts awaiting rotation use the authenticated REST/Edge path instead.
+   button.textContent="Menyambungkan sesi dashboard…";
+   await withLoginDeadline(
+    client.auth.setSession({access_token:token,refresh_token:response.data.session.refresh_token}),
+    6000,
+    "Browser menahan penyimpanan sesi. Tutup tab lama atau nonaktifkan Shields khusus situs ini, lalu coba masuk lagi."
+   );
+  }
+  await enterApp(user,token,profile);
   $("password").value="";
  }catch(err){
   showLoginError(err.message||"Login gagal. Coba kembali.");
@@ -560,6 +639,6 @@ $("password-visibility").addEventListener("click",()=>{
 });
 $("density-toggle").addEventListener("click",()=>window.UserPrefs?.toggleDensity());
 $("period-select").addEventListener("change",loadDashboard);$("refresh-button").addEventListener("click",loadDashboard);
-client.auth.getSession().then(({data})=>{if(data.session)enterApp(data.session.user).catch(err=>{console.error(err);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})});
+withLoginDeadline(client.auth.getSession(),6000,"").then(({data})=>{if(data?.session?.access_token)enterApp(data.session.user,data.session.access_token).catch(err=>{console.warn("[Login] Restore failed:",err.message);$("app-view").classList.add("hidden");$("login-view").classList.remove("hidden")})}).catch(()=>{ /* Page remains on usable login screen if browser session lock persists. */ });
 </script>
 </body></html>

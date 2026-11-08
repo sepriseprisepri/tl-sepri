@@ -8,19 +8,19 @@ RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = ''
 AS $$
 DECLARE item jsonb;
 BEGIN
- IF jsonb_typeof(p_entries) <> 'array'
+ IF jsonb_typeof(p_entries) IS DISTINCT FROM 'array'
     OR jsonb_array_length(p_entries) < 1
     OR jsonb_array_length(p_entries) > 25 THEN RETURN false; END IF;
  FOR item IN SELECT value FROM jsonb_array_elements(p_entries) LOOP
-  IF jsonb_typeof(item)<>'object'
-   OR jsonb_typeof(item->'model') <> 'string'
+  IF jsonb_typeof(item) IS DISTINCT FROM 'object'
+   OR jsonb_typeof(item->'model') IS DISTINCT FROM 'string'
    OR length(btrim(item->>'model')) NOT BETWEEN 2 AND 100
-   OR jsonb_typeof(item->'provider') <> 'string'
+   OR jsonb_typeof(item->'provider') IS DISTINCT FROM 'string'
    OR item->>'provider' NOT IN (
     'HCI','KREDIVO','FIF','SPEKTRA','YESSSKREDIT','AKULAKU',
     'SPAYLATER','INDODANA','SAMSUNG FINANCE+','KREDITPLUS','BAF','KARTU KREDIT BANK'
    )
-   OR jsonb_typeof(item->'qty') <> 'number'
+   OR jsonb_typeof(item->'qty') IS DISTINCT FROM 'number'
    OR (item->>'qty') !~ '^[0-9]{1,3}$'
   THEN RETURN false; END IF;
   IF (item->>'qty')::integer NOT BETWEEN 1 AND 100 THEN RETURN false; END IF;

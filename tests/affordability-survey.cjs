@@ -24,7 +24,7 @@ const x=summarize([
  {survey_date:"2026-11-08",has_multifinance:false,closings:[]},
  {survey_date:"2026-11-08",has_multifinance:true,closings:[{model:"A08 4/64",provider:"HCI",qty:1},{model:"A57 12/256",provider:"KREDIVO",qty:2}]}
 ]);
-assert.equal(x.surveys,2);assert.equal(x.yes,1);assert.equal(x.no,1);assert.equal(x.units,3);assert.equal(x.byProvider.length,2);assert.equal(x.details.length,2);
+assert.equal(x.surveys,2);assert.equal(x.yes,1);assert.equal(x.no,1);assert.equal(x.units,3);assert.equal(x.byProvider.length,2);assert.equal(x.details.length,2);assert.equal(x.responses.length,2);assert.equal(x.responses[0].answer,"Tidak");assert.equal(x.responses[1].answer,"Ya");
 assert.match(sql,/CREATE TABLE public\.affordability_surveys/);
 assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
 assert.match(sql,/UNIQUE\(ec_profile_id,store_id,survey_date\)/);
@@ -34,6 +34,13 @@ assert.match(sql,/m\.fieldforce_position='EC'/);
 assert.match(sql,/public\.can_access_store\(store_id\)/);
 assert.match(sql,/no_finance_confirmed=true AND closings='\[\]'::jsonb/);
 assert.match(sql,/affordability_closings_valid\(closings\)/);
+const auditSql=fs.readFileSync("docs/sql/20261108-affordability-employee-id-followup.sql","utf8");
+assert.match(auditSql,/ADD COLUMN employee_id text NOT NULL/);
+assert.match(auditSql,/p\.employee_id=affordability_surveys\.employee_id/);
+assert.match(auditSql,/p\.employee_id=m\.employee_id/);
+assert.match(ui,/employee_id:ctx\.profile\.employee_id/);
+assert.match(ui,/add\("Respons Harian"/);
+assert.match(ui,/no_finance_confirmed,closings/);
 assert.doesNotMatch(sql,/INSERT INTO\s+(public\.)?raw_sellout/i);
 assert.doesNotMatch(sql,/CREATE POLICY .* FOR UPDATE/i);
 assert.doesNotMatch(sql,/CREATE POLICY .* FOR DELETE/i);

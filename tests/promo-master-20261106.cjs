@@ -124,4 +124,5 @@ assert.match(ui,/Tanpa promo cashback/); // no-cashback informational records re
 assert.match(css,/\.intel-source-internal/);
 assert.match(chart,/p\.record_kind==="offer"/);
 require("./promo-import-preflight.cjs");
+require("./ec-competitor-sellout.cjs");
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

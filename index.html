@@ -185,6 +185,7 @@
   </div>
 </main>
 <script src="/ops-modules.js"></script>
+<script src="/ec-competitor-sellout.js"></script>
 <script src="/user-experience.js"></script>
 <script src="/sales-intelligence.js"></script>
 <script src="/promo-center.js"></script>
@@ -200,7 +201,7 @@ const menus={
  admin:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
  tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
  tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
- ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Sellout","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
+ ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Competitor","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
 };
 let currentProfile=null,periods=[],charts={},lastSalesData=null;
 const fmtNum=v=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(Number(v||0));
@@ -230,7 +231,7 @@ function menuIcon(label){
   "Laporan":'<path d="M4 20h16M5 17V9M10 17V5M15 17v-7M20 17V3"/>',
   "Laporan Saya":'<path d="M4 20h16M5 17V9M10 17V5M15 17v-7M20 17V3"/>',
   "Performa EC":'<path d="M3 20h18M6 17v-7M12 17V4M18 17v-4"/><circle cx="12" cy="3" r=".8"/>',
-  "Input Sellout":'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 12h6m-3-3v6"/>',
+  "Input Competitor":'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 12h6m-3-3v6"/>',
   "Pengaturan":'<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .8 1.4-1.7 1.7-1.4-.8a7 7 0 0 1-2 .8l-.4 1.6H9.3l-.4-1.6a7 7 0 0 1-2-.8l-1.4.8-1.7-1.7.8-1.4a7 7 0 0 1-.8-2l-1.6-.4V10l1.6-.4a7 7 0 0 1 .8-2l-.8-1.4 1.7-1.7 1.4.8a7 7 0 0 1 2-.8l.4-1.6h5.4l.4 1.6a7 7 0 0 1 2 .8l1.4-.8 1.7 1.7-.8 1.4a7 7 0 0 1 .8 2l1.6.4v2.4l-1.6.4a7 7 0 0 1-.8 2Z"/>'
  };
  return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">'+(paths[label]||paths.Dashboard)+'</svg>';
@@ -273,6 +274,9 @@ function openSection(label){
    $("section-description").textContent="Promo Samsung terverifikasi, lengkap dengan tanggal, cakupan dan sumber resmi.";
    const data=lastSalesData||{period:periods[0],stores:[],manpower:[],targets:[],sales:[]};
    if(window.PromoCenter)window.PromoCenter.render({...data,client,profile:currentProfile,openSection},$("import-hub-container"));
+  }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
+   $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";
+   if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile},$("import-hub-container"));
   }else if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
    renderBmuActivation();

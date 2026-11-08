@@ -104,6 +104,32 @@ Pada audit ulang, production mempunyai 11 migrasi yang tercatat. Staging harus m
 - Jangan rollback dengan `DISABLE ROW LEVEL SECURITY` atau membuka `EXECUTE` untuk `PUBLIC`.
 - Setiap rollback produksi harus disetujui, sempit cakupannya dan menyertakan pengujian pasca-rollback.
 
+
+## Jalur tanpa biaya cloud — dipilih pengguna
+
+Pengguna memilih **opsi 2: audit tanpa staging cloud** karena tidak dapat melakukan pembayaran untuk staging berbayar. Jangan membuat branch/proyek Supabase, menambah biaya, atau mengubah produksi tanpa persetujuan baru.
+
+### Hasil regression suite read-only tambahan
+
+Berkas `tests/security-production-readonly-regression-20261108.sql` dijalankan pada metadata database produksi dan menghasilkan **7/7 PASS**:
+- `public_tables_rls_enabled`
+- `public_profiles_self_update_guard`
+- `promo_read_is_published_verified`
+- `promo_write_is_admin`
+- `master_commit_definer_not_anonymous`
+- `privileged_functions_not_anonymous`
+- `helper_functions_fixed_search_path`
+
+Cakupan pemeriksaan ini hanya **metadata** kebijakan RLS dan fungsi. Hasil PASS tidak membuktikan hak akses baris pada JWT pengguna sebenarnya ataupun keamanan implementasi seluruh RPC. Lima fungsi tetap dapat dipanggil `authenticated`, dan perlindungan kata sandi yang bocor masih nonaktif. Tidak ada SQL DDL/DML yang dijalankan.
+
+### Urutan perbaikan aman tanpa staging
+
+1. Pertahankan PR sebagai **draft** agar baseline audit tidak disamakan dengan patch keamanan siap produksi.
+2. Uji statis dan dokumentasikan dependensi 5 RPC sebelum mengusulkan pencabutan izin; pertahankan fungsi `commit_master_database` sebagai risiko prioritas yang memerlukan uji role melalui JWT.
+3. Jangan membuat atau meniru JWT dengan `SET ROLE` di produksi sebagai pengganti lingkungan terisolasi.
+4. Jika nanti tersedia komputer Docker atau staging yang disetujui, jalankan matriks role sintetis dan verifikasi rollback baru kemudian terapkan perubahan database.
+5. Untuk `Leaked Password Protection`, rencanakan perubahan konfigurasi Auth secara terpisah dan uji alur login/reset sebelum aktivasi produksi.
+
 ## Kriteria exit
 
 - Ada `project_ref` staging yang bukan produksi serta fixture sintetis.

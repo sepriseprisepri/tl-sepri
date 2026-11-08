@@ -126,4 +126,5 @@ assert.match(chart,/p\.record_kind==="offer"/);
 require("./promo-import-preflight.cjs");
 require("./ec-competitor-sellout.cjs");
 require("./ec-account-provision.cjs");
+require("./ec-password-reset.cjs");
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

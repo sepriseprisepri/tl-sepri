@@ -15,7 +15,7 @@
 |---|---|
 | `ec-competitor-sellout.js` | Form input responsif dengan validasi, total otomatis, dan riwayat 20 transaksi EC terakhir |
 | `index.html` | Menu EC `Input Competitor`, pemanggilan form khusus |
-| `docs/sql/20261108-ec-competitor-sellout-draft.sql` | **Migration draft** tabel dan RLS baru; belum diterapkan |
+| `docs/sql/20261108-ec-competitor-sellout-draft.sql` | Migration SQL yang sudah diterapkan di Supabase produksi pada 8 November 2026 |
 | `tests/ec-competitor-sellout.cjs` | Pengujian isolasi brand, toko, tanggal, qty, harga, wiring frontend, dan struktur kebijakan |
 
 ## Aktivasi
@@ -51,8 +51,17 @@ Fitur frontend **fail-closed**: sebelum migrasi diterapkan, form tidak muncul; a
 
 Sebelum migrasi, simpan snapshot schema dan data di staging; untuk produksi, backup database terlebih dahulu. Jika sesudah aktivasi ditemukan isu, **cabut akses UI/fitur input competitor terlebih dahulu**, jangan mematikan RLS. Untuk rollback database, pertahankan data historis yang sudah tercatat dan gunakan migrasi korektif atas kebijakan atau perizinan, bukan langsung `DROP TABLE`.
 
+## Pemeriksaan aktivasi 8 November 2026
+
+- Supabase migration `20261108043427_ec_competitor_sellout_isolated_scoped_rls_20261108`: berhasil.
+- `public.competitor_sellout`: dibuat, awalnya 0 transaksi.
+- `public.raw_sellout`: 104 transaksi sebelum dan sesudah migrasi, tidak berubah.
+- RLS: 19/19 tabel aktif. SQL privilege `anon` SELECT/INSERT false; `authenticated` SELECT/INSERT true dan UPDATE/DELETE false; kebijakan INSERT membatasi EC aktif dan toko penempatan.
+- Supabase Advisor tidak menambah warning dari tabel baru. Warning lama terkait 5 SECURITY DEFINER dan proteksi password bocor tetap perlu ditindaklanjuti terpisah.
+- GitHub Actions operational smoke lulus sebelum rilis. Pengujian live EC/JWT pertama harus dilakukan bersama pengguna operasional, jangan memakai data penjualan fiktif di produksi.
+
 ## Batasan saat ini
 
-- Tidak ada staging cloud karena keterbatasan anggaran; **migration dan end-to-end autentikasi belum diuji**.
-- Saat ini fitur form terimplementasi dalam PR dan **belum dapat menyimpan ke produksi**.
+- Tidak ada staging cloud karena keterbatasan anggaran. Migrasi produksi telah diterapkan atas instruksi pengguna, namun **pengujian end-to-end menggunakan sesi EC nyata masih perlu dilakukan**.
+- Pemeriksaan pascamigrasi membuktikan 19/19 tabel publik RLS aktif, 3 policy baru terpasang, anon tidak memiliki akses, authenticated tidak memiliki izin UPDATE/DELETE, dan 104 baris RAW Samsung tetap tidak berubah.
 - Daftar brand merupakan aturan teknis awal; penambahan merek harus menyertakan revisi validasi frontend dan constraint SQL secara bersamaan.

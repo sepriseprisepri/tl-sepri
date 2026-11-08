@@ -9,11 +9,16 @@ assert.match(index,/session\.user\.email\?\.toLowerCase\(\)===loginAuthSignal\.e
 assert.match(index,/Promise\.race\(\[client\.auth\.signInWithPassword/);
 assert.match(index,/await enterApp\(user,token,profile\)/);
 assert.match(index,/7000,"Sesi SDK belum selesai"/);
-assert.match(index,/async function getLoginProfile\(user,token\)/);\nassert.match(index,/await authorizedLoginFetch\(path,token\)/);
+assert.match(index,/async function getLoginProfile\(user,token\)/);
+assert.match(index,/await authorizedLoginFetch\(path,token\)/);
 assert.match(index,/button\.disabled=false/);
 assert.match(index,/Memuat profil EC/);
 assert.match(index,/await withLoginDeadline\(client\.auth\.signOut\(\),4000/);
-assert.match(index,/const rotationOnly=Boolean\(data && data\.must_change_password/);\nassert.match(index,/Authorization:"Bearer "\+token/);\nassert.match(index,/response\.fromDirect && profile\.is_active && !profile\.must_change_password/);\nassert.match(index,/async function directPasswordLogin\(email,password\)/);\nassert.match(index,/functions\\/v1\\/provision-ec-accounts/);
+assert.match(index,/const rotationOnly=Boolean\(data && data\.must_change_password/);
+assert.match(index,/Authorization:"Bearer "\+token/);
+assert.match(index,/response\.fromDirect && profile\.is_active && !profile\.must_change_password/);
+assert.match(index,/async function directPasswordLogin\(email,password\)/);
+assert.match(index,/functions\/v1\/provision-ec-accounts/);
 assert.match(css,/\.login-password-wrap \.login-input \{padding-right:94px/);
 const source=index.match(/function withLoginDeadline\(promise,ms,message\)\{[\s\S]*?\n\}/)?.[0];
 assert.ok(source,"deadline helper extract");

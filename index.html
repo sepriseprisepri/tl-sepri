@@ -500,7 +500,7 @@ function withLoginDeadline(promise,ms,message){
 }
 let loginAuthSignal=null;
 client.auth.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_IN" && session?.user && loginAuthSignal){
+ if(event==="SIGNED_IN" && session?.user && loginAuthSignal && session.user.email?.toLowerCase()===loginAuthSignal.expectedEmail){
   loginAuthSignal.resolve({data:{user:session.user},error:null});
  }
 });
@@ -518,8 +518,10 @@ $("login-form").addEventListener("submit",async e=>{
   if(!/^[A-Za-z0-9_-]{4,40}$/.test(employeeId))throw new Error("ID harus 4–40 karakter (huruf, angka, '-' atau '_').");
   const alias=employeeId.toUpperCase();
   const authId=alias==="ADMIN"?"090994":alias==="AC-2406310901"?"TL_BMU_KAL_02":employeeId;
+  const expectedEmail=authId.toLowerCase()+"@login.tlsepri.internal";
+  loginAuthSignal.expectedEmail=expectedEmail;
   const response=await withLoginDeadline(
-   Promise.race([client.auth.signInWithPassword({email:authId.toLowerCase()+"@login.tlsepri.internal",password}),authEvent]),
+   Promise.race([client.auth.signInWithPassword({email:expectedEmail,password}),authEvent]),
    15000,
    "Login tidak selesai di browser meskipun server mungkin menerima password. Tutup tab lain untuk website ini, muat ulang halaman, lalu coba lagi."
   );

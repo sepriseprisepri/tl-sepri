@@ -62,6 +62,26 @@ Pilihan:
 - Tambahan skrip `tests/security-staging-role-context-20261108.sql` melakukan smoke test konteks `anon` dan `authenticated` tanpa identitas (read-only). Ini bukan pengganti pengujian token JWT asli dengan akun sintetis.
 - **Tidak ada** SQL patch RPC yang dijalankan atau patch produksi yang disetujui pada tahap ini.
 
+## Rekonsiliasi migrasi Supabase yang tercatat (read-only)
+
+Pada audit ulang, production mempunyai 11 migrasi yang tercatat. Staging harus memiliki migrasi identik sebelum uji peran, dan pemeriksaan dilakukan berdasarkan **versi migrasi**, bukan sekadar jumlah:
+
+```text
+20261103113131 initial_tl_sepri_schema_and_rls
+20261103113153 seed_november_and_focus_models_permissions
+20261103113212 tighten_function_access_and_index_foreign_keys
+20261103113720 require_employee_id_and_first_login_password_change
+20261103113915 make_password_change_optional
+20261103124826 create_store_shadow_history
+20261106104231 scope_shadow_history_read_by_coverage_20261106
+20261106123729 sales_intelligence_promo_filters_20261106
+20261106131254 promo_master_source_provenance_20261106
+20261106131547 promo_master_internal_bulletin_20261106
+20261106135133 promo_review_approval_gate_20261106
+```
+
+**Batasan penting:** Supabase Branching menyalin migrasi yang berlaku, bukan otomatis menyalin data dan identitas produksi. Bila staging dibuat dengan metode lokal/proyek terpisah, rekonstruksi migrasi harus diverifikasi terhadap isi SQL di repositori. Jika ada migrasi historis yang tidak tersimpan di repository, jangan menganggap hasil pengujian representatif sebelum kesenjangan rekonsiliasi diselesaikan.
+
 ## Gate sebelum uji staging dieksekusi
 
 1. Dapatkan **project reference staging** atau environment lokal Docker yang terisolasi. Untuk proyek/branch cloud yang berbiaya, tampilkan harga dari Supabase lebih dulu dan peroleh persetujuan eksplisit.

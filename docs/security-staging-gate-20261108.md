@@ -53,6 +53,24 @@ Pilihan:
 
 **E. Auth** — Pertimbangkan aktivasi `Leaked Password Protection` melalui konfigurasi Auth setelah memverifikasi dampak UX dan kebijakan paket. Ini bukan migrasi SQL; persetujuan konfigurasi produksi diperlukan.
 
+## Hasil audit dependensi tambahan (8 November 2026)
+
+- Lingkungan kerja saat ini memiliki Node.js dan Git, **tidak** menyediakan Docker maupun Supabase CLI; clone Git lewat jaringan lokal juga tidak tersedia. Karena itu jalur staging lokal tidak bisa diluncurkan dari sesi ini.
+- Pemeriksaan `pg_policies` menunjukkan banyak kebijakan untuk `profiles`, `raw_sellout`, `stores`, `store_targets`, `sales_promotions`, serta data coverage menggunakan `is_admin()`, `current_app_role()`, dan/atau `can_access_store()`. **Mencabut EXECUTE secara langsung dapat memutus akses resmi** sebelum policy dan ketergantungan helper baru diuji.
+- Kelima fungsi sensitif memiliki `search_path` yang disetel; ini kontrol yang berguna, tetapi tidak menghilangkan peringatan exposed SECURITY DEFINER.
+- Sebagian tabel publik masih memiliki hak `SELECT` tingkat SQL untuk role `anon`, tetapi juga RLS aktif. Hak tabel **tidak berarti** row data terbuka: pengujian nyata perlu memastikan policy menolak semua baris anon yang dilindungi.
+- Tambahan skrip `tests/security-staging-role-context-20261108.sql` melakukan smoke test konteks `anon` dan `authenticated` tanpa identitas (read-only). Ini bukan pengganti pengujian token JWT asli dengan akun sintetis.
+- **Tidak ada** SQL patch RPC yang dijalankan atau patch produksi yang disetujui pada tahap ini.
+
+## Gate sebelum uji staging dieksekusi
+
+1. Dapatkan **project reference staging** atau environment lokal Docker yang terisolasi. Untuk proyek/branch cloud yang berbiaya, tampilkan harga dari Supabase lebih dulu dan peroleh persetujuan eksplisit.
+2. Terapkan seluruh migrasi skema ke staging, jangan gunakan dataset nyata. Perhatikan branch Supabase tidak otomatis menyalin data produksi.
+3. Konfirmasi target project dengan membandingkan `current_database()`, project URL, environment variables, dan identitas database sebelum menggunakan skrip staging-only.
+4. Jalankan `tests/security-staging-readonly-20261108.sql` untuk snapshot, kemudian `tests/security-staging-role-context-20261108.sql`. Catat hasil setiap baris `passed`.
+5. Lanjutkan pengujian HTTP/RPC menggunakan akun staging sintetis dan JWT asli; jangan menganggap `SET ROLE` sebagai simulasi identitas yang setara dengan JWT.
+6. Pastikan patch calon disertai tes negatif dan rollback teruji, baru ajukan permintaan persetujuan produksi.
+
 ## Patch Stage 1 — desain, bukan eksekusi
 
 1. Pisahkan helper otorisasi dari permukaan API publik jika dapat dibuktikan aman: schema non-exposed, `search_path` dikunci, GRANT `USAGE` dan `EXECUTE` minimum kepada role yang benar-benar membutuhkannya. Tulis ulang policy untuk menunjuk helper baru. Uji recursive RLS dan performa.

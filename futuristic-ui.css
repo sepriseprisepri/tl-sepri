@@ -121,7 +121,7 @@ button:disabled {cursor:wait;}
 #login-view .login-input:focus,#password-rotation-view .field:focus {border-color:#52d6f8;background:rgba(9,22,39,.92);box-shadow:0 0 0 3px rgba(53,197,241,.10),0 0 21px rgba(42,176,232,.12);outline:none;}
 .login-fields {display:grid;gap:20px;}
 .login-password-wrap {position:relative;}
-.login-password-wrap .login-input {padding-right:57px;}
+.login-password-wrap .login-input {padding-right:94px;min-width:0;text-overflow:clip;}
 .password-visibility {
   position:absolute;right:7px;bottom:7px;height:36px;min-width:44px;
   display:grid;place-items:center;background:rgba(53,97,135,.17);

@@ -127,4 +127,5 @@ require("./promo-import-preflight.cjs");
 require("./ec-competitor-sellout.cjs");
 require("./ec-account-provision.cjs");
 require("./ec-password-reset.cjs");
+require("./ec-login-recovery.cjs");
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

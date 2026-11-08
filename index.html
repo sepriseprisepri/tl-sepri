@@ -188,6 +188,7 @@
 </main>
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
+<script src="/survey-affordability.js"></script>
 <script src="/ec-account-provision.js"></script>
 <script src="/ec-password-reset.js"></script>
 <script src="/user-experience.js"></script>
@@ -302,13 +303,15 @@ function openSection(label){
      .catch(err=>console.error("[SavedFilters]",err));
    }
   }else if(label==="Survey"){
-   $("section-description").textContent="Pusat survei lapangan Samsung Kalteng. Modul pengisian dan pelaporan belum diaktifkan.";
-   $("import-hub-container").innerHTML=
-    '<section class="rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-5 sm:p-7 space-y-4">'+
-    '<div class="flex items-center gap-3"><span class="rounded-xl bg-cyan-500/10 px-3 py-2 text-cyan-300" aria-hidden="true">☷</span><div><h3 class="font-semibold text-white">Survey Lapangan</h3><p class="text-xs text-cyan-200">Tahap persiapan · Belum menerima input</p></div></div>'+
-    '<p class="text-sm text-slate-300 leading-6">Kerangka Survey sudah tersedia untuk EC dan tim pengelola. Formulir survei, daftar pertanyaan, bukti kunjungan, dan integrasi laporan akan disiapkan pada tahap pengembangan selanjutnya.</p>'+
-    '<div class="grid sm:grid-cols-3 gap-3 text-sm"><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Pengisian EC</b><span class="text-slate-400">Menunggu definisi formulir</span></div><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Riwayat kunjungan</b><span class="text-slate-400">Belum terhubung ke database</span></div><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Laporan Survey</b><span class="text-slate-400">Direncanakan tahap berikutnya</span></div></div>'+
-    '<p class="text-xs text-amber-200">Belum ada data yang dikirim atau disimpan dari menu ini.</p></section>';
+   $("section-description").textContent=currentProfile?.role==="ec"
+    ?"Survey Affordability harian: closing menggunakan multifinance di toko penempatan."
+    :"Dashboard Survey Affordability: hasil EC, perbandingan multifinance dan ekspor laporan.";
+   if(window.SamsungAffordability){
+    window.SamsungAffordability.render({
+     client,profile:currentProfile,accessToken:activeAuthAccessToken,
+     apiUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY
+    },$("import-hub-container"));
+   }else $("import-hub-container").textContent="Modul survey belum dapat dimuat. Muat ulang website.";
   }else if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
    if(window.renderImportHub)window.renderImportHub();

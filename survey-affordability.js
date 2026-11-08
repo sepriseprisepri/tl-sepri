@@ -27,7 +27,8 @@ async function request(ctx,table,options={}){
  if(ctx.accessToken&&ctx.apiUrl&&ctx.publishableKey){
   const params=new URLSearchParams({select});
   filters.forEach(([key,operator,value])=>params.set(key,operator+"."+value));
-  if(method==="GET")params.set("order",table==="stores"?"site_name.asc":"survey_date.desc");
+  if(method==="GET"&&table==="stores")params.set("order","site_name.asc");
+  if(method==="GET"&&table==="affordability_surveys")params.set("order","survey_date.desc");
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
    const response=await fetch(ctx.apiUrl+"/rest/v1/"+table+"?"+params.toString(),{

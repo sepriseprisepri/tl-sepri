@@ -5,7 +5,7 @@
  const BRANDS=["Apple","Xiaomi","POCO","OPPO","vivo","realme","Infinix","TECNO","itel","HONOR","Huawei","Motorola","Nokia"];
  const enc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const currency=new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0});
- const localDate=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+ const localDate=()=>{const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());const value=Object.fromEntries(parts.map(p=>[p.type,p.value]));return `${value.year}-${value.month}-${value.day}`;};
  const forbiddenModel=model=>/(samsung|galaxy)/i.test(model);
  function validate(v,stores){
   if(!BRANDS.includes(v.brand))throw Error("Pilih brand kompetitor yang tersedia.");
@@ -23,7 +23,7 @@
   mount.innerHTML='<div class="space-y-5 max-w-4xl">'+
    '<div class="rounded-xl border border-cyan-700/30 bg-cyan-950/20 p-4 text-sm text-slate-200"><p class="font-semibold text-cyan-200">Sellout Brand Competitor · EC</p><p class="mt-2 leading-6">Form ini hanya untuk penjualan brand kompetitor. Sellout Samsung tidak boleh diinput di sini dan tetap diperbarui oleh Admin melalui file RAW Sellout.</p></div>'+
    '<div id="competitor-status" role="status" aria-live="polite" class="text-sm text-amber-200"></div>'+
-   '<form id="competitor-form" class="panel rounded-2xl p-5 sm:p-6 grid sm:grid-cols-2 gap-4" hidden>'+
+   '<form id="competitor-form" class="hidden panel rounded-2xl p-5 sm:p-6 grid sm:grid-cols-2 gap-4" hidden>'+
     '<div class="sm:col-span-2"><h3 class="font-semibold text-white">Catat transaksi kompetitor</h3><p class="text-xs text-slate-400 mt-1">Toko dipilih dari daftar penugasan aktif Anda. Tidak mengubah KPI Samsung.</p></div>'+
     '<label class="block text-sm text-slate-300">Toko penempatan<select name="store_id" class="field block w-full rounded-xl p-3 mt-2" required></select></label>'+
     '<label class="block text-sm text-slate-300">Tanggal penjualan<input type="date" name="sold_at" class="field block w-full rounded-xl p-3 mt-2" required></label>'+
@@ -60,7 +60,7 @@
      rows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td></tr>').join("")+'</tbody></table></div>';
    };
    paintHistory(salesResult.data||[]);
-   form.hidden=false;say("Silakan input penjualan kompetitor sesuai toko penempatan.");
+   form.classList.remove("hidden");form.hidden=false;say("Silakan input penjualan kompetitor sesuai toko penempatan.");
    const updateAmount=()=>{const qty=Number(form.elements.namedItem("qty").value),price=Number(form.elements.namedItem("unit_price").value);mount.querySelector("#competitor-amount").textContent=currency.format(Math.max(0,(Number.isFinite(qty)?qty:0)*(Number.isFinite(price)?price:0)));};
    form.addEventListener("input",updateAmount);
    form.addEventListener("submit",async event=>{

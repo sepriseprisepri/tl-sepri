@@ -40,6 +40,36 @@
   const status=mount.querySelector("#competitor-status"),form=mount.querySelector("#competitor-form"),history=mount.querySelector("#competitor-history");
   const say=(s,error=false)=>{status.textContent=s;status.className="text-sm "+(error?"text-rose-300":"text-emerald-300");};
   const missing=e=>e?.code==="42P01"||e?.code==="PGRST205"||/competitor_sellout.*(not found|does not exist|schema cache)/i.test(e?.message||"");
+  // The signed-in user's JWT keeps exactly the same RLS policies as supabase-js.
+  // Direct REST avoids stalled browser Auth session locks observed on mobile.
+  const useRest=Boolean(ctx.accessToken&&ctx.apiUrl&&ctx.publishableKey);
+  async function rest(path,method="GET",body){
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   try{
+    const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
+     method,signal:controller.signal,cache:"no-store",
+     headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
+       ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+     ...(body?{body:JSON.stringify(body)}:{})
+    });
+    if(!response.ok){
+     if(response.status===401)throw Error("Sesi EC sudah kedaluwarsa. Silakan login kembali.");
+     if(response.status===403)throw Error("Akses transaksi ditolak. Periksa status EC dan toko penempatan.");
+     const details=await response.json().catch(()=>({}));
+     throw Error(details.message||details.error||"Permintaan database gagal (HTTP "+response.status+").");
+    }
+    return method==="GET"?{data:await response.json(),error:null}:{data:null,error:null};
+   }catch(err){
+    if(err.name==="AbortError")throw Error("Koneksi ke database tidak merespons. Periksa koneksi dan muat ulang menu.");
+    throw err;
+   }finally{clearTimeout(timer);}
+  }
+  const storeQuery=()=>useRest?rest("stores?select=id,site_id,site_name&order=site_name.asc"):
+    ctx.client.from("stores").select("id,site_id,site_name").order("site_name");
+  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,created_at&order=created_at.desc&limit=20"):
+    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+  const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
+    ctx.client.from("competitor_sellout").insert(record);
   let stores=[];
   try{
    // Do not block the input form just because history failed to load.
@@ -52,7 +82,7 @@
      ]);
     }finally{clearTimeout(timer);}
    };
-   const storeResult=await requestWithDeadline(ctx.client.from("stores").select("id,site_id,site_name").order("site_name"),"Daftar toko");
+   const storeResult=await requestWithDeadline(storeQuery(),"Daftar toko");
    if(storeResult.error)throw storeResult.error;
    stores=storeResult.data||[];
    if(!stores.length){say("Toko belum tersedia bagi akun EC ini. Pastikan profil EC aktif dan penugasan tokonya sudah sesuai; hubungi Admin.",true);history.textContent="Riwayat belum dapat ditampilkan.";return;}
@@ -67,7 +97,7 @@
    form.classList.remove("hidden");form.hidden=false;
    say("Form siap. Pilih brand dan isi penjualan kompetitor pada toko penempatan Anda.");
    try{
-    const salesResult=await requestWithDeadline(ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20),"Riwayat input");
+    const salesResult=await requestWithDeadline(historyQuery(),"Riwayat input");
     if(salesResult.error)throw salesResult.error;
     paintHistory(salesResult.data||[]);
    }catch(historyError){
@@ -83,13 +113,13 @@
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
      const record={...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
-     const {error}=await requestWithDeadline(ctx.client.from("competitor_sellout").insert(record),"Penyimpanan transaksi");
+     const {error}=await requestWithDeadline(insertQuery(record),"Penyimpanan transaksi");
      if(error)throw error;
      const selectedStore=form.elements.namedItem("store_id").value;
      form.reset();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
      say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");
      try{
-      const {data,error:loadError}=await requestWithDeadline(ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20),"Riwayat input");
+      const {data,error:loadError}=await requestWithDeadline(historyQuery(),"Riwayat input");
       if(loadError)throw loadError;
       paintHistory(data||[]);
      }catch(refreshError){

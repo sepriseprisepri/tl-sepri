@@ -282,7 +282,7 @@ function openSection(label){
    if(window.PromoCenter)window.PromoCenter.render({...data,client,profile:currentProfile,openSection},$("import-hub-container"));
   }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
    $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";
-   if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile},$("import-hub-container"));
+   if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile,accessToken:activeAuthAccessToken,apiUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY},$("import-hub-container"));
   }else if(label==="Aktivasi Akun EC"&&currentProfile?.role==="admin"){
    $("section-description").textContent="Pembuatan akun EC berdasarkan master aktif dan penugasan toko, dilindungi hak akses Admin.";
    window.ECAccountProvision?.render({client,profile:currentProfile},$("import-hub-container"));

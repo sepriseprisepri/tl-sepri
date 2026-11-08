@@ -212,6 +212,14 @@ button:disabled {cursor:wait;}
 #welcome-title {font-family:"Rajdhani",sans-serif;font-size:clamp(27px,3vw,35px);line-height:1.16;color:#f5fdff;letter-spacing:.016em;}
 #welcome-subtitle {color:#9eb5ca;font-size:12px;line-height:1.8;margin-top:5px;}
 .dashboard-controls {display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+#workspace-controls {position:relative;z-index:2;justify-content:flex-end;margin-bottom:18px;padding:12px 15px;border:1px solid rgba(92,177,225,.24);border-radius:15px;background:rgba(19,39,62,.72);}
+#workspace-controls label {white-space:nowrap;}
+#workspace-controls button,#workspace-controls select {touch-action:manipulation;}
+#workspace-controls button:focus-visible,#workspace-controls select:focus-visible {outline:2px solid #67dffb;outline-offset:3px;}
+#app-view #section-placeholder {min-width:0;overflow-wrap:anywhere;}
+#app-view #import-hub-container {min-width:0;}
+#app-view #competitor-form .field,#app-view #competitor-form textarea {min-width:0;max-width:100%;font-size:16px;}
+#app-view #competitor-submit {width:100%;min-height:48px;touch-action:manipulation;}
 #period-select {min-height:39px;border-radius:10px;border:1px solid rgba(114,174,217,.31);background:rgba(7,20,39,.7);color:#e7f6ff;font-size:12px;padding:9px 35px 9px 12px;}
 #refresh-button {display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;border-radius:10px;border:1px solid rgba(79,187,225,.32);background:rgba(25,109,160,.15);color:#79e1fd;font-size:12px;padding:9px 14px;font-weight:600;}
 #refresh-button:hover {background:rgba(32,142,193,.25);}
@@ -289,8 +297,14 @@ button:disabled {cursor:wait;}
   #app-view #user-name {max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #app-view .head-logout {padding:9px 11px;}
   .dashboard-intro {padding:22px;}
+  #workspace-controls {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;padding:12px;margin-bottom:16px;}
+  #workspace-controls label {grid-column:1 / -1;}
   .dashboard-controls {width:100%;}
-  #period-select {flex:1;min-width:145px;max-width:240px;}
+  #period-select {width:100%;min-width:0;max-width:none;}
+  #refresh-button {white-space:nowrap;min-height:46px;padding:10px 12px;}
+  #app-view #section-placeholder {padding:18px;}
+  #app-view #competitor-form {padding:16px;}
+  #app-view #competitor-form label {min-width:0;overflow-wrap:anywhere;}
   #app-view .metric {min-height:138px;}
   #app-view .metric p:nth-child(2) {font-size:30px;}
   #app-view .panel {border-radius:15px;}

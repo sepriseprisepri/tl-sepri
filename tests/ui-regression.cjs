@@ -54,7 +54,9 @@ for(const match of html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)){
 assert.match(html, /client\.auth\.signInWithPassword/);
 assert.match(html, /async function enterApp/);
 assert.match(html, /function renderBmuActivation/);
-assert.match(html, /client\.from\("profiles"\)/);
+assert.match(html, /getLoginProfile\(user,token/);
+assert.match(html, /\/rest\/v1\/profiles\?select=/);
+assert.match(html, /Authorization:"Bearer "\+token/);
 assert.match(html, /window\.SamsungOps\.render/);
 assert.match(html, /<script src="\/ops-modules\.js"><\/script>/);
 assert.match(html, /<script src="\/master-import\.js"><\/script>/);

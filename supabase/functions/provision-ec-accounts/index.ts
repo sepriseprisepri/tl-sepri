@@ -33,7 +33,7 @@ const authenticated=withSupabase({ auth: "user" }, async (req, ctx) => {
       .maybeSingle();
 
     if (callerError || !caller) return json(req,{ error: "Profil pengguna tidak ditemukan" },403);
-    let body: { action?: string; new_password?: string };
+    let body: { action?: string; new_password?: string; employee_id?: string };
     try { body = await req.json(); } catch { return json(req,{error:"Invalid request"},400); }
     if (body.action === "rotate_password") {
       if(caller.role!=="ec" || !caller.must_change_password || caller.is_active || !caller.manpower_id) {
@@ -54,6 +54,54 @@ const authenticated=withSupabase({ auth: "user" }, async (req, ctx) => {
         .eq("id",callerId).eq("role","ec").eq("must_change_password",true).eq("is_active",false);
       if(profileError)return json(req,{error:"Password berhasil diganti, aktivasi profil gagal; hubungi Admin"},500);
       return json(req,{ok:true,message:"Password baru tersimpan dan akun EC aktif"});
+    }
+    if(body.action==="list_ec_accounts" || body.action==="reset_password") {
+      if(caller.role!=="admin" || caller.is_active!==true || caller.must_change_password) {
+        return json(req,{error:"Hanya Admin aktif yang dapat mengelola password EC"},403);
+      }
+      const {data: ecPeople,error:ecError}=await admin.from("manpower")
+        .select("id,employee_id,full_name,fieldforce_position,is_active")
+        .eq("fieldforce_position","EC").eq("is_active",true).order("full_name");
+      if(ecError || !ecPeople)return json(req,{error:"Gagal memeriksa master EC"},500);
+      const {data: ecProfiles,error:profilesError}=await admin.from("profiles")
+        .select("id,employee_id,manpower_id,role,is_active,must_change_password")
+        .in("manpower_id",ecPeople.map(p=>p.id));
+      if(profilesError)return json(req,{error:"Gagal membaca profil EC"},500);
+      const profileByManpower=new Map((ecProfiles||[]).map(p=>[p.manpower_id,p]));
+      if(body.action==="list_ec_accounts")return json(req,{
+        ok:true,
+        accounts:ecPeople.map(m=>{
+          const profile=profileByManpower.get(m.id);
+          return {employee_id:m.employee_id,name:m.full_name,linked:Boolean(profile && profile.role==="ec"),
+            status:profile?.role==="ec"?(profile.must_change_password?"password_change_required":profile.is_active?"active":"inactive"):"missing"};
+        }),
+      });
+      const employeeId=body.employee_id;
+      if(typeof employeeId!=="string" || !/^[A-Za-z0-9_-]{4,40}$/.test(employeeId))return json(req,{error:"ID EC tidak valid"},400);
+      const person=ecPeople.find(m=>m.employee_id===employeeId);
+      if(!person)return json(req,{error:"EC aktif tidak ditemukan"},404);
+      const targetProfile=profileByManpower.get(person.id);
+      if(!targetProfile || targetProfile.role!=="ec" || targetProfile.employee_id!==person.employee_id || !targetProfile.id) {
+        return json(req,{error:"Akun EC tidak terhubung dengan benar. Perlu pemeriksaan manual."},409);
+      }
+      const {data:authUser,error:authError}=await admin.auth.admin.getUserById(targetProfile.id);
+      const expectedEmail=(person.employee_id+"@login.tlsepri.internal").toLowerCase();
+      if(authError || !authUser?.user || authUser.user.email?.toLowerCase()!==expectedEmail){
+        return json(req,{error:"Identitas Auth EC tidak sesuai. Reset dibatalkan."},409);
+      }
+      // Fail closed: revoke active application access before rotating Auth credential.
+      // Even if Auth update fails, this account cannot continue accessing RLS data.
+      const {error:disableError}=await admin.from("profiles")
+        .update({is_active:false,must_change_password:true,updated_at:new Date().toISOString()})
+        .eq("id",targetProfile.id).eq("employee_id",person.employee_id)
+        .eq("manpower_id",person.id).eq("role","ec");
+      if(disableError)return json(req,{error:"Tidak dapat menonaktifkan sementara akun EC. Reset dibatalkan."},500);
+      const temporaryPassword=makePassword();
+      const {error:resetError}=await admin.auth.admin.updateUserById(targetProfile.id,{password:temporaryPassword});
+      if(resetError)return json(req,{error:"Reset password gagal. Akun ditahan nonaktif; ulangi reset sebagai Admin."},500);
+      return json(req,{ok:true,employee_id:person.employee_id,name:person.full_name,
+        temporary_password:temporaryPassword,requires_password_change:true,
+        warning:"Password sementara hanya muncul sekali. Berikan hanya kepada pemilik akun melalui kanal privat."});
     }
     if (body.action !== "activate" && body.action !== "preview") return json(req,{error:"Unknown action"},400);
     if (caller.role !== "admin" || caller.is_active !== true) {

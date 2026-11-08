@@ -436,8 +436,8 @@ async function getLoginProfile(user,token){
  if(!Array.isArray(rows)||rows.length!==1)throw new Error("Profil EC belum dapat ditemukan untuk akun ini. Hubungi Admin.");
  return rows[0];
 }
-async function enterApp(user,token){
- const data=await getLoginProfile(user,token);
+async function enterApp(user,token,preloadedProfile=null){
+ const data=preloadedProfile||await getLoginProfile(user,token);
  const error=null;
  const rotationOnly=Boolean(data && data.must_change_password && ((data.role==="tl" && data.employee_id==="TL_BMU_KAL_02") || data.role==="ec"));
  if(error)throw new Error("Gagal membaca profil akun: "+(error.message||"periksa koneksi dan coba lagi."));
@@ -516,7 +516,9 @@ $("rotate-form").addEventListener("submit",async event=>{
     ({data,error}=await client.functions.invoke(functionName,{body:{action:"rotate_password",new_password:password}}));
    }
    if(error||!data?.ok)throw new Error(data?.error||"Password gagal diperbarui. Silakan coba lagi.");
-   await client.auth.signOut();
+   // A browser lock must not freeze the UI after the server saved the password.
+   await withLoginDeadline(client.auth.signOut(),4000,"").catch(()=>{});
+   activeAuthAccessToken=null;
    currentProfile=null;$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");
    $("password").value="";$("rotate-new").value="";$("rotate-confirm").value="";
    const info=$("login-error");
@@ -551,7 +553,7 @@ async function directPasswordLogin(email,password){
   if(!response.ok)throw new Error("ID akun atau password tidak sesuai.");
   const session=await response.json();
   if(!session.access_token||!session.user?.id||session.user.email?.toLowerCase()!==email)throw new Error("Respons login tidak lengkap.");
-  return {data:{user:session.user,session},error:null};
+  return {data:{user:session.user,session},error:null,fromDirect:true};
  }catch(err){
   if(err?.name==="AbortError")throw new Error("Koneksi login terlalu lama. Periksa jaringan lalu coba lagi.");
   throw err;
@@ -594,7 +596,18 @@ $("login-form").addEventListener("submit",async e=>{
   const user=response.data?.user,token=response.data?.session?.access_token;
   if(!user||!token)throw new Error("Token login tidak tersedia. Silakan coba kembali.");
   button.textContent="Memuat profil EC…";
-  await enterApp(user,token);
+  const profile=await getLoginProfile(user,token);
+  if(response.fromDirect && profile.is_active && !profile.must_change_password){
+   // An active account needs a Supabase JS session for the rest of the dashboard.
+   // EC accounts awaiting rotation use the authenticated REST/Edge path instead.
+   button.textContent="Menyambungkan sesi dashboard…";
+   await withLoginDeadline(
+    client.auth.setSession({access_token:token,refresh_token:response.data.session.refresh_token}),
+    6000,
+    "Browser menahan penyimpanan sesi. Tutup tab lama atau nonaktifkan Shields khusus situs ini, lalu coba masuk lagi."
+   );
+  }
+  await enterApp(user,token,profile);
   $("password").value="";
  }catch(err){
   showLoginError(err.message||"Login gagal. Coba kembali.");

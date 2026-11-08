@@ -130,4 +130,5 @@ require("./ec-password-reset.cjs");
 require("./ec-login-recovery.cjs");
 require("./ec-mobile-workspace.cjs");
 require("./ec-period-refresh.cjs");
+require("./account-settings.cjs");
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

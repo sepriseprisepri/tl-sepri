@@ -187,6 +187,7 @@
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
 <script src="/ec-account-provision.js"></script>
+<script src="/ec-password-reset.js"></script>
 <script src="/user-experience.js"></script>
 <script src="/sales-intelligence.js"></script>
 <script src="/promo-center.js"></script>
@@ -282,6 +283,7 @@ function openSection(label){
   }else if(label==="Aktivasi Akun EC"&&currentProfile?.role==="admin"){
    $("section-description").textContent="Pembuatan akun EC berdasarkan master aktif dan penugasan toko, dilindungi hak akses Admin.";
    window.ECAccountProvision?.render({client,profile:currentProfile},$("import-hub-container"));
+   window.ECPasswordReset?.render({client,profile:currentProfile},$("import-hub-container"));
   }else if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
    renderBmuActivation();

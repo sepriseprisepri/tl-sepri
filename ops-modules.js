@@ -142,11 +142,12 @@
   function targetPage(mount,period,stores,targets,sales,personal) {
     const rows=groupingTargets(stores,targets,sales);
     const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt"),actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
-    const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    const dateParts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).filter(p=>p.type!=="literal").map(p=>[p.type,p.value]));
+    const today=dateParts.year+"-"+dateParts.month+"-"+dateParts.day;
     const elapsed=Math.max(0,(period.period_end<today?period.period_end:today)>=period.period_start?
       Math.round((Date.parse((period.period_end<today?period.period_end:today)+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1:0);
     const totalDays=Math.round((Date.parse(period.period_end+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1;
-    const remaining=Math.max(0,totalDays-elapsed);
+    const remaining=today>period.period_end?0:Math.max(0,totalDays-elapsed+(today>=period.period_start?1:0));
     const dailyQty=remaining>0?Math.max(0,qty-actual)/remaining:0;
     const dailyAmt=remaining>0?Math.max(0,amount-actualAmt)/remaining:0;
     mount.innerHTML=sectionHead(personal?"Target Saya":"Target Penjualan",
@@ -163,7 +164,7 @@
     ]));
     mount.insertAdjacentHTML("beforeend",alert(remaining===0?
       "Periode telah berakhir; target harian tidak dihitung lagi.":
-      "Target Daily = gap positif dibagi sisa hari kalender termasuk penghitungan MTD hari ini. Pembulatan Qty hanya pada tampilan."));
+      "Target Daily = gap positif dibagi sisa hari kalender termasuk hari ini (MTD berjalan). Pembulatan Qty hanya pada tampilan."));
     makeTable(mount,{title:personal?"Rincian target EC":"Rincian target per toko",
       headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","Gap Amt","AR Amt"],
       rows,cells:r=>[r.site_id,r.site_name,r.category,qtyFmt(r.target_qty),qtyFmt(r.actual_qty),

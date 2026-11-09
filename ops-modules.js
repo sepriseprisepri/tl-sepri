@@ -288,7 +288,7 @@
     const personal=profile.role==="ec";
     const names=mapById(stores),modelNames=new Map(settings.map(x=>[x.model_code,x.display_name]));
     // Individual EC allocations are mandatory: never substitute a store target for an EC target.
-    const source=personal?(allocations||[]):(allocations||targets);
+    const source=personal?(allocations||[]):(allocations&&allocations.length?allocations:targets);
     const grouped=new Map();
     for(const t of source){
       if(personal&&t.manpower_id!==profile.manpower_id)continue;
@@ -302,7 +302,9 @@
     const rows=[...grouped.values()];
     for(const row of rows){
       const valid=sales.filter(x=>String(x.eula_status||"").toUpperCase()==="VALID"&&x.site_id===row.site_id&&
-       String(x.model||"").trim().toUpperCase()===String(row.model_code).trim().toUpperCase());
+       [row.model_code,row.model_name,"Galaxy "+row.model_code].some(label=>
+         String(x.model||"").toUpperCase().replace(/[^A-Z0-9]/g,"")===
+         String(label||"").toUpperCase().replace(/[^A-Z0-9]/g,"")));
       row.actual_qty=sum(valid,"qty");row.actual_amt=sum(valid,"amt");
     }
     const targetQty=sum(rows,"target_qty"),actualQty=sum(rows,"actual_qty"),
@@ -320,7 +322,7 @@
     ]));
     if(personal&&!allocations)mount.insertAdjacentHTML("beforeend",alert(
       "Alokasi Focus Model untuk EC belum diaktifkan. Total target toko tidak ditampilkan sebagai target personal."));
-    if(!personal&&!allocations)mount.insertAdjacentHTML("beforeend",alert(
+    if(!personal&&(!allocations||!allocations.length))mount.insertAdjacentHTML("beforeend",alert(
       "Menggunakan target focus per toko yang sudah tersedia. Migrasi alokasi personal EC masih diperlukan."));
     makeTable(mount,{title:personal?"Focus Model Saya":"Total Target Focus Model",
       headers:["Site ID","Toko","Model","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","Gap Amt"],

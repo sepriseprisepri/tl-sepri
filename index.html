@@ -188,9 +188,11 @@
 </main>
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
+<script src="/survey-affordability.js"></script>
 <script src="/ec-account-provision.js"></script>
 <script src="/ec-password-reset.js"></script>
 <script src="/user-experience.js"></script>
+<script src="/account-settings.js"></script>
 <script src="/sales-intelligence.js"></script>
 <script src="/promo-center.js"></script>
 <script src="/master-import.js"></script>
@@ -203,8 +205,8 @@ const $=id=>document.getElementById(id);
 const roleLabels={admin:"Administrator",tl:"Team Leader",tso:"TSO",ec:"Experience Consultant"};
 const menus={
  admin:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Aktivasi Akun EC","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
- tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
- tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"]],
+ tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
+ tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
  ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Competitor","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
 };
 let currentProfile=null,periods=[],charts={},lastSalesData=null,activeSection="Dashboard";
@@ -287,6 +289,13 @@ function openSection(label){
    $("section-description").textContent="Pembuatan akun EC berdasarkan master aktif dan penugasan toko, dilindungi hak akses Admin.";
    window.ECAccountProvision?.render({client,profile:currentProfile},$("import-hub-container"));
    window.ECPasswordReset?.render({client,profile:currentProfile},$("import-hub-container"));
+  }else if(label==="Pengaturan"&&currentProfile){
+   $("section-description").textContent="Profil akun, keamanan password, serta preferensi tampilan pribadi.";
+   if(window.SamsungSettings)window.SamsungSettings.render({
+    client,profile:currentProfile,accessToken:activeAuthAccessToken,
+    apiUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY
+   },$("import-hub-container"));
+   else $("import-hub-container").textContent="Modul Pengaturan belum siap. Muat ulang website.";
   }else if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
    renderBmuActivation();
@@ -302,13 +311,15 @@ function openSection(label){
      .catch(err=>console.error("[SavedFilters]",err));
    }
   }else if(label==="Survey"){
-   $("section-description").textContent="Pusat survei lapangan Samsung Kalteng. Modul pengisian dan pelaporan belum diaktifkan.";
-   $("import-hub-container").innerHTML=
-    '<section class="rounded-2xl border border-cyan-500/30 bg-slate-900/60 p-5 sm:p-7 space-y-4">'+
-    '<div class="flex items-center gap-3"><span class="rounded-xl bg-cyan-500/10 px-3 py-2 text-cyan-300" aria-hidden="true">☷</span><div><h3 class="font-semibold text-white">Survey Lapangan</h3><p class="text-xs text-cyan-200">Tahap persiapan · Belum menerima input</p></div></div>'+
-    '<p class="text-sm text-slate-300 leading-6">Kerangka Survey sudah tersedia untuk EC dan tim pengelola. Formulir survei, daftar pertanyaan, bukti kunjungan, dan integrasi laporan akan disiapkan pada tahap pengembangan selanjutnya.</p>'+
-    '<div class="grid sm:grid-cols-3 gap-3 text-sm"><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Pengisian EC</b><span class="text-slate-400">Menunggu definisi formulir</span></div><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Riwayat kunjungan</b><span class="text-slate-400">Belum terhubung ke database</span></div><div class="rounded-xl border border-slate-700/60 p-4"><b class="block text-white">Laporan Survey</b><span class="text-slate-400">Direncanakan tahap berikutnya</span></div></div>'+
-    '<p class="text-xs text-amber-200">Belum ada data yang dikirim atau disimpan dari menu ini.</p></section>';
+   $("section-description").textContent=currentProfile?.role==="ec"
+    ?"Survey Affordability harian: closing menggunakan multifinance di toko penempatan."
+    :"Dashboard Survey Affordability: hasil EC, perbandingan multifinance dan ekspor laporan.";
+   if(window.SamsungAffordability){
+    window.SamsungAffordability.render({
+     client,profile:currentProfile,accessToken:activeAuthAccessToken,
+     apiUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY
+    },$("import-hub-container"));
+   }else $("import-hub-container").textContent="Modul survey belum dapat dimuat. Muat ulang website.";
   }else if(label==="Data & Import"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Upload, validasi, dan impor RAW Sellout ke database pusat.";
    if(window.renderImportHub)window.renderImportHub();
@@ -505,6 +516,7 @@ async function enterApp(user,token,preloadedProfile=null){
  $("welcome-title").textContent="Selamat datang, "+(data.full_name||"");
  $("access-role").textContent=roleLabels[data.role];$("access-id").textContent=data.employee_id||"-";
  renderNav(data.role);await loadPeriods();await loadDashboard();
+ if(window.SamsungSettings)window.SamsungSettings.restoreTheme(data.id);
  if(window.UserPrefs)window.UserPrefs.init({client,profile:data}).catch(err=>console.warn("[Preferences]",err));
 }
 
@@ -667,7 +679,7 @@ $("login-form").addEventListener("submit",async e=>{
   button.innerHTML='<span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>';
  }
 });
-$("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;lastSalesData=null;window.UserPrefs?.reset();window.SalesIntelligence?.clearCharts();Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
+$("logout-button").addEventListener("click",async()=>{await client.auth.signOut();currentProfile=null;lastSalesData=null;window.UserPrefs?.reset();window.SamsungSettings?.reset();window.SalesIntelligence?.clearCharts();Object.values(charts).forEach(c=>c.destroy());$("app-view").classList.add("hidden");$("password-rotation-view").classList.add("hidden");$("login-view").classList.remove("hidden");$("password").value=""});
 $("mobile-menu").addEventListener("click",()=>{
  const opened=$("nav-wrap").classList.toggle("hidden")===false;
  $("mobile-menu").setAttribute("aria-expanded",String(opened));

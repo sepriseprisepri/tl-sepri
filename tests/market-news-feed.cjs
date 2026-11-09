@@ -1,0 +1,17 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const feed=require("../api/market-news.js");
+const xml='<rss><channel><item><title><![CDATA[Galaxy A series &amp; AI]]></title><link>https://news.samsung.com/global/galaxy-a</link><pubDate>Mon, 09 Nov 2026 10:30:00 GMT</pubDate></item><item><title>Injected URL</title><link>https://evil.example/secret</link><pubDate>Mon, 09 Nov 2026 10:30:00 GMT</pubDate></item></channel></rss>';
+const articles=feed.parseFeed(xml,"Samsung Newsroom","news.samsung.com");
+assert.equal(articles.length,1);
+assert.equal(articles[0].title,"Galaxy A series & AI");
+assert.equal(articles[0].url,"https://news.samsung.com/global/galaxy-a");
+assert.equal(articles[0].source,"Samsung Newsroom");
+assert.match(articles[0].published,/2026-11-09T10:30/);
+const client=fs.readFileSync("market-intelligence-enhancements.js","utf8");
+assert.match(client,/fetch\("\/api\/market-news"/);
+assert.match(client,/data-market-headlines/);
+assert.match(client,/target="_blank" rel="noopener noreferrer"/);
+assert.match(client,/Feed berita sementara tidak tersedia/);
+assert.match(client,/harga real-time/i);
+console.log("RSS news test passed: source allowlist, CDATA decoding, publication timestamp, secure headline links and fallback.");

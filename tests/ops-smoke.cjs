@@ -62,6 +62,10 @@ const data={
   {store_id:"s2",shadow_month:"2026-11-01",is_shadow:true}
  ],
  focus_model_settings:[{model_code:"A07",display_name:"Galaxy A07",is_active:true}],
+ focus_model_ec_targets:[
+  {period_id:"p",store_id:"s1",manpower_id:"m1",model_code:"A07",target_qty:123,target_amt:25000000},
+  {period_id:"p",store_id:"s1",manpower_id:"m2",model_code:"A07",target_qty:456,target_amt:90000000}
+ ],
  focus_model_targets:[
   {period_id:"p",store_id:"s1",model_code:"A07",target_qty:2,target_amt:4500000},
   {period_id:"p",store_id:"s2",model_code:"A07",target_qty:10,target_amt:30000000}
@@ -112,10 +116,20 @@ async function view(role,label){
  for(const [role,label] of [
   ["tl","Coverage & Toko"],["tl","RAW Sellout"],["tl","Store Shadow"],
   ["tl","Performa EC"],["tl","Focus Model"],["tl","Laporan"],
-  ["ec","Target Saya"],["ec","Laporan Saya"],
+  ["ec","Target Saya"],["ec","Focus Model"],["ec","Laporan Saya"],
   ["admin","Target"],["admin","Coverage"]
  ])await view(role,label);
 
+ const ownFocus=await view("ec","Focus Model");
+ assert.ok(ownFocus.includes("123"),"EC must see individually assigned Focus Model target");
+ assert.ok(!ownFocus.includes("456"),"EC must never see another EC focus allocation");
+ const tlFocus=await view("tl","Focus Model");
+ assert.ok(tlFocus.includes("579"),"TL must see aggregated EC model allocation targets");
+ assert.ok(tlFocus.includes("VALID Qty"),"TL focus should show actual achievement");
+ const ownTarget=await view("ec","Target Saya");
+ for(const label of ["Gap Qty","Gap Amt","Target Daily Qty","Target Daily Amt","AR Amt"]){
+  assert.ok(ownTarget.includes(label),"Missing EC KPI "+label);
+ }
  const raw=await view("tl","RAW Sellout");
  assert.ok(raw.includes("IMEI-P"),"pending entries must remain visible");
  assert.ok(raw.includes("EULA VALID"),"valid KPI missing");

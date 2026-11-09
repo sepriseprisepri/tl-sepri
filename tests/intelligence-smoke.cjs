@@ -37,6 +37,17 @@ assert.doesNotMatch(fs.readFileSync("sales-intelligence.js","utf8"),/service_rol
 const {analytics,weekKey,modelNorm}=window.SalesIntelligence;
 assert.equal(modelNorm("  Galaxy  A07  "), "GALAXY A07");
 assert.equal(weekKey("2026-11-02"),"2026-W45");
+
+const completeRows=window.SalesIntelligence.completedWeekTotals([
+ {sold_at:"2026-11-01",qty:100},
+ {sold_at:"2026-11-02",qty:2},
+ {sold_at:"2026-11-08",qty:3},
+ {sold_at:"2026-11-09",qty:99}
+],"qty",{period_start:"2026-11-01",period_end:"2026-11-30"});
+assert.equal(completeRows.length,1,"Only the complete ISO week Nov 2–8 is eligible as of Nov 10");
+assert.equal(completeRows[0][0],"2026-W45");
+assert.equal(completeRows[0][1],5,"Partial boundary week and current week must not inflate WoW");
+
 const data={
  profile:{role:"tl"},
  period:{id:"nov",period_start:"2026-11-01",period_end:"2026-11-30",period_name:"November 2026"},

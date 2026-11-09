@@ -143,8 +143,8 @@
     const rows=groupingTargets(stores,targets,sales);
     const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt"),actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
     const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-    const elapsed=Math.max(0,Math.min(period.period_end,today)>=period.period_start?
-      Math.round((Date.parse(Math.min(period.period_end,today)+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1:0);
+    const elapsed=Math.max(0,(period.period_end<today?period.period_end:today)>=period.period_start?
+      Math.round((Date.parse((period.period_end<today?period.period_end:today)+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1:0);
     const totalDays=Math.round((Date.parse(period.period_end+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1;
     const remaining=Math.max(0,totalDays-elapsed);
     const dailyQty=remaining>0?Math.max(0,qty-actual)/remaining:0;

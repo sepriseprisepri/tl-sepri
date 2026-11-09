@@ -66,8 +66,8 @@
   }
   const storeQuery=()=>useRest?rest("stores?select=id,site_id,site_name&order=site_name.asc"):
     ctx.client.from("stores").select("id,site_id,site_name").order("site_name");
-  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,created_at&order=created_at.desc&limit=20"):
-    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,notes,store_id,created_at&order=created_at.desc&limit=20"):
+    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,notes,store_id,created_at").order("created_at",{ascending:false}).limit(20);
   const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
     ctx.client.from("competitor_sellout").insert(record);
   const updateQuery=(id,record)=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"PATCH",record):
@@ -118,7 +118,7 @@
     if(!row||row.sold_at!==localDate()){say("Transaksi di luar hari berjalan tidak dapat diubah.",true);return;}
     if(edit){
       editingId=row.id;
-      for(const key of ["sold_at","brand","model","variant","qty","unit_price"]){
+      for(const key of ["store_id","sold_at","brand","model","variant","qty","unit_price","notes"]){
         const control=form.elements.namedItem(key);if(control)control.value=row[key]??"";
       }
       form.elements.namedItem("store_id").disabled=true;
@@ -154,6 +154,7 @@
     const button=mount.querySelector("#competitor-submit");button.disabled=true;
     try{
      const values=Object.fromEntries(new FormData(form));
+     if(editingId){const original=historyRows.find(x=>x.id===editingId);if(!original||original.sold_at!==localDate())throw Error("Transaksi tidak lagi dapat diedit.");values.store_id=original.store_id;}
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
      const record=editingId?payload:{...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};

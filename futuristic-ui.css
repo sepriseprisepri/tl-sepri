@@ -325,3 +325,41 @@ button:disabled {cursor:wait;}
   #app-view .panel,#app-view .metric,.login-glass {border-color:rgba(147,225,247,.76);}
   .text-slate-500,.text-slate-400 {color:#b9cada;}
 }
+
+
+/* Account settings: touch-friendly fields, high contrast and mobile-first layout. */
+#app-view .settings-center {min-width:0;max-width:950px;}
+#app-view .settings-center .panel {min-width:0;}
+#app-view .settings-field {display:flex;flex-direction:column;gap:7px;min-width:0;padding:13px 15px;border:1px solid rgba(110,169,209,.22);border-radius:12px;background:rgba(8,25,43,.54);}
+#app-view .settings-field span {font-size:12px;color:#96adc4;}
+#app-view .settings-field strong {font-size:14px;overflow-wrap:anywhere;}
+#app-view .settings-label {display:flex;flex-direction:column;gap:8px;max-width:100%;min-width:0;font-size:13px;color:#ccdeef;}
+#app-view .settings-input {width:100%;max-width:100%;min-width:0;min-height:48px;padding:12px 14px;border-radius:12px;font-size:16px;}
+#app-view .settings-center button {min-height:46px;touch-action:manipulation;}
+#app-view .settings-center button:focus-visible,#app-view .settings-input:focus-visible {outline:2px solid #51d8fb;outline-offset:3px;}
+#app-view .settings-primary {background:#67dff2;color:#082035;}
+#app-view .settings-primary:hover {background:#91ecff;}
+#app-view .settings-primary:disabled {opacity:.58;cursor:wait;}
+body.settings-light #app-view.app-shell {background:#f2f7fc;color:#243548;}
+body.settings-light #app-view .app-sidebar {background:#ecf4fb;border-color:#bdd5e5;color:#233d55;}
+body.settings-light #app-view .nav-item {color:#36536b;}
+body.settings-light #app-view .nav-item.active {background:#d9f1fc;color:#084b71;}
+body.settings-light #app-view .app-head,body.settings-light #app-view .dashboard-intro,body.settings-light #app-view #workspace-controls {background:#edf6fe;color:#1f3e54;border-color:#bdd5e5;}
+body.settings-light #app-view .panel,body.settings-light #app-view .settings-center .rounded-2xl {background:#fff;color:#243548;border-color:#cbdde9;}
+body.settings-light #app-view .settings-center .panel h4,body.settings-light #app-view .settings-center h3 {color:#14364f;}
+body.settings-light #app-view .settings-center .text-white {color:#183b54;}
+body.settings-light #app-view .settings-center .text-slate-300,body.settings-light #app-view .settings-center .text-slate-200 {color:#3a5266;}
+body.settings-light #app-view .settings-center .text-slate-400 {color:#51677a;}
+body.settings-light #app-view .settings-field {background:#f5f9fd;border-color:#cbdde9;}
+body.settings-light #app-view .settings-field span,body.settings-light #app-view .settings-label {color:#48637c;}
+body.settings-light #app-view .settings-input {background:#fff;color:#12364e;border-color:#a5c1d5;}
+body.settings-light #app-view #period-select {background:#fff;color:#173c56;}
+body.settings-light #app-view #refresh-button {background:#e0f4fe;color:#145b7c;}
+body.settings-light #app-view .settings-primary {background:#006d98;color:#fff;}
+body.settings-light #app-view .settings-primary:hover {background:#005e86;}
+@media(max-width:640px){
+ #app-view .settings-center {width:100%;max-width:100%;overflow-wrap:anywhere;}
+ #app-view .settings-center .panel {padding:16px;}
+ #app-view .settings-center .grid {grid-template-columns:minmax(0,1fr);}
+ #app-view .settings-center button {width:100%;min-height:48px;}
+}

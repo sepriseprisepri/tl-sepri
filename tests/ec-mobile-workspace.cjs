@@ -19,8 +19,8 @@ assert.match(html,/await loadDashboard\(\)/);
 assert.match(html,/if\(activeSection!=="Dashboard" && currentProfile\)openSection\(activeSection\)/);
 assert.match(html,/Periode target belum tersedia untuk akun ini/);
 assert.match(html,/label==="Survey"/);
-assert.match(html,/Belum menerima input|Belum ada data yang dikirim/);
-assert.match(html,/Modul pengisian dan pelaporan belum diaktifkan/);
+assert.match(html,/window\.SamsungAffordability\.render/);
+assert.match(html,/Survey Affordability harian/);
 assert.match(css,/#workspace-controls \{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
 assert.match(css,/#app-view #competitor-form \.field/);
 assert.match(competitor,/requestWithDeadline/);
@@ -32,4 +32,4 @@ assert.match(competitor,/form\.classList\.remove\("hidden"\);form\.hidden=false/
 assert.match(competitor,/from\("competitor_sellout"\)\.insert\(record\)/);
 assert.doesNotMatch(competitor,/from\(["']raw_sellout["']\)\.(?:insert|update|upsert)/);
 assert.doesNotMatch(html,/INSERT INTO public\.raw_sellout/i);
-console.log("EC mobile regression passed: persistent controls, target period state, resilient competitor form, Survey scaffold and Samsung isolation.");
+console.log("EC mobile regression passed: persistent controls, target period state, resilient competitor form, live survey routing and Samsung isolation.");

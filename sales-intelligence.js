@@ -78,12 +78,7 @@ function renderDashboard(ctx){
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};
  const action=({admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"})[ctx.profile.role];
  const weekly=[...group((ctx.sales||[]).filter(valid),"qty",r=>weekKey(r.sold_at)).entries()].sort(([a],[b])=>a.localeCompare(b));
- const completed=weekly.filter(([key])=>{
-   const last=(ctx.sales||[]).filter(r=>valid(r)&&weekKey(r.sold_at)===key).map(r=>r.sold_at).sort().at(-1);
-   if(!last)return false;
-   const tomorrow=new Date(last+"T12:00:00Z");tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
-   return weekKey(tomorrow.toISOString().slice(0,10))!==key;
- });
+ const completed=weekly.filter(([key])=>key<weekKey(dateLocal()));
  const recent=completed.at(-1),previous=completed.at(-2);
  const growth=recent&&previous&&previous[1]>0?(recent[1]-previous[1])/previous[1]*100:null;
 
@@ -192,11 +187,7 @@ function renderCharts(ctx,mount){
   const base=[{data:day.map(x=>x[1]),label:metric==="qty"?"Qty":"Amount",borderColor:"#63e3fa",backgroundColor:"rgba(78,192,239,.20)",fill:true,tension:.32,pointRadius:2}];
   createChart(document.getElementById("intel-day-chart"),"line",day.map(x=>x[0].slice(5)),base);
   const wow=weekRows.map((row,i)=>i>0&&weekRows[i-1][1]>0?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
-  const completeWeeks=weekRows.filter(([key])=>{
-    const mostRecent=good.filter(s=>weekKey(s.sold_at)===key).map(s=>s.sold_at).sort().at(-1);
-    const next=new Date(mostRecent+"T12:00:00Z");next.setUTCDate(next.getUTCDate()+1);
-    return !Number.isNaN(next.getTime())&&weekKey(next.toISOString().slice(0,10))!==key;
-  });
+  const completeWeeks=weekRows.filter(([key])=>key<weekKey(dateLocal()));
   const lastWeek=completeWeeks.at(-1),prevWeek=completeWeeks.at(-2);
   const wowValue=lastWeek&&prevWeek&&prevWeek[1]>0?(lastWeek[1]-prevWeek[1])/prevWeek[1]*100:null;
   const strongest=rank[0],strongStore=storeRank[0];

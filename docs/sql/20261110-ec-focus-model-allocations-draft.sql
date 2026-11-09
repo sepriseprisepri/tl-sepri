@@ -64,7 +64,8 @@ CREATE POLICY ec_focus_update ON public.ec_focus_model_allocations
  FOR UPDATE TO authenticated USING (
   public.ec_focus_can_allocate(store_id,ec_profile_id,period_id)
  ) WITH CHECK (
-  public.ec_focus_can_allocate(store_id,ec_profile_id,period_id)
+  allocated_by=(SELECT auth.uid())
+  AND public.ec_focus_can_allocate(store_id,ec_profile_id,period_id)
  );
 CREATE POLICY ec_focus_delete ON public.ec_focus_model_allocations
  FOR DELETE TO authenticated USING (

@@ -171,6 +171,7 @@
           </div>
           <div id="data-notice" class="hidden mt-5 rounded-xl border border-amber-800/60 bg-amber-950/20 p-4 text-sm text-amber-200"></div>
           <div id="intel-dashboard" aria-label="Ringkasan intelijen penjualan"></div>
+           <div id="market-pulse-dashboard" aria-label="Pertumbuhan mingguan dan radar smartphone global"></div>
           <div class="grid xl:grid-cols-2 gap-5 mt-5">
             <div class="panel rounded-2xl p-5 sm:p-6"><div class="flex justify-between items-center gap-3"><div><h3 class="font-semibold">Tren sellout harian</h3><p class="text-xs text-slate-500 mt-1">Qty VALID per tanggal</p></div><span class="pill text-slate-400">Qty</span></div><div class="h-64 mt-4"><canvas id="daily-chart"></canvas></div></div>
             <div class="panel rounded-2xl p-5 sm:p-6"><div class="flex justify-between items-center gap-3"><div><h3 class="font-semibold">Komposisi segment</h3><p class="text-xs text-slate-500 mt-1">Qty VALID berdasarkan Segment by Target</p></div><span class="pill text-slate-400">Qty</span></div><div class="h-64 mt-4"><canvas id="segment-chart"></canvas></div></div>
@@ -194,6 +195,8 @@
 <script src="/user-experience.js"></script>
 <script src="/account-settings.js"></script>
 <script src="/sales-intelligence.js"></script>
+<script src="/market-intelligence.js"></script>
+<script src="/focus-model-allocator.js"></script>
 <script src="/promo-center.js"></script>
 <script src="/master-import.js"></script>
 <script src="/raw-import.js"></script>
@@ -456,6 +459,8 @@ function renderDashboard(d){
  else if(pending.length){$("data-notice").textContent=fmtNum(pending.length)+" transaksi berstatus PENDING dipisahkan dan tidak dihitung ke achievement resmi."; $("data-notice").classList.remove("hidden")}
  drawCharts(daily,segments,period);
  if(window.SalesIntelligence)window.SalesIntelligence.renderDashboard({...d,client,profile:currentProfile,openSection});
+ const radarHost=$("market-pulse-dashboard");
+ if(window.SamsungMarketPulse&&radarHost)window.SamsungMarketPulse.render({...d,profile:currentProfile},radarHost);
 }
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function drawCharts(daily,segments,period){

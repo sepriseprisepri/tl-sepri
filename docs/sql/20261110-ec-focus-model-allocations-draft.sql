@@ -70,6 +70,53 @@ CREATE POLICY ec_focus_delete ON public.ec_focus_model_allocations
  FOR DELETE TO authenticated USING (
   public.ec_focus_can_allocate(store_id,ec_profile_id,period_id)
  );
+-- Give TL a coverage-scoped list of eligible EC recipients without broad profiles SELECT.
+CREATE OR REPLACE FUNCTION public.list_focus_eligible_ecs(p_period_id uuid)
+RETURNS TABLE(ec_profile_id uuid,employee_id text,full_name text,store_id uuid,site_name text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $
+ SELECT p.id,p.employee_id,p.full_name,st.id,st.site_name
+ FROM public.profiles actor
+ CROSS JOIN public.target_periods tp
+ JOIN public.profiles p ON p.role='ec' AND p.is_active AND NOT p.must_change_password
+ JOIN public.manpower m ON m.id=p.manpower_id AND m.fieldforce_position='EC' AND m.is_active
+ JOIN public.store_assignments sa ON sa.manpower_id=m.id
+ JOIN public.stores st ON st.id=sa.store_id
+ WHERE actor.id=(SELECT auth.uid())
+  AND actor.role IN ('tl','admin') AND actor.is_active AND NOT actor.must_change_password
+  AND tp.id=p_period_id
+  AND tp.period_start<=coalesce(sa.valid_to,'infinity'::date) AND tp.period_end>=sa.valid_from
+  AND (actor.role='admin' OR public.can_access_store(st.id))
+ ORDER BY st.site_name,p.full_name;
+$;
+REVOKE ALL ON FUNCTION public.list_focus_eligible_ecs(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.list_focus_eligible_ecs(uuid) TO authenticated,service_role;
+
+-- Lock each store/model total target before allocating to eliminate over-allocation
+-- from two TL browser sessions racing to save the same total.
+CREATE OR REPLACE FUNCTION public.ec_focus_validate_total()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $
+DECLARE cap_qty numeric; cap_amt numeric; used_qty numeric; used_amt numeric;
+BEGIN
+ SELECT target_qty,target_amt INTO cap_qty,cap_amt FROM public.focus_model_targets
+ WHERE period_id=NEW.period_id AND store_id=NEW.store_id AND model_code=NEW.model_code
+ FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Total target Focus Model belum diset untuk toko/model ini'; END IF;
+ SELECT COALESCE(sum(target_qty),0),COALESCE(sum(target_amt),0)
+ INTO used_qty,used_amt
+ FROM public.ec_focus_model_allocations
+ WHERE period_id=NEW.period_id AND store_id=NEW.store_id AND model_code=NEW.model_code
+ AND id<>NEW.id;
+ IF used_qty+NEW.target_qty>cap_qty OR used_amt+NEW.target_amt>cap_amt
+ THEN RAISE EXCEPTION 'Alokasi EC melebihi target Focus Model toko'; END IF;
+ RETURN NEW;
+END;
+$;
+REVOKE ALL ON FUNCTION public.ec_focus_validate_total() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER ec_focus_enforce_total BEFORE INSERT OR UPDATE
+ ON public.ec_focus_model_allocations
+ FOR EACH ROW EXECUTE FUNCTION public.ec_focus_validate_total();
 COMMIT;
 -- Before activation: test TL in/out of coverage, EC own vs other EC, admin,
 -- inactive/unassigned EC; confirm all sums and per-model allocations match.

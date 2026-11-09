@@ -157,7 +157,7 @@
      if(editingId){const original=historyRows.find(x=>x.id===editingId);if(!original||original.sold_at!==localDate())throw Error("Transaksi tidak lagi dapat diedit.");values.store_id=original.store_id;}
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
-     const record=editingId?payload:{...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
+     const record=editingId?(({store_id,sold_at,...mutable})=>mutable)(payload):{...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
      const {error}=await requestWithDeadline(editingId?updateQuery(editingId,record):insertQuery(record),"Penyimpanan transaksi");
      if(error)throw error;
      const selectedStore=form.elements.namedItem("store_id").value;

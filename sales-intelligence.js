@@ -77,6 +77,16 @@ function renderDashboard(ctx){
  const stats=analytics.compute(ctx);
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};
  const action=({admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"})[ctx.profile.role];
+ const weekly=[...group((ctx.sales||[]).filter(valid),"qty",r=>weekKey(r.sold_at)).entries()].sort(([a],[b])=>a.localeCompare(b));
+ const completed=weekly.filter(([key])=>{
+   const last=(ctx.sales||[]).filter(r=>valid(r)&&weekKey(r.sold_at)===key).map(r=>r.sold_at).sort().at(-1);
+   if(!last)return false;
+   const tomorrow=new Date(last+"T12:00:00Z");tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
+   return weekKey(tomorrow.toISOString().slice(0,10))!==key;
+ });
+ const recent=completed.at(-1),previous=completed.at(-2);
+ const growth=recent&&previous&&previous[1]>0?(recent[1]-previous[1])/previous[1]*100:null;
+
  root.innerHTML='<div class="intel-dashboard-top">'+
    panel("Smart Data Alerts",'<div id="intel-alert-list" class="intel-alert-list"></div><p class="intel-caption">Prioritas berbasis transaksi dan target yang saat ini terlihat oleh akun.</p>')+
    panel("Dashboard Personal",'<div class="intel-personal"><p class="intel-overline">'+esc(roleNames[ctx.profile.role]||"Workspace")+'</p>'+
@@ -87,6 +97,7 @@ function renderDashboard(ctx){
    '<div class="intel-dashboard-bottom">'+
    panel("AI Sales Insight <small>· Analisis otomatis berbasis aturan</small>",'<div id="intel-insight-items">'+insightsHtml(analytics.insights(ctx,ctx.profile.role))+'</div>'+
    '<div class="intel-panel-actions"><button id="intel-copy-insights" class="intel-link">Salin analisis</button><button id="intel-open-charts" class="intel-link">Grafik detail ↗</button></div><p class="intel-caption">Bukan model AI generatif atau prediksi. Seluruh kesimpulan berasal dari angka yang terlihat.</p>')+
+   panel("Growth Sellout Samsung · Week to Week",'<div class="intel-personal"><div class="intel-personal-number">'+(growth===null?"—":(growth>=0?"+":"")+N(growth)+"%")+'</div><p>'+(recent&&previous?esc(previous[0])+" → "+esc(recent[0]):"Belum ada dua minggu penuh dengan data pembanding yang memadai.")+'</p><p class="intel-caption">Hanya EULA VALID; periode minggu lengkap yang tersedia pada cakupan akun. Angka WoW bisa berubah jika data historis dikoreksi.</p><button class="intel-link" id="intel-week-details">Lihat grafik mingguan ↗</button></div>')+
    panel("Promo Samsung Terverifikasi",'<div id="intel-promo-summary" class="intel-promo-summary">Memeriksa promo aktif...</div>'+
      '<button id="intel-open-promos" class="intel-link">Lihat semua promo ↗</button><p class="intel-caption">Hanya penawaran dengan sumber resmi, tanggal dan status verifikasi yang ditampilkan.</p>')+'</div>';
  const list=document.getElementById("intel-alert-list");
@@ -99,6 +110,7 @@ function renderDashboard(ctx){
  }else list.innerHTML='<div class="intel-zero">Tidak ada alert yang terdeteksi dari data dalam cakupan saat ini.</div>';
  document.getElementById("intel-role-action").onclick=()=>ctx.openSection(action);
  document.getElementById("intel-open-charts").onclick=()=>ctx.openSection("Grafik Sellout");
+ document.getElementById("intel-week-details").onclick=()=>ctx.openSection("Grafik Sellout");
  document.getElementById("intel-open-promos").onclick=()=>ctx.openSection("Promo");
  document.getElementById("intel-copy-insights").onclick=async()=>{
    const text=analytics.insights(ctx,ctx.profile.role).map(x=>x.title+": "+x.body).join("\n");

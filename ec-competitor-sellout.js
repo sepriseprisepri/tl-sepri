@@ -34,7 +34,7 @@
     '<label class="block text-sm text-slate-300">Harga per unit (Rp)<input name="unit_price" type="number" min="0" max="1000000000" step="1" class="field block w-full rounded-xl p-3 mt-2" required placeholder="0"></label>'+
     '<div class="sm:col-span-2"><p class="text-sm text-slate-400">Total estimasi: <strong id="competitor-amount" class="text-white">Rp0</strong></p></div>'+
     '<label class="sm:col-span-2 block text-sm text-slate-300">Catatan (opsional)<textarea name="notes" maxlength="500" rows="2" class="field block w-full rounded-xl p-3 mt-2"></textarea></label>'+
-    '<div class="sm:col-span-2"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button></div>'+
+    '<div class="sm:col-span-2 flex flex-wrap gap-2"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button><button type="button" id="competitor-cancel-edit" class="hidden rounded-xl border border-slate-600 px-4 py-3 text-slate-300">Batal edit</button></div>'+
    '</form>'+
    '<section class="panel rounded-2xl p-4 sm:p-6 min-w-0"><h3 class="font-semibold text-white">Riwayat input saya</h3><p class="text-xs text-slate-400 mt-1">Hanya transaksi kompetitor yang dicatat melalui akun ini.</p><div id="competitor-history" class="mt-4 text-sm text-slate-400">Memuat…</div></section></div>';
   const status=mount.querySelector("#competitor-status"),form=mount.querySelector("#competitor-form"),history=mount.querySelector("#competitor-history");
@@ -49,7 +49,7 @@
     const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
      method,signal:controller.signal,cache:"no-store",
      headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
-       ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+       ...(["POST","PATCH","DELETE"].includes(method)?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
      ...(body?{body:JSON.stringify(body)}:{})
     });
     if(!response.ok){
@@ -66,10 +66,26 @@
   }
   const storeQuery=()=>useRest?rest("stores?select=id,site_id,site_name&order=site_name.asc"):
     ctx.client.from("stores").select("id,site_id,site_name").order("site_name");
-  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,created_at&order=created_at.desc&limit=20"):
-    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,store_id,sold_at,brand,model,variant,qty,unit_price,amount,notes,created_at&order=created_at.desc&limit=60"):
+    ctx.client.from("competitor_sellout").select("id,store_id,sold_at,brand,model,variant,qty,unit_price,amount,notes,created_at").order("created_at",{ascending:false}).limit(60);
   const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
     ctx.client.from("competitor_sellout").insert(record);
+  let editingId=null,historyRows=[];
+  const todayOnly=row=>row.sold_at===localDate();
+  const editUpdate=(id,payload)=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"PATCH",payload):
+    ctx.client.from("competitor_sellout").update(payload).eq("id",id).eq("ec_profile_id",ctx.profile.id).eq("sold_at",localDate());
+  const removeEntry=id=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"DELETE"):
+    ctx.client.from("competitor_sellout").delete().eq("id",id).eq("ec_profile_id",ctx.profile.id).eq("sold_at",localDate());
+  const cancelEdit=()=>{
+    editingId=null;
+    form.reset();form.elements.namedItem("sold_at").value=localDate();
+    mount.querySelector("#competitor-submit").textContent="Simpan sellout kompetitor";
+    mount.querySelector("#competitor-cancel-edit").classList.add("hidden");
+    form.elements.namedItem("store_id").disabled=false;
+    form.elements.namedItem("sold_at").disabled=false;
+    updateAmount();
+  };
+  mount.querySelector("#competitor-cancel-edit").addEventListener("click",cancelEdit);
   let stores=[];
   try{
    // Do not block the input form just because history failed to load.
@@ -90,9 +106,40 @@
    stores.forEach(s=>{const option=document.createElement("option");option.value=s.id;option.textContent=s.site_name+" · "+s.site_id;select.appendChild(option);});
    const date=form.elements.namedItem("sold_at");date.value=localDate();date.max=date.value;
    const paintHistory=rows=>{
-    if(!rows.length){history.textContent="Belum ada transaksi kompetitor.";return;}
-    history.innerHTML='<div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>Brand / Model</th><th>Qty</th><th>Total</th></tr></thead><tbody>'+
-     rows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td></tr>').join("")+'</tbody></table></div>';
+    historyRows=rows||[];
+    if(!historyRows.length){history.textContent="Belum ada transaksi kompetitor.";return;}
+    history.innerHTML='<div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>Brand / Model</th><th>Qty</th><th>Total</th><th>Aksi</th></tr></thead><tbody>'+
+     historyRows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td><td>'+
+      (todayOnly(x)?'<div class="flex gap-2"><button type="button" data-edit="'+enc(x.id)+'" class="rounded-lg border border-cyan-700 px-3 py-2 text-cyan-200">Edit</button><button type="button" data-delete="'+enc(x.id)+'" class="rounded-lg border border-rose-800 px-3 py-2 text-rose-300">Hapus</button></div>':'<span class="text-xs text-slate-500">Hari sebelumnya</span>')+'</td></tr>').join("")+'</tbody></table></div>';
+    history.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
+      const row=historyRows.find(x=>x.id===btn.dataset.edit);
+      if(!row||!todayOnly(row)){say("Edit hanya berlaku untuk input hari ini.",true);return;}
+      editingId=row.id;
+      for(const key of ["store_id","sold_at","brand","model","variant","qty","unit_price","notes"]){
+       const el=form.elements.namedItem(key);if(el)el.value=row[key]??"";
+      }
+      form.elements.namedItem("store_id").disabled=true;
+      form.elements.namedItem("sold_at").disabled=true;
+      mount.querySelector("#competitor-submit").textContent="Simpan perubahan";
+      mount.querySelector("#competitor-cancel-edit").classList.remove("hidden");
+      updateAmount();form.scrollIntoView({behavior:"smooth",block:"start"});
+      say("Mengedit transaksi hari ini. Toko dan tanggal tidak dapat diubah.");
+    }));
+    history.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
+      const row=historyRows.find(x=>x.id===btn.dataset.delete);
+      if(!row||!todayOnly(row)){say("Hapus hanya berlaku untuk input hari ini.",true);return;}
+      if(!window.confirm("Hapus transaksi "+row.brand+" "+row.model+" sebanyak "+row.qty+" unit? Tindakan akan dicatat untuk audit."))return;
+      btn.disabled=true;
+      try{
+       const {error}=await requestWithDeadline(removeEntry(row.id),"Penghapusan transaksi");
+       if(error)throw error;
+       const refreshed=await requestWithDeadline(historyQuery(),"Riwayat input");
+       if(refreshed.error)throw refreshed.error;
+       paintHistory(refreshed.data||[]);
+       if(editingId===row.id)cancelEdit();
+       say("Transaksi kompetitor berhasil dihapus. RAW Sellout Samsung tidak berubah.");
+      }catch(err){say("Gagal menghapus: "+err.message,true);btn.disabled=false;}
+    }));
    };
    form.classList.remove("hidden");form.hidden=false;
    say("Form siap. Pilih brand dan isi penjualan kompetitor pada toko penempatan Anda.");
@@ -110,14 +157,22 @@
     const button=mount.querySelector("#competitor-submit");button.disabled=true;
     try{
      const values=Object.fromEntries(new FormData(form));
+     if(editingId){
+      const original=historyRows.find(x=>x.id===editingId);
+      if(!original||!todayOnly(original))throw Error("Transaksi yang diedit bukan dari hari ini.");
+      values.store_id=original.store_id;values.sold_at=original.sold_at;
+     }
      const payload=validate(values,stores);
-     // Server verifies ec_profile_id, store assignment and date independently via RLS.
-     const record={...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
-     const {error}=await requestWithDeadline(insertQuery(record),"Penyimpanan transaksi");
+     // Never allow changing date/owner/store on an edit; RLS independently verifies it.
+     const record=editingId?{
+      brand:payload.brand,model:payload.model,variant:payload.variant,
+      qty:payload.qty,unit_price:payload.unit_price,notes:payload.notes
+     }:{...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
+     const {error}=await requestWithDeadline(editingId?editUpdate(editingId,record):insertQuery(record),editingId?"Perubahan transaksi":"Penyimpanan transaksi");
      if(error)throw error;
      const selectedStore=form.elements.namedItem("store_id").value;
-     form.reset();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
-     say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");
+     cancelEdit();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
+     say("Input kompetitor berhasil disimpan atau diperbarui. Data Samsung tidak berubah.");
      try{
       const {data,error:loadError}=await requestWithDeadline(historyQuery(),"Riwayat input");
       if(loadError)throw loadError;

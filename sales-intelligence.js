@@ -175,13 +175,14 @@ function renderCharts(ctx,mount){
  const redraw=()=>{
   clearCharts();const f=state(),metric=f.metric;
   const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model)&&(f.eula==="all"||String(s.eula_status||"").toLowerCase()===f.eula));
-  const good=filtered.filter(valid),pending=filtered.filter(s=>s.eula_status==="PENDING");
-  const day=byDay(good,metric),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
+  const good=filtered.filter(valid),pending=filtered.filter(s=>String(s.eula_status||"").toUpperCase()==="PENDING");
+  const plotRows=f.eula==="pending"?pending:good;
+  const day=byDay(plotRows,metric),weeks=group(plotRows,metric,s=>weekKey(s.sold_at)),modelMap=group(plotRows,metric,s=>s.model||"Tidak diketahui");
   const nameMap=new Map(stores.map(s=>[s.site_id,s.site_name]));
-  const storeMap=group(good,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
+  const storeMap=group(plotRows,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
   const storeRank=[...storeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
   const weekRows=[...weeks.entries()].sort(([a],[b])=>a.localeCompare(b));
-  const dsum=allBy(good,s=>s[metric]),pendingQty=allBy(pending,s=>s.qty);
+  const dsum=allBy(plotRows,s=>s[metric]),pendingQty=allBy(pending,s=>s.qty);
   document.getElementById("intel-chart-stats").innerHTML=
    [['EULA VALID',N(good.length)],['Total '+(metric==="qty"?"Qty":"Amount"),metric==="qty"?N(dsum):money(dsum)],
    ['PENDING',N(pending.length)],['Model terjual',N(modelMap.size)]].map(([l,v])=>'<div class="intel-stat"><span>'+esc(l)+'</span><strong>'+esc(v)+'</strong></div>').join("");
@@ -212,8 +213,8 @@ function renderCharts(ctx,mount){
   createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
   const allTargets=ctx.targets||[];
   const storeIds=new Set(stores.filter(s=>!f.store||s.site_id===f.store).map(s=>s.id));
-  const target=n(f.model?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
-  const a=analytics.compute({...ctx,sales:filtered,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
+  const target=n((f.model||f.eula==="pending")?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
+  const a=analytics.compute({...ctx,sales:good,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
   const pctTarget=target>0?pct(dsum,target):0;
   document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":N(target))+'</small></div>'+
     '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+

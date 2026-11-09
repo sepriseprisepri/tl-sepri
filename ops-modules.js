@@ -58,24 +58,27 @@
     box.innerHTML='<div class="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-slate-800">'+
       '<div><h4 class="font-semibold text-white">'+esc(title)+'</h4>'+
       (subtitle?'<p class="text-xs text-slate-400 mt-1">'+esc(subtitle)+'</p>':"")+'</div>'+
-      '<div class="flex gap-2 flex-wrap"><input data-search class="field px-3 py-2 rounded-lg text-sm min-w-0 w-40 sm:w-56" placeholder="Cari data…" aria-label="Cari baris tabel">'+
+      '<div class="flex gap-2 flex-wrap"><select data-column class="field px-3 py-2 rounded-lg text-sm" aria-label="Pilih kolom filter"><option value="all">Semua kolom</option>'+headers.map((h,i)=>'<option value="'+i+'">'+esc(h)+'</option>').join("")+'</select><input data-search class="field px-3 py-2 rounded-lg text-sm min-w-0 w-40 sm:w-56" placeholder="Cari data…" aria-label="Cari baris tabel">'+
       '<button data-export class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-cyan-300 hover:bg-slate-800">Unduh CSV</button></div></div>'+
       '<div class="table-wrap"><table class="w-full text-sm"><thead><tr>'+
       headers.map(h=>'<th scope="col" class="text-left">'+esc(h)+'</th>').join("")+
       '</tr></thead><tbody data-body></tbody></table></div><p data-count class="text-xs text-slate-500 px-5 py-3"></p>';
     mount.append(box);
     const tbody=box.querySelector("[data-body]"),counter=box.querySelector("[data-count]");
-    const search=box.querySelector("[data-search]"),exportBtn=box.querySelector("[data-export]");
+    const search=box.querySelector("[data-search]"),column=box.querySelector("[data-column]"),exportBtn=box.querySelector("[data-export]");
     let filtered=rows;
     function paint(){
       const term=search.value.toLocaleLowerCase("id-ID").trim();
-      filtered=term?rows.filter(row=>cells(row).some(v=>String(v??"").toLocaleLowerCase("id-ID").includes(term))):rows;
+      filtered=term?rows.filter(row=>{
+        const values=cells(row),subset=column.value==="all"?values:[values[Number(column.value)]];
+        return subset.some(v=>String(v??"").toLocaleLowerCase("id-ID").includes(term));
+      }):rows;
       tbody.innerHTML=filtered.slice(0,150).map(row=>
         '<tr>'+cells(row).map(x=>'<td>'+esc(x)+'</td>').join("")+'</tr>'
       ).join("")||'<tr><td colspan="'+headers.length+'" class="text-center text-slate-500 py-8">Tidak ada data pada pencarian ini.</td></tr>';
       counter.textContent=formatter.format(filtered.length)+" baris"+(filtered.length>150?" · 150 baris pertama ditampilkan (CSV memuat semua)":"");
     }
-    search.addEventListener("input",paint);
+    search.addEventListener("input",paint);column.addEventListener("change",paint);
     exportBtn.addEventListener("click",()=>{
       const clean=v=>{
         let s=String(v??"");
@@ -141,8 +144,8 @@
   const whole=value=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(num(value)));
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function periodPace(period){
-    const time=day=>Date.parse(day+"T12:00:00Z"),current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-    const now=current.match(/^\d{4}-\d\d-\d\d$/)?current:new Date().toISOString().slice(0,10);
+    const time=day=>Date.parse(day+"T12:00:00Z"),parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).map(p=>[p.type,p.value]));
+    const now=parts.year+"-"+parts.month+"-"+parts.day;
     const total=Math.max(1,Math.round((time(period.period_end)-time(period.period_start))/86400000)+1);
     const elapsed=clamp(Math.round((time(now)-time(period.period_start))/86400000)+1,0,total);
     return {total,elapsed,remaining:Math.max(0,total-elapsed),today:now};
@@ -377,7 +380,8 @@
         loadShadow?all(client,"store_shadow_history","store_id,shadow_month,is_shadow",q=>q.eq("shadow_month",period.period_start.slice(0,7)+"-01")):Promise.resolve([]),
         loadFocus?all(client,"focus_model_settings","model_code,display_name,is_active",q=>q.order("display_name")):Promise.resolve([]),
         loadFocus?all(client,"focus_model_targets","store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([]),
-        loadFocus&&personal?all(client,"ec_focus_model_allocations","store_id,model_code,target_qty,target_amt,ec_profile_id",q=>q.eq("period_id",period.id).eq("ec_profile_id",profile.id)):Promise.resolve([])
+        loadFocus&&personal?all(client,"ec_focus_model_allocations","store_id,model_code,target_qty,target_amt,ec_profile_id",q=>q.eq("period_id",period.id).eq("ec_profile_id",profile.id))
+          .catch(err=>{if(/(does not exist|schema cache|PGRST205|404|42P01)/i.test(err.message||""))return [];throw err;}):Promise.resolve([])
       ]);
       if(token!==renderToken || !mount.isConnected)return true;
       if(label==="Coverage & Toko"||label==="Coverage")coveragePage(mount,period,stores,targets,sales);

@@ -58,7 +58,10 @@
     box.innerHTML='<div class="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-slate-800">'+
       '<div><h4 class="font-semibold text-white">'+esc(title)+'</h4>'+
       (subtitle?'<p class="text-xs text-slate-400 mt-1">'+esc(subtitle)+'</p>':"")+'</div>'+
-      '<div class="flex gap-2 flex-wrap"><input data-search class="field px-3 py-2 rounded-lg text-sm min-w-0 w-40 sm:w-56" placeholder="Cari data…" aria-label="Cari baris tabel">'+
+      '<div class="flex gap-2 flex-wrap items-center"><label class="text-xs text-slate-300">Kolom filter<select data-column class="field px-2 py-2 rounded-lg text-sm ml-2"><option value="-1">Semua kolom</option>'+
+      headers.map((h,i)=>'<option value="'+i+'">'+esc(h)+'</option>').join("")+'</select></label>'+
+      '<input data-search class="field px-3 py-2 rounded-lg text-sm min-w-0 w-40 sm:w-56" placeholder="Cari data…" aria-label="Cari baris tabel">'+
+      '<button data-clear type="button" class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-cyan-300">Reset</button>'+
       '<button data-export class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-cyan-300 hover:bg-slate-800">Unduh CSV</button></div></div>'+
       '<div class="table-wrap"><table class="w-full text-sm"><thead><tr>'+
       headers.map(h=>'<th scope="col" class="text-left">'+esc(h)+'</th>').join("")+
@@ -66,16 +69,24 @@
     mount.append(box);
     const tbody=box.querySelector("[data-body]"),counter=box.querySelector("[data-count]");
     const search=box.querySelector("[data-search]"),exportBtn=box.querySelector("[data-export]");
+    const columnSelect=box.querySelector("[data-column]"),clear=box.querySelector("[data-clear]");
     let filtered=rows;
     function paint(){
       const term=search.value.toLocaleLowerCase("id-ID").trim();
-      filtered=term?rows.filter(row=>cells(row).some(v=>String(v??"").toLocaleLowerCase("id-ID").includes(term))):rows;
+      const col=Number(columnSelect.value);
+      filtered=term?rows.filter(row=>{
+       const fields=cells(row);
+       const selected=col<0?fields:[fields[col]];
+       return selected.some(v=>String(v??"").toLocaleLowerCase("id-ID").includes(term));
+      }):rows;
       tbody.innerHTML=filtered.slice(0,150).map(row=>
         '<tr>'+cells(row).map(x=>'<td>'+esc(x)+'</td>').join("")+'</tr>'
       ).join("")||'<tr><td colspan="'+headers.length+'" class="text-center text-slate-500 py-8">Tidak ada data pada pencarian ini.</td></tr>';
       counter.textContent=formatter.format(filtered.length)+" baris"+(filtered.length>150?" · 150 baris pertama ditampilkan (CSV memuat semua)":"");
     }
     search.addEventListener("input",paint);
+    columnSelect.addEventListener("change",paint);
+    clear.addEventListener("click",()=>{search.value="";columnSelect.value="-1";paint()});
     exportBtn.addEventListener("click",()=>{
       const clean=v=>{
         let s=String(v??"");
@@ -308,15 +319,15 @@
     const totalTarget=sum(rows,"target_qty"),totalActual=sum(rows,"actual_qty");
     const personal=profile.role==="ec";
     mount.innerHTML=sectionHead("Focus Model",
-      personal?"Target Focus Model untuk toko penempatan yang dapat diakses EC; pencapaian diambil dari transaksi VALID yang terlihat oleh akun EC.":"Total target fokus model yang ditetapkan pada toko dalam cakupan TL/role beserta pencapaian VALID.",period);
+      personal?"Hanya alokasi Focus Model pribadi dari TL, dengan sellout VALID yang terlihat oleh akun EC.":"Total target fokus model yang ditetapkan pada toko dalam cakupan TL/role beserta pencapaian VALID.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
       ["Model fokus",nfmt(new Set(rows.map(x=>x.model_code)).size),"Model yang memiliki target"],
-      [personal?"Target toko (bukan personal)":"Total target ditetapkan",qtyText(totalTarget),"Qty untuk cakupan akun"],
+      [personal?"Target pribadi dari TL":"Total target ditetapkan",qtyText(totalTarget),"Qty untuk cakupan akun"],
       ["Pencapaian Qty",qtyText(totalActual),"Model terpadankan · EULA VALID"],
       ["Gap Qty",qtyText(totalTarget-totalActual),"AR "+percent(totalActual,totalTarget)]
     ]));
     mount.insertAdjacentHTML("beforeend",alert(personal
-      ?"Penting: database saat ini menyimpan target fokus per toko, bukan alokasi TL per EC. Angka target ini belum boleh dianggap target personal dari TL; realisasi menggunakan transaksi yang terlihat oleh akun sesuai RLS."
+      ?"Hanya target fokus EC yang dialokasikan TL ditampilkan. Jika belum ada alokasi pribadi, mintalah TL mengaturnya. Pencapaian berdasarkan transaksi VALID yang diizinkan RLS."
       :"Pencapaian dihitung dari RAW Sellout VALID berdasarkan toko dan padanan model; cocokkan nama/varian yang belum terpetakan dengan Admin. Tidak ada hak mengubah target pada halaman ini."));
     makeTable(mount,{title:personal?"Focus Model toko & pencapaian EC":"Total Focus Model dan Pencapaian",
       headers:["Site ID","Toko","Model","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","AR Amt"],
@@ -362,7 +373,7 @@
       const loadShadow=label==="Store Shadow";
       const loadFocus=label==="Focus Model";
       const personal=profile.role==="ec";
-      const [stores,sales,targets,manpower,allocations,history,settings,focusTargets]=await Promise.all([
+      const [stores,sales,targets,manpower,allocations,history,settings,focusTargets,focusAllocations]=await Promise.all([
         loadStores(client),
         loadSales?getSales(client,period):Promise.resolve([]),
         loadTargets?getTargets(client,period,personal,profile):Promise.resolve([]),
@@ -370,7 +381,11 @@
         loadManpower?all(client,"ec_target_allocations","manpower_id,store_id,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([]),
         loadShadow?all(client,"store_shadow_history","store_id,shadow_month,is_shadow",q=>q.eq("shadow_month",period.period_start.slice(0,7)+"-01")):Promise.resolve([]),
         loadFocus?all(client,"focus_model_settings","model_code,display_name,is_active",q=>q.order("display_name")):Promise.resolve([]),
-        loadFocus?all(client,"focus_model_targets","store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([])
+        loadFocus&&profile.role!=="ec"?all(client,"focus_model_targets","store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([]),
+        loadFocus&&profile.role==="ec"?all(client,"focus_model_ec_targets","store_id,manpower_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id).eq("manpower_id",profile.manpower_id)).catch(error=>{
+         if(/(does not exist|not found|schema cache|PGRST205|42P01)/i.test(error.message||""))return [];
+         throw error;
+        }):Promise.resolve([])
       ]);
       if(token!==renderToken || !mount.isConnected)return true;
       if(label==="Coverage & Toko"||label==="Coverage")coveragePage(mount,period,stores,targets,sales);
@@ -378,7 +393,7 @@
       else if(label==="RAW Sellout")rawPage(mount,period,sales,stores);
       else if(label==="Performa EC")performancePage(mount,period,manpower,allocations,sales,stores);
       else if(label==="Store Shadow")shadowPage(mount,period,stores,history,sales);
-      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores,sales,profile);
+      else if(label==="Focus Model")focusPage(mount,period,settings,profile.role==="ec"?focusAllocations:focusTargets,stores,sales,profile);
       else if(label==="Laporan"||label==="Laporan Saya")reportPage(mount,period,sales,stores,targets,personal);
     }catch(error){
       console.error("[SamsungOps]",error);

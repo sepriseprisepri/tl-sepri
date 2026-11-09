@@ -15,6 +15,7 @@
   }[ch]));
   const num = value => Number(value||0);
   const nfmt = value => formatter.format(num(value));
+  const qtyFmt = value => new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(num(value)));
   const currency = value => rupiah.format(num(value));
   const share = (actual,target) => target>0 ? (100*actual/target) : 0;
   const percent = (actual,target) => (target>0 ? share(actual,target).toFixed(1)+"%" : "—");
@@ -141,20 +142,33 @@
   function targetPage(mount,period,stores,targets,sales,personal) {
     const rows=groupingTargets(stores,targets,sales);
     const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt"),actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
+    const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    const elapsed=Math.max(0,Math.min(period.period_end,today)>=period.period_start?
+      Math.round((Date.parse(Math.min(period.period_end,today)+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1:0);
+    const totalDays=Math.round((Date.parse(period.period_end+"T00:00:00Z")-Date.parse(period.period_start+"T00:00:00Z"))/86400000)+1;
+    const remaining=Math.max(0,totalDays-elapsed);
+    const dailyQty=remaining>0?Math.max(0,qty-actual)/remaining:0;
+    const dailyAmt=remaining>0?Math.max(0,amount-actualAmt)/remaining:0;
     mount.innerHTML=sectionHead(personal?"Target Saya":"Target Penjualan",
-      personal?"Alokasi personal EC dari database, bukan total target toko.":"Target November per toko sesuai cakupan akun.",period);
+      personal?"Alokasi personal EC dan pace pencapaian berdasarkan hari MTD.":"Target per toko sesuai cakupan akun.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Toko bertarget",nfmt(rows.length),"Periode "+period.period_name],
-      ["Target Qty",nfmt(qty),"Alokasi sesuai hak akses"],
-      ["VALID Qty",nfmt(actual),"EULA PENDING dikecualikan"],
-      ["AR% Qty",percent(actual,qty),"Gap Qty: "+nfmt(qty-actual)]
+      ["Target Qty",qtyFmt(qty),"Qty dibulatkan pada tampilan"],
+      ["VALID Qty",qtyFmt(actual),"EULA PENDING dikecualikan"],
+      ["Gap Qty",qtyFmt(qty-actual),"Target dikurangi realisasi"],
+      ["Gap Amt",currency(amount-actualAmt),"Target dikurangi realisasi"],
+      ["Target Daily Qty",qtyFmt(Math.ceil(dailyQty)),remaining+" hari tersisa · MTD "+elapsed+"/"+totalDays],
+      ["Target Daily Amt",currency(Math.ceil(dailyAmt)),remaining+" hari tersisa"],
+      ["AR Qty",percent(actual,qty),"Achievement Qty"],
+      ["AR Amt",percent(actualAmt,amount),"Achievement Amount"]
     ]));
-    mount.insertAdjacentHTML("beforeend",alert("Target Qty dapat berupa nilai desimal sesuai file resmi. PENDING tidak dihitung sebagai pencapaian."));
+    mount.insertAdjacentHTML("beforeend",alert(remaining===0?
+      "Periode telah berakhir; target harian tidak dihitung lagi.":
+      "Target Daily = gap positif dibagi sisa hari kalender termasuk penghitungan MTD hari ini. Pembulatan Qty hanya pada tampilan."));
     makeTable(mount,{title:personal?"Rincian target EC":"Rincian target per toko",
-      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","AR Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.category,nfmt(r.target_qty),nfmt(r.actual_qty),
-        nfmt(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),currency(r.target_amt),
-        currency(r.actual_amt),percent(r.actual_amt,r.target_amt)],
+      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","Gap Amt","AR Amt"],
+      rows,cells:r=>[r.site_id,r.site_name,r.category,qtyFmt(r.target_qty),qtyFmt(r.actual_qty),
+        qtyFmt(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),currency(r.target_amt),
+        currency(r.actual_amt),currency(r.target_amt-r.actual_amt),percent(r.actual_amt,r.target_amt)],
       filename:personal?"target-ec.csv":"target-toko.csv"});
   }
   function coveragePage(mount,period,stores,targets,sales) {

@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "release/samsung-kalteng-integrated-20261110": false
+      "release/samsung-kalteng-integrated-20261110": false,
+      "feature/ec-tl-market-intelligence-20261110": false
     }
   }
 }

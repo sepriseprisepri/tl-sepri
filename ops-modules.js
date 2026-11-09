@@ -138,23 +138,38 @@
       };
     }).filter(Boolean).sort((a,b)=>b.ar-a.ar);
   }
+  const whole=value=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(num(value)));
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function periodPace(period){
+    const time=day=>Date.parse(day+"T12:00:00Z"),current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    const now=current.match(/^\d{4}-\d\d-\d\d$/)?current:new Date().toISOString().slice(0,10);
+    const total=Math.max(1,Math.round((time(period.period_end)-time(period.period_start))/86400000)+1);
+    const elapsed=clamp(Math.round((time(now)-time(period.period_start))/86400000)+1,0,total);
+    return {total,elapsed,remaining:Math.max(0,total-elapsed),today:now};
+  }
   function targetPage(mount,period,stores,targets,sales,personal) {
-    const rows=groupingTargets(stores,targets,sales);
+    const rows=groupingTargets(stores,targets,sales),p=periodPace(period);
     const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt"),actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
+    const gapQty=qty-actual,gapAmt=amount-actualAmt,daily=p.remaining>0?Math.max(0,gapQty)/p.remaining:0;
     mount.innerHTML=sectionHead(personal?"Target Saya":"Target Penjualan",
-      personal?"Alokasi personal EC dari database, bukan total target toko.":"Target November per toko sesuai cakupan akun.",period);
+      personal?"Alokasi personal EC; target harian mengejar gap terhadap MTD VALID.":"Target toko dalam coverage; MTD dihitung dari transaksi VALID.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Toko bertarget",nfmt(rows.length),"Periode "+period.period_name],
-      ["Target Qty",nfmt(qty),"Alokasi sesuai hak akses"],
-      ["VALID Qty",nfmt(actual),"EULA PENDING dikecualikan"],
-      ["AR% Qty",percent(actual,qty),"Gap Qty: "+nfmt(qty-actual)]
+      ["Target Qty",whole(qty),"Pembulatan tampilan, nilai sumber tetap utuh"],
+      ["Pencapaian MTD",whole(actual),"EULA VALID · "+p.elapsed+" hari berjalan"],
+      ["Gap Qty",whole(gapQty),"Target dikurangi pencapaian MTD"],
+      ["Gap Amt",currency(gapAmt),"Target amount dikurangi pencapaian MTD"],
+      ["Target Daily",whole(Math.ceil(daily)),"Sisa gap dibagi "+p.remaining+" hari tersisa"],
+      ["Pace MTD",percent(actual,qty),"Hari "+p.elapsed+" dari "+p.total],
+      ["Target Amt",currency(amount),"Nilai target resmi"],
+      ["VALID Amt",currency(actualAmt),"EULA VALID"]
     ]));
-    mount.insertAdjacentHTML("beforeend",alert("Target Qty dapat berupa nilai desimal sesuai file resmi. PENDING tidak dihitung sebagai pencapaian."));
+    mount.insertAdjacentHTML("beforeend",alert("Target Daily = ceil(max(0, Target Qty − Qty VALID MTD) ÷ sisa hari kalender dalam periode). Jika periode selesai, target harian = 0. Gap negatif menandakan target terlampaui. Jumlah Qty dibulatkan hanya saat ditampilkan."));
     makeTable(mount,{title:personal?"Rincian target EC":"Rincian target per toko",
-      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","AR Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.category,nfmt(r.target_qty),nfmt(r.actual_qty),
-        nfmt(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),currency(r.target_amt),
-        currency(r.actual_amt),percent(r.actual_amt,r.target_amt)],
+      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","Target Daily","AR Qty","Target Amt","VALID Amt","Gap Amt","AR Amt"],
+      rows,cells:r=>[r.site_id,r.site_name,r.category,whole(r.target_qty),whole(r.actual_qty),
+        whole(r.target_qty-r.actual_qty),whole(p.remaining>0?Math.ceil(Math.max(0,r.target_qty-r.actual_qty)/p.remaining):0),
+        percent(r.actual_qty,r.target_qty),currency(r.target_amt),currency(r.actual_amt),
+        currency(r.target_amt-r.actual_amt),percent(r.actual_amt,r.target_amt)],
       filename:personal?"target-ec.csv":"target-toko.csv"});
   }
   function coveragePage(mount,period,stores,targets,sales) {
@@ -270,28 +285,51 @@
       rows,cells:r=>[r.site_id,r.site_name,r.category,nfmt(r.qty),nfmt(r.eligible),currency(r.estimate)],
       filename:"shadow-"+period.period_start+".csv"});
   }
-  function focusPage(mount,period,settings,targets,stores){
+  const focusNorm=x=>String(x||"").toUpperCase().replace(/\b(SAMSUNG|GALAXY)\b/g,"").replace(/[^A-Z0-9]/g,"");
+  const focusMatch=(model,code,name)=>{
+    const m=focusNorm(model),keys=[focusNorm(code),focusNorm(name)].filter(x=>x.length>=3);
+    return keys.some(x=>m===x||m.startsWith(x)||x.startsWith(m)&&m.length>=3);
+  };
+  function focusAchievement(sales,stores,modelCode,modelName,storeId,profile){
+    const site=stores.find(s=>s.id===storeId)?.site_id;
+    if(!site)return {qty:0,amt:0};
+    const matching=sales.filter(x=>x.eula_status==="VALID"&&x.site_id===site&&focusMatch(x.model,modelCode,modelName));
+    // For EC, sales queries are already restricted by RLS; no browser-side
+    // filter can substitute a missing personal allocation row.
+    return {qty:sum(matching,"qty"),amt:sum(matching,"amt")};
+  }
+  function focusPage(mount,period,settings,targets,stores,sales,profile,allocations=[]){
     const names=mapById(stores),modelMap=new Map(settings.map(s=>[s.model_code,s]));
-    const rows=targets.map(row=>{
-      const st=names.get(row.store_id);return st?{...row,site_id:st.site_id,site_name:st.site_name,
-        model_name:modelMap.get(row.model_code)?.display_name||row.model_code}:null;
+    const personal=profile.role==="ec",source=personal?allocations:targets;
+    const rows=source.map(row=>{
+      const st=names.get(row.store_id);if(!st)return null;
+      const display=modelMap.get(row.model_code)?.display_name||row.model_code;
+      const actual=focusAchievement(sales,stores,row.model_code,display,row.store_id,profile);
+      return {...row,site_id:st.site_id,site_name:st.site_name,model_name:display,
+        target_qty:num(row.target_qty),target_amt:num(row.target_amt),actual_qty:actual.qty,actual_amt:actual.amt};
     }).filter(Boolean);
+    const totalQty=sum(rows,"target_qty"),totalAmt=sum(rows,"target_amt"),qty=sum(rows,"actual_qty"),amt=sum(rows,"actual_amt");
     mount.innerHTML=sectionHead("Focus Model",
-      "Daftar model prioritas dan target Qty per store, dibatasi oleh RLS yang sudah aktif.",period);
+      personal?"Hanya model dan alokasi target yang ditetapkan TL untuk akun EC Anda.":"Total target Focus Model yang ditetapkan untuk toko dalam coverage serta pencapaian VALID.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Model aktif",nfmt(settings.filter(s=>s.is_active).length),"Daftar model pengaturan"],
-      ["Target focus tersimpan",nfmt(rows.length),"Kombinasi model dan toko"],
-      ["Total target Qty",nfmt(sum(rows,"target_qty")),"Untuk scope akun"],
-      ["Total target Amt",currency(sum(rows,"target_amt")),"Untuk scope akun"]
+      ["Model dialokasikan",whole(new Set(rows.map(x=>x.model_code)).size),personal?"Ditugaskan untuk EC ini":"Dari target yang tersimpan"],
+      ["Target Focus Qty",whole(totalQty),"Total alokasi dalam scope"],
+      ["Pencapaian Focus Qty",whole(qty),"Sellout VALID model sesuai"],
+      ["Gap Focus Qty",whole(totalQty-qty),"Belum tercapai"],
+      ["Target Focus Amt",currency(totalAmt),"Alokasi amount"],
+      ["Pencapaian Focus Amt",currency(amt),"Sellout VALID"],
+      ["AR Focus Qty",percent(qty,totalQty),"Achievement Focus Model"],
+      ["Gap Focus Amt",currency(totalAmt-amt),"Amount masih kurang"]
     ]));
-    mount.insertAdjacentHTML("beforeend",alert("Pengeditan focus model belum dibuka untuk TL karena kebijakan database saat ini hanya mengizinkan Admin mengubah focus_model_targets. Halaman ini hanya menampilkan data yang sudah disimpan."));
-    makeTable(mount,{title:"Target Focus Model",
-      headers:["Site ID","Toko","Model","Target Qty","Target Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.model_name,nfmt(r.target_qty),currency(r.target_amt)],
-      filename:"focus-model.csv"});
-    makeTable(mount,{title:"Daftar model tersedia",headers:["Kode Model","Nama","Status"],
-      rows:settings,cells:r=>[r.model_code,r.display_name,r.is_active?"Aktif":"Nonaktif"],
-      filename:"model-tersedia.csv"});
+    if(personal&&!rows.length){
+      mount.insertAdjacentHTML("beforeend",alert("Belum ada alokasi Focus Model khusus EC yang diberikan oleh TL untuk periode ini. Target toko tidak otomatis menjadi target pribadi."));
+    }
+    mount.insertAdjacentHTML("beforeend",alert("Perhitungan pencapaian hanya transaksi EULA VALID. Pencocokan model berdasarkan kode/nama model dan toko; angka belum direkonsiliasi dengan SKU jika format RAW tidak konsisten."));
+    makeTable(mount,{title:personal?"Alokasi Focus Model Saya":"Target & Pencapaian Focus Model",
+      headers:["Site ID","Toko","Model","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","Gap Amt"],
+      rows,cells:r=>[r.site_id,r.site_name,r.model_name,whole(r.target_qty),whole(r.actual_qty),whole(r.target_qty-r.actual_qty),
+       percent(r.actual_qty,r.target_qty),currency(r.target_amt),currency(r.actual_amt),currency(r.target_amt-r.actual_amt)],
+      filename:personal?"focus-model-ec.csv":"focus-model-tl.csv"});
   }
   function reportPage(mount,period,sales,stores,targets,personal) {
     const valid=sales.filter(s=>s.eula_status==="VALID");
@@ -324,13 +362,13 @@
       '<div class="skeleton rounded-2xl h-24"></div><div class="skeleton rounded-2xl h-64"></div></div>';
     try {
       nowPeriod(period);
-      const loadSales=label!=="Focus Model";
+      const loadSales=true;
       const loadTargets=["Coverage & Toko","Coverage","Target","Target Saya","Laporan","Laporan Saya"].includes(label);
       const loadManpower=label==="Performa EC";
       const loadShadow=label==="Store Shadow";
       const loadFocus=label==="Focus Model";
       const personal=profile.role==="ec";
-      const [stores,sales,targets,manpower,allocations,history,settings,focusTargets]=await Promise.all([
+      const [stores,sales,targets,manpower,allocations,history,settings,focusTargets,ecFocusAllocations]=await Promise.all([
         loadStores(client),
         loadSales?getSales(client,period):Promise.resolve([]),
         loadTargets?getTargets(client,period,personal,profile):Promise.resolve([]),
@@ -338,7 +376,8 @@
         loadManpower?all(client,"ec_target_allocations","manpower_id,store_id,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([]),
         loadShadow?all(client,"store_shadow_history","store_id,shadow_month,is_shadow",q=>q.eq("shadow_month",period.period_start.slice(0,7)+"-01")):Promise.resolve([]),
         loadFocus?all(client,"focus_model_settings","model_code,display_name,is_active",q=>q.order("display_name")):Promise.resolve([]),
-        loadFocus?all(client,"focus_model_targets","store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([])
+        loadFocus?all(client,"focus_model_targets","store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([]),
+        loadFocus&&personal?all(client,"ec_focus_model_allocations","store_id,model_code,target_qty,target_amt,ec_profile_id",q=>q.eq("period_id",period.id).eq("ec_profile_id",profile.id)):Promise.resolve([])
       ]);
       if(token!==renderToken || !mount.isConnected)return true;
       if(label==="Coverage & Toko"||label==="Coverage")coveragePage(mount,period,stores,targets,sales);
@@ -346,7 +385,7 @@
       else if(label==="RAW Sellout")rawPage(mount,period,sales,stores);
       else if(label==="Performa EC")performancePage(mount,period,manpower,allocations,sales,stores);
       else if(label==="Store Shadow")shadowPage(mount,period,stores,history,sales);
-      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores);
+      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores,sales,profile,ecFocusAllocations);
       else if(label==="Laporan"||label==="Laporan Saya")reportPage(mount,period,sales,stores,targets,personal);
     }catch(error){
       console.error("[SamsungOps]",error);

@@ -21,9 +21,20 @@ function marketPanel(){
  return '<section class="intel-card intel-market-hub" aria-label="Referensi teknologi smartphone">'+
   '<div class="intel-card-head"><h3>Radar Pasar Smartphone Global</h3></div>'+
   '<p class="intel-caption">Pantau berita, peluncuran, spesifikasi, inovasi, dan harga melalui sumber aslinya. Tautan membuka data terbaru dari penerbit masing-masing. Tidak ada klaim harga real-time di dashboard ini.</p>'+
+  '<div class="intel-live-news"><h4>Berita Smartphone Terbaru</h4><p class="intel-caption">Judul dari RSS penerbit serta waktu publikasi.</p><div data-market-headlines role="status" aria-live="polite">Memuat berita…</div></div>'+
   '<div class="intel-market-grid">'+sources.map(([name,desc,url])=>
    '<a href="'+e(url)+'" target="_blank" rel="noopener noreferrer" class="intel-market-link"><strong>'+e(name)+'</strong><span>'+e(desc)+'</span></a>').join("")+'</div>'+
   '<p class="intel-caption">Sumber eksternal tidak mengubah RAW Sellout Samsung. Sinkronisasi otomatis lintas penerbit/brand membutuhkan layanan terpisah dan verifikasi lisensi serta jadwal pembaruan.</p></section>';
+}
+function loadHeadlines(root){
+ const node=root?.querySelector("[data-market-headlines]");if(!node)return;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
+ fetch("/api/market-news",{cache:"no-store",signal:controller.signal}).then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json()}).then(payload=>{
+  if(!node.isConnected)return;
+  const rows=Array.isArray(payload.articles)?payload.articles.filter(x=>typeof x.title==="string"&&typeof x.url==="string"&&/^https:\/\//.test(x.url)):[];
+  if(!rows.length){node.textContent="Berita belum tersedia. Buka sumber resmi di bawah.";return;}
+  node.innerHTML=rows.slice(0,8).map(x=>'<a class="intel-news-row" href="'+e(x.url)+'" target="_blank" rel="noopener noreferrer"><strong>'+e(x.title)+'</strong><span>'+e(x.source)+' · '+e(x.published?new Date(x.published).toLocaleDateString("id-ID"):"Tanggal tidak tersedia")+'</span></a>').join("");
+ }).catch(()=>{if(node.isConnected)node.textContent="Feed berita sementara tidak tersedia. Gunakan sumber langsung di bawah.";}).finally(()=>clearTimeout(timer));
 }
 function weekly(sales,weekKey,metric="qty"){
  const map=new Map();
@@ -53,6 +64,7 @@ function appendChart(ctx,mount,weekKey){
  if(!holder){holder=document.createElement("div");holder.id="intel-market-extra";holder.className="intel-market-extra";mount.append(holder)}
  holder.innerHTML='<section class="intel-card"><div class="intel-card-head"><h3>Artificial Insight · Grafik Sellout</h3></div><div id="intel-contextual-insight" class="intel-insight-list" role="status" aria-live="polite"></div>'+
  '<p class="intel-caption">Insight otomatis berbasis aturan dan data transaksi VALID. Bukan prediksi atau hasil AI generatif.</p></section>'+marketPanel();
+ loadHeadlines(holder);
  const store=mount.querySelector("#intel-chart-store"),model=mount.querySelector("#intel-chart-model"),metric=mount.querySelector("#intel-chart-metric");
  const paint=()=>{
   const filtered=(ctx.sales||[]).filter(r=>(!store?.value||r.site_id===store.value)&&(!model?.value||r.model===model.value));
@@ -76,6 +88,9 @@ function appendDashboard(ctx,weekKey){
  (w.length?w.slice(-4).map(x=>'<div class="intel-week-row"><span>'+e(x.week)+'</span><strong>'+fmt(x.value)+' unit</strong><span>'+(x.growth===null?"Belum ada pembanding":(x.growth>=0?"+":"")+fmt(x.growth)+"% WoW")+'</span></div>').join(""):'<p class="intel-caption">Belum ada transaksi VALID pada periode ini.</p>')+
  '<p class="intel-caption">Ringkasan Qty VALID sesuai hak akses. Periode minggu berjalan belum tentu lengkap; untuk keputusan gunakan minggu pembanding setara.</p>';
  host.prepend(node);
+ let radar=host.querySelector("#intel-market-dashboard");
+ if(!radar){radar=document.createElement("div");radar.id="intel-market-dashboard";host.append(radar);}
+ radar.innerHTML=marketPanel();loadHeadlines(radar);
 }
 function install(){
  const lib=window.SalesIntelligence;if(!lib||lib.__marketExtended)return false;

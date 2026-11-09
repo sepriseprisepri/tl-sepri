@@ -134,4 +134,5 @@ require("./affordability-survey.cjs");
 require("./account-settings.cjs");
 require("./release-integration.cjs");
 require("./market-intelligence-upgrades.cjs");
+require("./market-news-feed.cjs");
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

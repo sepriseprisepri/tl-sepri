@@ -33,7 +33,26 @@ function weeklySummary(sales,period,today=localToday()){
   if(monday<start||sunday>end)continue; // Only complete Monday–Sunday weeks
   entries.push({start:mondayISO,end:dayISO(sunday),qty:weeks.get(mondayISO)||0});
  }
- if(entries.length<2)return {ready:false,message:"Belum tersedia dua minggu kalender lengkap dalam periode ini.",weeks:entries};
+ if(entries.length<2){
+  // Week-to-date versus the same weekdays last week. Clearly marked as partial.
+  const currentMonday=dayNumber(weekStart(today)),lastAvailable=Math.min(dayNumber(today),dayNumber(period.period_end));
+  const elapsed=Math.max(0,Math.min(7,lastAvailable-currentMonday+1));
+  const prevMonday=currentMonday-7;
+  if(elapsed>0&&prevMonday>=start){
+   let recent=0,previousWeek=0;
+   for(const sale of sales||[]){
+    if(String(sale.eula_status||"").toUpperCase()!=="VALID")continue;
+    const day=dayNumber(sale.sold_at);
+    if(day>=currentMonday&&day<currentMonday+elapsed)recent+=qty(sale.qty);
+    if(day>=prevMonday&&day<prevMonday+elapsed)previousWeek+=qty(sale.qty);
+   }
+   if(previousWeek>0)return {ready:true,partial:true,
+    current:{start:dayISO(currentMonday),end:dayISO(currentMonday+elapsed-1),qty:recent},
+    previous:{start:dayISO(prevMonday),end:dayISO(prevMonday+elapsed-1),qty:previousWeek},
+    growth:(recent-previousWeek)/previousWeek*100,delta:recent-previousWeek,weeks:entries};
+  }
+  return {ready:false,message:"Belum ada dua minggu penuh atau dua rentang minggu berjalan yang sebanding.",weeks:entries};
+ }
  const previous=entries[entries.length-2],current=entries[entries.length-1];
  if(previous.qty===0)return {ready:false,message:"Minggu pembanding memiliki 0 unit; persentase pertumbuhan tidak dihitung.",current,previous,weeks:entries};
  return {ready:true,current,previous,weeks:entries,growth:(current.qty-previous.qty)/previous.qty*100,delta:current.qty-previous.qty};
@@ -52,7 +71,7 @@ function render(ctx,root){
  root.innerHTML='<div class="grid lg:grid-cols-2 gap-4 mt-4">'+
  '<section class="intel-card"><div class="intel-card-head"><h3>Samsung Sellout · Week to Week</h3></div>'+
  '<div id="pulse-wow" role="status" aria-live="polite"></div>'+
- '<p class="intel-caption mt-3">Hanya unit EULA VALID, sesuai akses akun. Perbandingan memakai dua minggu Senin–Minggu lengkap; minggu berjalan tidak diperbandingkan.</p></section>'+
+ '<p class="intel-caption mt-3">Hanya EULA VALID sesuai akses. Dua minggu lengkap diprioritaskan; jika belum cukup, WTD dibanding hari yang sama minggu lalu dan diberi label.</p></section>'+
  '<section class="intel-card"><div class="intel-card-head"><h3>Radar Smartphone Global</h3></div>'+
  '<p class="text-xs text-slate-300 mb-3">Berita, fitur terbaru dan katalog harga resmi. Sumber eksternal dibuka terpisah; harga dapat berubah sewaktu-waktu.</p>'+
  '<div id="pulse-sources" class="space-y-2"></div>'+
@@ -63,7 +82,7 @@ function render(ctx,root){
   const sign=data.growth>0?"+":"",down=data.growth<0;
   el.innerHTML='<div class="text-3xl font-bold '+(down?"text-amber-200":"text-emerald-300")+'">'+sign+num(data.growth.toFixed(1))+'% <small class="text-sm font-normal">WoW</small></div>'+
   '<p class="text-sm text-slate-200 mt-2">'+num(data.previous.qty)+' unit ('+esc(data.previous.start)+'–'+esc(data.previous.end)+') → '+num(data.current.qty)+' unit ('+esc(data.current.start)+'–'+esc(data.current.end)+')</p>'+
-  '<p class="text-sm mt-2 text-slate-300">'+(down?"Turun ":"Naik ")+num(Math.abs(data.delta))+' unit dibanding minggu penuh sebelumnya.</p>';
+  '<p class="text-sm mt-2 text-slate-300">'+(down?"Turun ":"Naik ")+num(Math.abs(data.delta))+' unit dibanding '+(data.partial?"hari yang sama minggu sebelumnya (WTD).":"minggu penuh sebelumnya.")+'</p>';
  }else el.textContent=data.message;
  root.querySelector("#pulse-sources").innerHTML=sources.map(item=>
   '<a class="block rounded-xl border border-slate-700/70 p-3 hover:border-cyan-500/60" href="'+esc(item.url)+'" target="_blank" rel="noopener noreferrer">'+

@@ -77,8 +77,7 @@ function renderDashboard(ctx){
  const stats=analytics.compute(ctx);
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};
  const action=({admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"})[ctx.profile.role];
- const weekly=[...group((ctx.sales||[]).filter(valid),"qty",r=>weekKey(r.sold_at)).entries()].sort(([a],[b])=>a.localeCompare(b));
- const completed=weekly.filter(([key])=>key<weekKey(dateLocal()));
+ const completed=completedWeekTotals((ctx.sales||[]).filter(valid),"qty",ctx.period);
  const recent=completed.at(-1),previous=completed.at(-2);
  const growth=recent&&previous&&previous[1]>0?(recent[1]-previous[1])/previous[1]*100:null;
 
@@ -150,6 +149,18 @@ function weekKey(date){
  const year=w.getUTCFullYear(),yearStart=new Date(Date.UTC(year,0,1));
  return year+"-W"+String(Math.ceil((((w-yearStart)/86400000)+1)/7)).padStart(2,"0");
 }
+function completedWeekTotals(sales,metric,period){
+ if(!period?.period_start||!period?.period_end)return [];
+ const today=dateLocal(),end=period.period_end<today?period.period_end:today;
+ if(end<period.period_start)return [];
+ const counts=new Map(),totals=group(sales,metric,r=>weekKey(r.sold_at));
+ for(const day=new Date(period.period_start+"T12:00:00Z");day.toISOString().slice(0,10)<=end;day.setUTCDate(day.getUTCDate()+1)){
+  const key=weekKey(day.toISOString().slice(0,10));
+  counts.set(key,(counts.get(key)||0)+1);
+ }
+ return [...counts].filter(([key,days])=>days===7&&key<weekKey(today))
+  .map(([key])=>[key,totals.get(key)||0]).sort(([a],[b])=>a.localeCompare(b));
+}
 function renderCharts(ctx,mount){
  clearCharts();const unique=x=>[...new Set(x)];
  const sales=(ctx.sales||[]),stores=ctx.stores||[];
@@ -188,8 +199,12 @@ function renderCharts(ctx,mount){
    ['PENDING',N(pending.length)],['Model terjual',N(modelMap.size)]].map(([l,v])=>'<div class="intel-stat"><span>'+esc(l)+'</span><strong>'+esc(v)+'</strong></div>').join("");
   const base=[{data:day.map(x=>x[1]),label:metric==="qty"?"Qty":"Amount",borderColor:"#63e3fa",backgroundColor:"rgba(78,192,239,.20)",fill:true,tension:.32,pointRadius:2}];
   createChart(document.getElementById("intel-day-chart"),"line",day.map(x=>x[0].slice(5)),base);
-  const wow=weekRows.map((row,i)=>i>0&&weekRows[i-1][1]>0?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
-  const completeWeeks=weekRows.filter(([key])=>key<weekKey(dateLocal()));
+  const growthValues=new Map(completeWeeks.map((row,i)=>[
+   row[0],i>0&&completeWeeks[i-1][1]>0?
+    Math.round(((row[1]-completeWeeks[i-1][1])/completeWeeks[i-1][1])*1000)/10:null
+  ]));
+  const wow=weekRows.map(([key])=>growthValues.get(key)??null);
+  const completeWeeks=completedWeekTotals(good,metric,ctx.period);
   const lastWeek=completeWeeks.at(-1),prevWeek=completeWeeks.at(-2);
   const wowValue=lastWeek&&prevWeek&&prevWeek[1]>0?(lastWeek[1]-prevWeek[1])/prevWeek[1]*100:null;
   const strongest=rank[0],strongStore=storeRank[0];

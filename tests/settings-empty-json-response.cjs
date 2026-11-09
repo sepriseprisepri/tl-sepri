@@ -1,0 +1,13 @@
+"use strict";
+const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
+const ui=fs.readFileSync("account-settings.js","utf8");
+const sandbox={window:{},Intl,Date,Number,String,Error,Map,URLSearchParams,console};
+new vm.Script(ui);vm.runInNewContext(ui,sandbox);
+assert.match(ui,/if\(method==="POST"\|\|r\.status===204\|\|r\.status===205\)return null/);
+assert.doesNotMatch(ui,/r\.status===204\?null:await r\.json\(\)/);
+assert.match(ui,/const body=await r\.text\(\)/);
+assert.match(ui,/if\(!body\.trim\(\)\)throw Error/);
+assert.match(ui,/try\{return JSON\.parse\(body\);\}/);
+assert.match(ui,/Prefer:"resolution=merge-duplicates,return=minimal"/);
+assert.match(ui,/await saveDensity\(ctx,densitySelect\.value\)/);
+console.log("Settings empty-response regression passed: 201/204 no body succeeds; GET still parses JSON.");

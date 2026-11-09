@@ -122,19 +122,37 @@ function renderDashboard(ctx){
 }
 function createChart(node,type,labels,datasets,opts={}){
  if(!node||typeof window.Chart!=="function")return;
+ const horizontal=opts.indexAxis==="y";
  const chart=new window.Chart(node,{
   type,data:{labels,datasets},
-  options:{responsive:true,maintainAspectRatio:false,
-   plugins:{legend:{display:datasets.length>1,labels:{color:"#abc9dc",boxWidth:11,font:{size:11}}}},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+   plugins:{
+    legend:{display:datasets.length>1,labels:{color:"#c5e2f2",boxWidth:11,font:{size:11}}},
+    tooltip:{callbacks:{label(context){
+      const label=context.dataset?.label||"Nilai",value=Number(context.parsed?.y??context.parsed?.x??context.raw??0);
+      return label+": "+N(value);
+    }}}
+   },
    scales:type==="doughnut"?undefined:{
-    x:{ticks:{color:"#91adc1",maxTicksLimit:12},grid:{color:"rgba(133,180,217,.07)"}},
-    y:{beginAtZero:true,ticks:{color:"#91adc1"},grid:{color:"rgba(133,180,217,.08)"}}
+    x:{beginAtZero:horizontal,ticks:{color:"#b0d0e1",maxTicksLimit:12},grid:{color:"rgba(133,180,217,.07)"}},
+    y:{beginAtZero:!horizontal,ticks:{color:"#b0d0e1"},grid:{color:"rgba(133,180,217,.08)"}}
    },...opts}
  });chartObjs.push(chart);
 }
 function clearCharts(){for(const chart of chartObjs){try{chart.destroy();}catch{}}chartObjs=[];}
-function byDay(sales,key){
- const map=group(sales,key,s=>s.sold_at);return [...map.entries()].sort(([a],[b])=>a.localeCompare(b));
+function byDay(sales,key,period){
+ const map=group(sales,key,s=>s.sold_at);
+ const start=period?.period_start,end=period?.period_end,today=dateLocal();
+ if(start&&end&&start<=end){
+  const limit=end<today?end:today;
+  const output=[];
+  for(let stamp=Date.parse(start+"T12:00:00Z"),last=Date.parse(limit+"T12:00:00Z");stamp<=last&&output.length<100;stamp+=86400000){
+   const date=new Date(stamp).toISOString().slice(0,10);
+   output.push([date,map.get(date)||0]);
+  }
+  if(output.length)return output;
+ }
+ return [...map.entries()].sort(([a],[b])=>a.localeCompare(b));
 }
 function weekKey(date){
  const d=new Date(date+"T12:00:00Z"),w=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));
@@ -167,7 +185,7 @@ function renderCharts(ctx,mount){
   clearCharts();const f=state(),metric=f.metric;
   const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model));
   const good=filtered.filter(valid),pending=filtered.filter(s=>s.eula_status==="PENDING");
-  const day=byDay(good,metric),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
+  const day=byDay(good,metric,ctx.period),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
   const nameMap=new Map(stores.map(s=>[s.site_id,s.site_name]));
   const storeMap=group(good,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
   const storeRank=[...storeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
@@ -187,9 +205,9 @@ function renderCharts(ctx,mount){
    y:{beginAtZero:true,position:"left",ticks:{color:"#91adc1"},grid:{color:"rgba(133,180,217,.08)"}},
    y1:{position:"right",ticks:{color:"#8ee4c9",callback:value=>value+"%"},grid:{display:false}}
   }});
-  createChart(document.getElementById("intel-model-chart"),"bar",rank.map(x=>x[0]),[{data:rank.map(x=>x[1]),backgroundColor:"#68d8f7",borderRadius:5}]);
-  createChart(document.getElementById("intel-store-chart"),"bar",storeRank.map(x=>nameMap.get(x[0])||x[0]),[{data:storeRank.map(x=>x[1]),backgroundColor:"#7a9eff",borderRadius:5}],{indexAxis:"y"});
-  createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
+  createChart(document.getElementById("intel-model-chart"),"bar",rank.map(x=>x[0]),[{label:metric==="qty"?"Unit VALID":"Amount VALID",data:rank.map(x=>x[1]),backgroundColor:"#68d8f7",borderRadius:5}],{indexAxis:"y"});
+  createChart(document.getElementById("intel-store-chart"),"bar",storeRank.map(x=>nameMap.get(x[0])||x[0]),[{label:metric==="qty"?"Unit VALID":"Amount VALID",data:storeRank.map(x=>x[1]),backgroundColor:"#7a9eff",borderRadius:5}],{indexAxis:"y"});
+  createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{label:"Qty",data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
   const allTargets=ctx.targets||[];
   const storeIds=new Set(stores.filter(s=>!f.store||s.site_id===f.store).map(s=>s.id));
   const target=n(f.model?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));

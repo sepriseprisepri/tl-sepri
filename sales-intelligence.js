@@ -150,22 +150,27 @@ function renderCharts(ctx,mount){
   '<div class="intel-filters">'+
    '<label>Store<select id="intel-chart-store" class="field"><option value="">Seluruh scope</option>'+siteCodes.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("")+'</select></label>'+
    '<label>Model<select id="intel-chart-model" class="field"><option value="">Semua model</option>'+models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")+'</select></label>'+
-   '<label>Metrik<select id="intel-chart-metric" class="field"><option value="qty">Qty</option><option value="amt">Amount</option></select></label>'+
+   '<label>Metrik<select id="intel-chart-metric" class="field"><option value="qty">Unit (Qty)</option><option value="amt">Rupiah (Amt)</option></select></label>'+
+  '<label>Mulai<input id="intel-chart-from" type="date" class="field" value="'+esc(ctx.period?.period_start||"")+'" min="'+esc(ctx.period?.period_start||"")+'" max="'+esc(ctx.period?.period_end||"")+'"></label>'+
+  '<label>Sampai<input id="intel-chart-to" type="date" class="field" value="'+esc(ctx.period?.period_end||"")+'" min="'+esc(ctx.period?.period_start||"")+'" max="'+esc(ctx.period?.period_end||"")+'"></label>'+
   '</div><div id="intel-filter-bar"></div>'+
   '<div id="intel-chart-stats" class="intel-stat-grid"></div>'+
+  panel("Artificial Insight · Panduan Grafik",'<div id="intel-chart-insights" role="status" aria-live="polite" class="text-sm text-slate-200 space-y-2">Menyiapkan analisis…</div><p class="intel-caption">Analisis otomatis berbasis aturan, bukan prediksi AI generatif.</p>')+
   '<div class="intel-chart-grid">'+
    panel("Tren Sellout Harian",'<div class="intel-chart-canvas"><canvas id="intel-day-chart" role="img" aria-label="Grafik sellout harian"></canvas></div>')+
-   panel("Weekly Growth",'<div class="intel-chart-canvas"><canvas id="intel-week-chart" role="img" aria-label="Grafik sellout mingguan"></canvas></div>')+
+   panel("Sellout Mingguan & Growth WoW",'<div class="intel-chart-canvas"><canvas id="intel-week-chart" role="img" aria-label="Grafik sellout mingguan"></canvas></div>')+
    panel("Kontribusi Model",'<div class="intel-chart-canvas"><canvas id="intel-model-chart" role="img" aria-label="Peringkat model"></canvas></div>')+
    panel("Peringkat Store",'<div class="intel-chart-canvas"><canvas id="intel-store-chart" role="img" aria-label="Peringkat toko"></canvas></div>')+
-   panel("EULA VALID dan PENDING",'<div class="intel-chart-canvas"><canvas id="intel-status-chart" role="img" aria-label="Perbandingan status EULA"></canvas></div>')+
+   panel("Status EULA: Qty VALID vs PENDING",'<div class="intel-chart-canvas"><canvas id="intel-status-chart" role="img" aria-label="Perbandingan status EULA"></canvas></div>')+
    panel("Pace terhadap Target",'<div id="intel-pace-panel" class="intel-pace-panel"></div><p class="intel-caption">Target penuh vs pencapaian sesuai data. Pace adalah asumsi linear menurut hari kalender.</p>')+
   '</div>';
- const selects=["store","model","metric"].map(k=>document.getElementById("intel-chart-"+k));
- const state=()=>({store:selects[0].value,model:selects[1].value,metric:selects[2].value});
+ const selects=["store","model","metric","from","to"].map(k=>document.getElementById("intel-chart-"+k));
+ const state=()=>({store:selects[0].value,model:selects[1].value,metric:selects[2].value,from:selects[3].value,to:selects[4].value});
  const redraw=()=>{
   clearCharts();const f=state(),metric=f.metric;
-  const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model));
+  const insightNode=document.getElementById("intel-chart-insights");
+  if(!f.from||!f.to||f.from>f.to){document.getElementById("intel-chart-stats").textContent="";insightNode.textContent="Rentang tanggal tidak valid.";return;}
+  const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model)&&s.sold_at>=f.from&&s.sold_at<=f.to);
   const good=filtered.filter(valid),pending=filtered.filter(s=>s.eula_status==="PENDING");
   const day=byDay(good,metric),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
   const nameMap=new Map(stores.map(s=>[s.site_id,s.site_name]));
@@ -173,12 +178,31 @@ function renderCharts(ctx,mount){
   const storeRank=[...storeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
   const weekRows=[...weeks.entries()].sort(([a],[b])=>a.localeCompare(b));
   const dsum=allBy(good,s=>s[metric]),pendingQty=allBy(pending,s=>s.qty);
+  const insightList=[];
+  if(!good.length)insightList.push("Belum ada transaksi EULA VALID pada kombinasi filter ini.");
+  else{
+   const leader=rank[0];
+   if(leader&&dsum>0)insightList.push("Kontribusi model terbesar: "+leader[0]+" ("+N(pct(leader[1],dsum))+"% dari "+(metric==="qty"?"unit":"nilai")+" VALID).");
+   if(pending.length)insightList.push(N(pending.length)+" transaksi PENDING belum masuk pencapaian.");
+   const pulse=window.SamsungMarketPulse?.weeklySummary(good,{period_start:f.from,period_end:f.to});
+   insightList.push(pulse?.ready?"Growth WoW minggu lengkap: "+(pulse.growth>0?"+":"")+N(pulse.growth)+"% ("+N(pulse.previous.qty)+" → "+N(pulse.current.qty)+" unit).":"Pertumbuhan WoW belum bisa dibandingkan: butuh dua minggu kalender lengkap.");
+  }
+  insightNode.innerHTML=insightList.map(message=>'<p class="rounded-lg border border-slate-700/60 p-3">'+esc(message)+'</p>').join("");
   document.getElementById("intel-chart-stats").innerHTML=
    [['EULA VALID',N(good.length)],['Total '+(metric==="qty"?"Qty":"Amount"),metric==="qty"?N(dsum):money(dsum)],
    ['PENDING',N(pending.length)],['Model terjual',N(modelMap.size)]].map(([l,v])=>'<div class="intel-stat"><span>'+esc(l)+'</span><strong>'+esc(v)+'</strong></div>').join("");
   const base=[{data:day.map(x=>x[1]),label:metric==="qty"?"Qty":"Amount",borderColor:"#63e3fa",backgroundColor:"rgba(78,192,239,.20)",fill:true,tension:.32,pointRadius:2}];
   createChart(document.getElementById("intel-day-chart"),"line",day.map(x=>x[0].slice(5)),base);
-  const wow=weekRows.map((row,i)=>i>0&&weekRows[i-1][1]>0?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
+  // Partial weeks are never compared against complete weeks.
+  const complete=key=>{
+   const sample=good.find(s=>weekKey(s.sold_at)===key);if(!sample)return false;
+   const at=new Date(sample.sold_at+"T12:00:00Z"),day=at.getUTCDay();
+   at.setUTCDate(at.getUTCDate()-((day+6)%7));
+   const monday=at.toISOString().slice(0,10),sunday=new Date(at.getTime()+6*86400000).toISOString().slice(0,10);
+   return monday>=f.from&&sunday<=Math.min(f.to,dateLocal());
+  };
+  const wow=weekRows.map((row,i)=>i>0&&complete(row[0])&&complete(weekRows[i-1][0])&&weekRows[i-1][1]>0
+   ?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
   createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>x[0]),[
     {type:"bar",label:metric==="qty"?"Qty per minggu":"Amount per minggu",data:weekRows.map(x=>x[1]),backgroundColor:"#4f92e7",borderRadius:5,yAxisID:"y"},
     {type:"line",label:"Growth WoW (%)",data:wow,borderColor:"#7be7c5",pointBackgroundColor:"#7be7c5",tension:.25,yAxisID:"y1"}
@@ -195,14 +219,14 @@ function renderCharts(ctx,mount){
   const target=n(f.model?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
   const a=analytics.compute({...ctx,sales:filtered,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
   const pctTarget=target>0?pct(dsum,target):0;
-  document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":N(target))+'</small></div>'+
+  document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+(metric==="qty"?N(dsum):money(dsum))+' <small>/ '+(f.model?"target model belum dialokasikan":metric==="qty"?N(target):money(target))+'</small></div>'+
     '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+
     '<div class="intel-bar"><span style="width:'+Math.max(0,Math.min(100,pctTarget))+'%"></span></div>';
  };
  selects.forEach(el=>el.addEventListener("change",redraw));redraw();
  if(window.UserPrefs)window.UserPrefs.savedFilterControls({
   client:ctx.client,profile:ctx.profile,feature:"charts",mount:document.getElementById("intel-filter-bar"),
-  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];redraw();}
+  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];for(const [k,el] of [["from",selects[3]],["to",selects[4]]])if(typeof s[k]==="string"&&s[k]>=ctx.period.period_start&&s[k]<=ctx.period.period_end)el.value=s[k];redraw();}
  });
 }
 function renderAlerts(ctx,mount){

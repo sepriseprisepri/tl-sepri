@@ -299,5 +299,5 @@ function setupSearch(ctx){
  }
  if(input.value.length>=2)showSearch();
 }
-window.SalesIntelligence={renderDashboard,renderCharts,renderAlerts,analytics,weekKey,dateLocal,modelNorm,clearCharts};
+window.SalesIntelligence={renderDashboard,renderCharts,renderAlerts,analytics,weekKey,dateLocal,modelNorm,completedWeekTotals,clearCharts};
 })();

@@ -25,7 +25,7 @@ assert.match(ops,/filtered=term\?rows\.filter/);
 assert.match(competitor,/data-edit/);
 assert.match(competitor,/data-delete/);
 assert.match(competitor,/todayOnly/);
-assert.match(competitor,/method==="POST"/);
+assert.match(competitor,/\["POST","PATCH","DELETE"\]\.includes\(method\)/);
 assert.match(competitor,/rest\("competitor_sellout\?id=eq\."\+encodeURIComponent\(id\),"PATCH",payload\)/);
 assert.match(competitor,/rest\("competitor_sellout\?id=eq\."\+encodeURIComponent\(id\),"DELETE"\)/);
 assert.match(competitor,/window\.confirm/);

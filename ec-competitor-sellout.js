@@ -49,7 +49,7 @@
     const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
      method,signal:controller.signal,cache:"no-store",
      headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
-       ...(["POST","PATCH"].includes(method)?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+       ...(["POST","PATCH"].includes(method)?{"Content-Type":"application/json",Prefer:method==="PATCH"?"return=representation":"return=minimal"}:{})},
      ...(body?{body:JSON.stringify(body)}:{})
     });
     if(!response.ok){
@@ -57,6 +57,11 @@
      if(response.status===403)throw Error("Akses transaksi ditolak. Periksa status EC dan toko penempatan.");
      const details=await response.json().catch(()=>({}));
      throw Error(details.message||details.error||"Permintaan database gagal (HTTP "+response.status+").");
+    }
+    if(method==="PATCH"){
+     const updated=await response.json();
+     if(!Array.isArray(updated)||updated.length!==1)throw Error("Transaksi tidak dapat diubah. Pastikan masih hari berjalan dan aturan koreksi sudah aktif.");
+     return {data:updated,error:null};
     }
     return method==="GET"?{data:await response.json(),error:null}:{data:null,error:null};
    }catch(err){
@@ -71,10 +76,14 @@
   const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
     ctx.client.from("competitor_sellout").insert(record);
   // RLS plus database trigger determine whether a same-day correction is allowed.
-  const patchQuery=(id,payload)=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"PATCH",payload):
-    ctx.client.from("competitor_sellout").update(payload).eq("id",id);
-  const canModify=row=>row.sold_at===localDate()&&
-    new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(row.created_at))===localDate();
+  const patchQuery=(id,payload)=>useRest?rest("competitor_sellout?select=id&id=eq."+encodeURIComponent(id),"PATCH",payload):
+    ctx.client.from("competitor_sellout").update(payload).eq("id",id).select("id");
+  const createdDay=timestamp=>{
+   const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(timestamp));
+   const d=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+   return d.year+"-"+d.month+"-"+d.day;
+  };
+  const canModify=row=>row.sold_at===localDate()&&createdDay(row.created_at)===localDate();
   let currentHistory=[],editing=null;
 
   let stores=[];
@@ -131,8 +140,9 @@
     if(!window.confirm("Hapus laporan kompetitor ini? Data tetap disimpan sebagai jejak audit dan tidak tampil di riwayat aktif."))return;
     del.disabled=true;
     try{
-     const {error}=await patchQuery(row.id,{deleted_at:new Date().toISOString()});
+     const {data,error}=await patchQuery(row.id,{deleted_at:new Date().toISOString()});
      if(error)throw error;
+     if(!useRest&&(!data||data.length!==1))throw Error("Transaksi tidak diubah oleh database.");
      const result=await historyQuery();if(result.error)throw result.error;
      cancel();paintHistory(result.data||[]);say("Transaksi dihapus dari riwayat aktif. Jejak audit tetap tersimpan.");
     }catch(err){say("Gagal menghapus: "+err.message+". Pastikan aturan database koreksi harian sudah aktif.",true);}

@@ -348,6 +348,12 @@
       mount.append(box);
       const status=box.querySelector("[data-eligible-status]"),form=box.querySelector("[data-focus-form]");
       const ec= form.elements.namedItem("ec_profile_id"),site=form.elements.namedItem("store_id"),model=form.elements.namedItem("model_code");
+      // Legacy/preview clients may not expose the RPC until the approved migration.
+      // Do not fail the existing read-only TL Focus Model totals when it is absent.
+      if(typeof client.rpc!=="function"){
+        status.textContent="Alokasi EC belum diaktifkan. Total target dan pencapaian tetap dapat dilihat.";
+        return;
+      }
       client.rpc("list_focus_eligible_ecs",{p_period_id:period.id}).then(({data,error})=>{
         if(error)throw error;
         const eligible=data||[],storeMap=new Map(stores.map(x=>[x.id,x]));

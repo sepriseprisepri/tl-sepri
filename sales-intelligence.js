@@ -129,8 +129,11 @@ function createChart(node,type,labels,datasets,opts={}){
    plugins:{
     legend:{display:datasets.length>1,labels:{color:"#c5e2f2",boxWidth:11,font:{size:11}}},
     tooltip:{callbacks:{label(context){
-      const label=context.dataset?.label||"Nilai",value=Number(context.parsed?.y??context.parsed?.x??context.raw??0);
-      return label+": "+N(value);
+      const label=context.dataset?.label||"Nilai";
+      const raw=context.chart?.options?.indexAxis==="y"?context.parsed?.x:
+        (context.parsed?.y??context.parsed?.x??context.parsed??context.raw);
+      const value=Number(raw||0);
+      return label+": "+(context.dataset?.yAxisID==="y1"?N(value)+"%":/Amount/i.test(label)?money(value):N(value));
     }}}
    },
    scales:type==="doughnut"?undefined:{

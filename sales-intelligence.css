@@ -209,3 +209,22 @@
  color:#ffe0a1;background:rgba(144,96,31,.14);
  border-color:rgba(235,181,91,.38);
 }
+
+
+/* Market radar and actionable weekly readouts: mobile-first, WCAG readable. */
+#intel-dashboard-weekly {margin-bottom:1rem;}
+.intel-week-row {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;padding:12px 6px;border-bottom:1px solid rgba(144,183,220,.15);font-size:13px;}
+.intel-week-row strong {font-size:16px;color:#edfaff;}
+.intel-week-row>span:last-child {color:#85e0c4;font-weight:600;}
+.intel-market-extra {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:20px;}
+.intel-market-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0;}
+.intel-market-link {display:flex;flex-direction:column;gap:4px;padding:14px;border:1px solid rgba(128,192,227,.22);border-radius:12px;background:rgba(15,47,69,.36);text-decoration:none;min-height:70px;}
+.intel-market-link:hover,.intel-market-link:focus-visible {border-color:#69d6f5;outline-offset:2px;}
+.intel-market-link strong {font-size:13px;color:#e0f9ff;}
+.intel-market-link span {font-size:12px;color:#acc8da;line-height:1.4;}
+.intel-market-extra .intel-insight {padding:12px;margin-top:10px;border-left:2px solid #55d8f6;background:rgba(11,39,64,.42);}
+.intel-market-extra .intel-insight strong {color:#d8f6ff;font-size:13px;}
+.intel-market-extra .intel-insight p {font-size:12px;line-height:1.65;color:#a5c6dc;margin-top:6px;}
+.intel-chart-hint {padding:5px 8px 0;}
+#intel-dashboard-weekly .intel-caption,#intel-market-extra .intel-caption {line-height:1.55;}
+@media(max-width:720px){.intel-market-extra,.intel-market-grid {grid-template-columns:minmax(0,1fr)}.intel-week-row strong {font-size:14px;}}

@@ -141,7 +141,7 @@ Deno.serve(async req=>{
     return reply(req,{error:"Hanya Admin aktif yang dapat memproses permintaan"},403);
   if(action==="list"){
     const {data,error}=await admin.from("password_recovery_requests")
-      .select("id,employee_id,role,reason,status,created_at,expires_at")
+      .select("id,employee_id,role,reason,status,created_at,approved_at,expires_at")
       .in("status",["pending","processing","awaiting_delivery","delivered","failed","expired"])
       .order("created_at",{ascending:false}).limit(100);
     if(error)return reply(req,{error:"Permintaan belum dapat dimuat"},503);
@@ -152,9 +152,14 @@ Deno.serve(async req=>{
     if(typeof body.request_id!=="string"||!/^[0-9a-f-]{36}$/i.test(body.request_id))
       return reply(req,{error:"Permintaan tidak valid"},400);
     const {data:target,error:getError}=await admin.from("password_recovery_requests")
-      .select("id,user_id,employee_id,role,status").eq("id",body.request_id).maybeSingle();
+      .select("id,user_id,employee_id,role,status,approved_at").eq("id",body.request_id).maybeSingle();
     const recoverable=["failed","awaiting_delivery","delivered","expired"];
-    if(getError||!target||!(isReissue?recoverable.includes(target.status):target.status==="pending"))
+    // Processing may be recovered only after 15 minutes, so a slow but active
+    // approval cannot be preempted by another Admin.
+    const staleCutoff=new Date(Date.now()-15*60_000).toISOString();
+    const stalled=target?.status==="processing" && !!target.approved_at &&
+      Date.parse(target.approved_at)<Date.parse(staleCutoff);
+    if(getError||!target||!(isReissue?(recoverable.includes(target.status)||stalled):target.status==="pending"))
       return reply(req,{error:"Status permintaan tidak valid untuk tindakan ini"},409);
     if(target.user_id===callerId)return reply(req,{error:"Tidak boleh menyetujui permintaan sendiri"},403);
     const {data:profile}=await admin.from("profiles")
@@ -168,9 +173,15 @@ Deno.serve(async req=>{
       authUser?.user?.email?.toLowerCase()!==target.employee_id.toLowerCase()+"@login.tlsepri.internal")
       return reply(req,{error:"Identitas atau status akun berubah. Persetujuan dibatalkan"},409);
     // Prevent duplicate approval and parallel credentials issuance.
-    const {data:claimed,error:claimError}=await admin.from("password_recovery_requests")
+    let claim=admin.from("password_recovery_requests")
       .update({status:"processing",approved_by:callerId,approved_at:new Date().toISOString()})
-      .eq("id",target.id).eq("status",target.status).select("id").maybeSingle();
+      .eq("id",target.id).eq("status",target.status);
+    if(stalled){
+      // Compare-and-swap against the old timestamp: two Admins cannot both
+      // reopen the same stalled request, even though status stays processing.
+      claim=claim.eq("approved_at",target.approved_at).lt("approved_at",staleCutoff);
+    }
+    const {data:claimed,error:claimError}=await claim.select("id").maybeSingle();
     if(claimError||!claimed)return reply(req,{error:"Permintaan sedang diproses"},409);
     // Disabling application access is necessary before password replacement.
     const {data:locked,error:disableError}=profile.is_active===false && profile.must_change_password===true

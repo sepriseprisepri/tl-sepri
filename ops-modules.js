@@ -289,7 +289,7 @@
     const personal=profile.role==="ec";
     const names=mapById(stores),modelNames=new Map(settings.map(x=>[x.model_code,x.display_name]));
     // Individual EC allocations are mandatory: never substitute a store target for an EC target.
-    const source=personal?(allocations||[]):(allocations&&allocations.length?allocations:targets);
+    const source=personal?(allocations||[]):targets;
     const grouped=new Map();
     for(const t of source){
       if(personal&&t.manpower_id!==profile.manpower_id)continue;
@@ -308,6 +308,7 @@
          String(label||"").toUpperCase().replace(/[^A-Z0-9]/g,"")));
       row.actual_qty=sum(valid,"qty");row.actual_amt=sum(valid,"amt");
     }
+    const allocatedQty=sum(allocations||[],"target_qty"),allocatedAmt=sum(allocations||[],"target_amt");
     const targetQty=sum(rows,"target_qty"),actualQty=sum(rows,"actual_qty"),
       targetAmt=sum(rows,"target_amt"),actualAmt=sum(rows,"actual_amt");
     mount.innerHTML=sectionHead("Focus Model",personal?
@@ -319,7 +320,8 @@
       ["VALID Qty",qtyFmt(actualQty),"EULA VALID saja"],
       ["AR Qty",percent(actualQty,targetQty),"Achievement"],
       ["Gap Qty",qtyFmt(targetQty-actualQty),"Target dikurangi realisasi"],
-      ["Gap Amt",currency(targetAmt-actualAmt),"Target dikurangi realisasi"]
+      ["Gap Amt",currency(targetAmt-actualAmt),"Target dikurangi realisasi"],
+      ...(!personal&&allocations?[["Alokasi Qty ke EC",qtyFmt(allocatedQty),"Total sudah dibagikan"],["Sisa alokasi Qty",qtyFmt(targetQty-allocatedQty),"Belum dibagikan kepada EC"],["Sisa alokasi Amt",currency(targetAmt-allocatedAmt),"Belum dibagikan kepada EC"]]:[])
     ]));
     if(profile.role==="tl"||profile.role==="admin"){
       const activeStores=new Set(stores.map(x=>x.id));
@@ -389,8 +391,8 @@
     }
     if(personal&&!allocations)mount.insertAdjacentHTML("beforeend",alert(
       "Alokasi Focus Model untuk EC belum diaktifkan. Total target toko tidak ditampilkan sebagai target personal."));
-    if(!personal&&(!allocations||!allocations.length))mount.insertAdjacentHTML("beforeend",alert(
-      "Menggunakan target focus per toko yang sudah tersedia. Migrasi alokasi personal EC masih diperlukan."));
+    if(!personal&&!allocations)mount.insertAdjacentHTML("beforeend",alert(
+      "Target focus per toko tetap ditampilkan; alokasi personal EC menunggu aktivasi database."));
     makeTable(mount,{title:personal?"Focus Model Saya":"Total Target Focus Model",
       headers:["Site ID","Toko","Model","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","Gap Amt"],
       rows,cells:r=>[r.site_id,r.site_name,r.model_name,qtyFmt(r.target_qty),qtyFmt(r.actual_qty),

@@ -100,7 +100,7 @@ function setupUi(data){
   metric("Gap Qty",qty(assignedQty-achievedQty),"Alokasi Qty dikurangi realisasi pribadi")+
   metric("Achievement Qty",percentage(achievedQty,assignedQty),"Dari target EC yang dialokasikan")+
   metric("Target Amt dialokasikan",money(assignedAmt),"Total target rupiah alokasi")+
-  metric("Qty gap bukan Amt",money(assignedAmt-achievedAmt),"Gap amount yang masih perlu dicapai")+
+  metric("Gap Amt",money(assignedAmt-achievedAmt),"Selisih target rupiah terhadap VALID")+
  '</div>';
  const summary=manager?'<p class="text-xs text-slate-400 mb-4">Target toko Qty '+qty(targetQty)+
   ' · Amt '+money(targetAmt)+' · telah dialokasikan Qty '+qty(assignedQty)+
@@ -177,7 +177,7 @@ function setupUi(data){
   amtInput=mount.querySelector("#focus-amt"),feedback=mount.querySelector("#focus-form-feedback"),
   capacity=mount.querySelector("#focus-capacity");
  function refreshPeople(){
-  const t=targets[Number(parent.value)];
+  const t=parent.value===""?null:targets[Number(parent.value)];
   const group=t?eligible.filter(m=>storesById.get(t.store_id)?.site_id===m.site_id&&
     activeAssignments.has(m.id+"|"+t.store_id)):[];
   person.innerHTML='<option value="">Pilih EC sesuai toko</option>'+
@@ -186,7 +186,7 @@ function setupUi(data){
   showCap();
  }
  function showCap(){
-  const t=targets[Number(parent.value)];
+  const t=parent.value===""?null:targets[Number(parent.value)];
   if(parent.value===""||!t){capacity.textContent="Pilih target model toko.";return;}
   const others=assigned.filter(a=>a.store_id===t.store_id&&a.model_code===t.model_code&&
    a.manpower_id!==person.value);
@@ -223,7 +223,7 @@ function setupUi(data){
   try{await save(t,manpowerId,v,a);}
   catch(error){feedback.textContent="Gagal menyimpan: "+error.message;button.disabled=false;}
  });
- mount.addEventListener("click",async event=>{
+ mount.onclick=async event=>{
   const edit=event.target.closest("[data-focus-edit]");
   const del=event.target.closest("[data-focus-delete]");
   if(!edit&&!del)return;
@@ -241,7 +241,7 @@ function setupUi(data){
   feedback.textContent="Menghapus alokasi...";
   try{await save(t,item.manpower_id,0,0);}
   catch(error){feedback.textContent="Gagal menghapus: "+error.message;}
- });
+ };
 }
 async function render(data){
  const {client,period,profile,isCurrent,mount}=data;

@@ -135,7 +135,7 @@ function setupUi(data){
     control("Toko dan model","focus-parent",[{value:"",text:"Pilih target model toko"},...selections])+
     control("Experience Consultant","focus-person",[{value:"",text:"Pilih EC sesuai toko"}])+
     '<label class="grid gap-2 text-xs text-slate-400">Target Qty EC'+
-     '<input id="focus-qty" class="field rounded-lg p-3 text-sm" type="number" min="0" step="0.01" inputmode="decimal" required value="0"></label>'+
+     '<input id="focus-qty" class="field rounded-lg p-3 text-sm" type="number" min="0" step="any" inputmode="decimal" required value="0"></label>'+
     '<label class="grid gap-2 text-xs text-slate-400">Target Amount EC (Rp)'+
      '<input id="focus-amt" class="field rounded-lg p-3 text-sm" type="number" min="0" step="1" inputmode="numeric" required value="0"></label>'+
    '</div><p id="focus-capacity" class="text-xs text-cyan-200" aria-live="polite">Pilih target model toko.</p>'+

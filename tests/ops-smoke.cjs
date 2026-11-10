@@ -26,6 +26,24 @@ vm.runInNewContext(fs.readFileSync("ops-modules.js","utf8"),{
 },{filename:"ops-modules.js"});
 assert.equal(typeof window.SamsungOps.render,"function");
 
+
+// SQL draft must enforce allocation ceilings at the database layer, not only in JS.
+// This is a static contract check; concurrency still requires real staging transactions.
+const allocationSql=fs.readFileSync("docs/sql/20261110-focus-model-ec-allocations-draft.sql","utf8");
+for(const required of [
+  "CREATE TRIGGER focus_ec_allocation_ceiling",
+  "BEFORE INSERT OR UPDATE ON public.focus_model_ec_targets",
+  "FOR UPDATE;",
+  "allocated_qty + NEW.target_qty > ceiling_qty",
+  "allocated_amt + NEW.target_amt > ceiling_amt",
+  "CREATE TRIGGER focus_store_target_ceiling",
+  "BEFORE UPDATE OF target_qty, target_amt ON public.focus_model_targets",
+  "NEW.target_qty < used_qty OR NEW.target_amt < used_amt",
+  "REVOKE ALL ON SCHEMA app_private FROM PUBLIC, anon, authenticated",
+  "REVOKE ALL ON FUNCTION app_private.enforce_focus_ec_allocation()"
+])assert.ok(allocationSql.includes(required),"Missing database invariant: "+required);
+assert.ok(!allocationSql.includes("a.id<>OLD.id"),"INSERT trigger must not dereference OLD");
+
 const html=fs.readFileSync("index.html","utf8");
 for(const match of html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)){
  if(match[1].trim())new vm.Script(match[1],{filename:"index.inline.js"});

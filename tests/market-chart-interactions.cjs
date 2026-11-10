@@ -5,7 +5,7 @@ const vm=require("node:vm");
 const metrics=require("../market-metrics.js");
 const nodes=new Map(),charts=[];
 let prefs=null;
-const period={period_name:"Nov 2026",period_start:"2026-11-01",period_end:"2026-11-30"};
+const period={period_name:"Okt 2026",period_start:"2026-10-01",period_end:"2026-10-31"};
 const values={
  "intel-chart-store":"",
  "intel-chart-model":"",
@@ -41,14 +41,14 @@ const data={
  stores:[{id:"store-1",site_id:"S-01",site_name:"Dummy 1"},{id:"store-2",site_id:"S-02",site_name:"Dummy 2"}],
  targets:[{store_id:"store-1",target_qty:200,target_amt:200000000},
   {store_id:"store-2",target_qty:100,target_amt:100000000}],
- sales:[sale("2026-11-03",10,"A"),sale("2026-11-10",20,"A"),
-  sale("2026-11-17",30,"B"),sale("2026-11-18",50,"A","S-02","PENDING")]
+ sales:[sale("2026-10-03",10,"A"),sale("2026-10-10",20,"A"),
+  sale("2026-10-17",30,"B"),sale("2026-10-18",50,"A","S-02","PENDING")]
 };
 ctx.window.SalesIntelligence.renderCharts(data,mount);
 assert.ok(mount.innerHTML.includes('id="intel-chart-from"'));
 assert.ok(mount.innerHTML.includes('id="intel-chart-to"'));
 assert.equal(charts.length,5);
-assert.equal(charts[0].config.data.datasets[0].data.length,30,
+assert.equal(charts[0].config.data.datasets[0].data.length,31,
  "Daily chart should include zero-sale calendar dates");
 assert.ok(charts[0].config.data.datasets[0].data.includes(0));
 assert.equal(charts[1].config.data.datasets[1].data.filter(x=>x!==null).length,2,
@@ -63,16 +63,16 @@ assert.equal(charts.length,10);
 assert.equal(charts.at(-5).config.data.datasets[0].data.reduce((a,b)=>a+b,0),0,
  "Pending sales excluded when S-02 is selected");
 nodes.get("intel-chart-store").value="";
-nodes.get("intel-chart-from").value="2026-11-15";
-nodes.get("intel-chart-to").value="2026-11-23";
+nodes.get("intel-chart-from").value="2026-10-15";
+nodes.get("intel-chart-to").value="2026-10-23";
 nodes.get("intel-chart-to").events.change();
 assert.equal(charts.at(-5).config.data.datasets[0].data.length,9,
  "Date filter must adjust daily chart window");
 assert.ok(nodes.get("intel-pace-panel").innerHTML.includes("Rentang tanggal parsial"));
 assert.ok(prefs&&typeof prefs.getState==="function");
-assert.equal(prefs.getState().from,"2026-11-15");
-prefs.applyState({from:"2026-11-01",to:"2026-11-30",store:"S-01",model:"A",metric:"amt"});
-assert.equal(nodes.get("intel-chart-from").value,"2026-11-01");
+assert.equal(prefs.getState().from,"2026-10-15");
+prefs.applyState({from:"2026-10-01",to:"2026-10-30",store:"S-01",model:"A",metric:"amt"});
+assert.equal(nodes.get("intel-chart-from").value,"2026-10-01");
 assert.equal(nodes.get("intel-chart-store").value,"S-01");
 assert.equal(nodes.get("intel-chart-metric").value,"amt");
 console.log("PASS charts DOM: zero-sale dates, completed WoW, site/model/date filters, saved selections");

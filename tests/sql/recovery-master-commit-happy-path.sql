@@ -64,6 +64,14 @@ CREATE TABLE public.import_history (
 INSERT INTO public.target_periods(id,period_name,period_start,period_end)
 VALUES('44444444-4444-4444-4444-444444444444','DUMMY NOV 2026','2026-11-01','2026-11-30');
 
+-- Production Admin has read policies for these business tables; the isolated
+-- RLS fixture intentionally began with only an EC/TL ownership-read policy.
+CREATE POLICY manpower_ci_admin_read ON public.manpower
+ FOR SELECT TO authenticated USING (public.is_admin());
+GRANT SELECT ON public.stores,public.store_targets,public.store_assignments,
+ public.coverage_assignments,public.ec_target_allocations,public.import_history
+ TO authenticated;
+
 -- Security regression verifies real business workflow with a dummy Admin.
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);

@@ -11,7 +11,7 @@ assert.match(page,/"Aktivasi Akun EC"/);
 assert.match(page,/ECAccountProvision\?\.render/);
 assert.match(page,/src="\/ec-account-provision\.js"/);
 assert.match(page,/currentProfile\?\.role==="ec"\?"provision-ec-accounts"/);
-assert.match(page,/data\.role==="ec"\)\)/);
+assert.match(page,/\["tl","ec","tso"\]\.includes\(data\.role\)/);
 assert.match(ui,/functions\.invoke\("provision-ec-accounts"/);
 assert.match(ui,/call\("preview"\)/);
 assert.match(ui,/call\("activate"\)/);

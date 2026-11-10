@@ -576,7 +576,7 @@ $("rotate-form").addEventListener("submit",async event=>{
     });
     data=await response.json().catch(()=>({}));
     if(!response.ok){
-     if(response.status===404||data?.error==="NO_RECOVERY_REQUEST")useLegacy=true;
+     if(data?.error==="NO_RECOVERY_REQUEST")useLegacy=true;
      else error=new Error(data?.error||"Tidak dapat mengganti password. Hubungi Admin.");
     }
    }catch(requestError){

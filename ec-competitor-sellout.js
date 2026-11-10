@@ -34,7 +34,7 @@
     '<label class="block text-sm text-slate-300">Harga per unit (Rp)<input name="unit_price" type="number" min="0" max="1000000000" step="1" class="field block w-full rounded-xl p-3 mt-2" required placeholder="0"></label>'+
     '<div class="sm:col-span-2"><p class="text-sm text-slate-400">Total estimasi: <strong id="competitor-amount" class="text-white">Rp0</strong></p></div>'+
     '<label class="sm:col-span-2 block text-sm text-slate-300">Catatan (opsional)<textarea name="notes" maxlength="500" rows="2" class="field block w-full rounded-xl p-3 mt-2"></textarea></label>'+
-    '<div class="sm:col-span-2"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button></div>'+
+    '<div class="sm:col-span-2 flex flex-wrap gap-3"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button><button type="button" id="competitor-cancel" class="hidden rounded-xl px-5 py-3 border border-slate-500 text-white">Batal edit</button></div>'+
    '</form>'+
    '<section class="panel rounded-2xl p-4 sm:p-6 min-w-0"><h3 class="font-semibold text-white">Riwayat input saya</h3><p class="text-xs text-slate-400 mt-1">Hanya transaksi kompetitor yang dicatat melalui akun ini.</p><div id="competitor-history" class="mt-4 text-sm text-slate-400">Memuat…</div></section></div>';
   const status=mount.querySelector("#competitor-status"),form=mount.querySelector("#competitor-form"),history=mount.querySelector("#competitor-history");
@@ -49,7 +49,7 @@
     const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
      method,signal:controller.signal,cache:"no-store",
      headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
-       ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+       ...(method!=="GET"?{"Content-Type":"application/json",Prefer:method==="POST"?"return=minimal":"return=representation"}:{})},
      ...(body?{body:JSON.stringify(body)}:{})
     });
     if(!response.ok){
@@ -58,7 +58,7 @@
      const details=await response.json().catch(()=>({}));
      throw Error(details.message||details.error||"Permintaan database gagal (HTTP "+response.status+").");
     }
-    return method==="GET"?{data:await response.json(),error:null}:{data:null,error:null};
+    return method==="GET"||method==="PATCH"||method==="DELETE"?{data:await response.json(),error:null}:{data:null,error:null};
    }catch(err){
     if(err.name==="AbortError")throw Error("Koneksi ke database tidak merespons. Periksa koneksi dan muat ulang menu.");
     throw err;
@@ -66,10 +66,21 @@
   }
   const storeQuery=()=>useRest?rest("stores?select=id,site_id,site_name&order=site_name.asc"):
     ctx.client.from("stores").select("id,site_id,site_name").order("site_name");
-  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,created_at&order=created_at.desc&limit=20"):
-    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,notes,store_id,created_at&order=created_at.desc&limit=20"):
+    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,notes,store_id,created_at").order("created_at",{ascending:false}).limit(20);
   const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
     ctx.client.from("competitor_sellout").insert(record);
+  const updateQuery=(id,record)=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"PATCH",record):
+    ctx.client.from("competitor_sellout").update(record).eq("id",id).select("id");
+  const deleteQuery=id=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"DELETE"):
+    ctx.client.from("competitor_sellout").delete().eq("id",id).select("id");
+  let editingId=null,historyRows=[];
+  const resetEdit=()=>{
+    editingId=null;form.elements.namedItem("store_id").disabled=false;form.elements.namedItem("sold_at").readOnly=false;form.reset();form.elements.namedItem("sold_at").value=localDate();
+    mount.querySelector("#competitor-submit").textContent="Simpan sellout kompetitor";
+    mount.querySelector("#competitor-cancel").classList.add("hidden");
+  };
+  mount.querySelector("#competitor-cancel").addEventListener("click",()=>{resetEdit();say("Edit dibatalkan.");});
   let stores=[];
   try{
    // Do not block the input form just because history failed to load.
@@ -90,10 +101,44 @@
    stores.forEach(s=>{const option=document.createElement("option");option.value=s.id;option.textContent=s.site_name+" · "+s.site_id;select.appendChild(option);});
    const date=form.elements.namedItem("sold_at");date.value=localDate();date.max=date.value;
    const paintHistory=rows=>{
+    historyRows=rows;
     if(!rows.length){history.textContent="Belum ada transaksi kompetitor.";return;}
-    history.innerHTML='<div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>Brand / Model</th><th>Qty</th><th>Total</th></tr></thead><tbody>'+
-     rows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td></tr>').join("")+'</tbody></table></div>';
+    history.innerHTML='<div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>Brand / Model</th><th>Qty</th><th>Total</th><th>Aksi</th></tr></thead><tbody>'+
+     rows.map(x=>{
+      const editable=x.sold_at===localDate();
+      return '<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td><td>'+
+       (editable?'<div class="flex gap-2"><button type="button" data-edit-id="'+enc(x.id)+'" class="text-cyan-300 underline">Edit</button><button type="button" data-delete-id="'+enc(x.id)+'" class="text-rose-300 underline">Delete</button></div>':'<span class="text-slate-500">Terkunci</span>')+'</td></tr>';
+     }).join("")+'</tbody></table></div><p class="text-xs text-slate-400 mt-3">Perubahan hanya untuk transaksi milik Anda dengan tanggal penjualan hari ini.</p>';
    };
+   history.addEventListener("click",async event=>{
+    const edit=event.target.closest("[data-edit-id]"),del=event.target.closest("[data-delete-id]");
+    if(!edit&&!del)return;
+    const id=(edit||del).dataset[edit?"editId":"deleteId"];
+    const row=historyRows.find(x=>x.id===id);
+    if(!row||row.sold_at!==localDate()){say("Transaksi di luar hari berjalan tidak dapat diubah.",true);return;}
+    if(edit){
+      editingId=row.id;
+      for(const key of ["store_id","sold_at","brand","model","variant","qty","unit_price","notes"]){
+        const control=form.elements.namedItem(key);if(control)control.value=row[key]??"";
+      }
+      form.elements.namedItem("store_id").disabled=true;
+      form.elements.namedItem("sold_at").readOnly=true;
+      mount.querySelector("#competitor-submit").textContent="Simpan perubahan";
+      mount.querySelector("#competitor-cancel").classList.remove("hidden");
+      updateAmount();form.scrollIntoView({behavior:"smooth",block:"start"});
+      return;
+    }
+    if(!window.confirm("Hapus input kompetitor hari ini? Tindakan ini akan tercatat dalam audit database."))return;
+    try{
+      const result=await requestWithDeadline(deleteQuery(id),"Penghapusan transaksi");
+      if(result.error)throw result.error;
+      if(!Array.isArray(result.data)||result.data.length!==1)throw Error("Transaksi tidak ditemukan atau akses hapus ditolak.");
+      say("Transaksi dihapus.");
+      const refresh=await requestWithDeadline(historyQuery(),"Riwayat input");
+      if(refresh.error)throw refresh.error;
+      paintHistory(refresh.data||[]);
+    }catch(error){say("Gagal menghapus: "+(error.message||"Akses ditolak."),true);}
+   });
    form.classList.remove("hidden");form.hidden=false;
    say("Form siap. Pilih brand dan isi penjualan kompetitor pada toko penempatan Anda.");
    try{
@@ -110,14 +155,17 @@
     const button=mount.querySelector("#competitor-submit");button.disabled=true;
     try{
      const values=Object.fromEntries(new FormData(form));
+     if(editingId){const original=historyRows.find(x=>x.id===editingId);if(!original||original.sold_at!==localDate())throw Error("Transaksi tidak lagi dapat diedit.");values.store_id=original.store_id;}
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
-     const record={...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
-     const {error}=await requestWithDeadline(insertQuery(record),"Penyimpanan transaksi");
-     if(error)throw error;
+     const record=editingId?(({store_id,sold_at,...mutable})=>mutable)(payload):{...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
+     const mutation=await requestWithDeadline(editingId?updateQuery(editingId,record):insertQuery(record),"Penyimpanan transaksi");
+     if(mutation.error)throw mutation.error;
+     if(editingId&&(!Array.isArray(mutation.data)||mutation.data.length!==1))
+       throw Error("Transaksi tidak ditemukan atau akses edit ditolak.");
      const selectedStore=form.elements.namedItem("store_id").value;
-     form.reset();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
-     say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");
+     resetEdit();form.elements.namedItem("store_id").disabled=false;form.elements.namedItem("sold_at").readOnly=false;form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
+     say("Data kompetitor berhasil disimpan. Data Samsung tidak berubah.");
      try{
       const {data,error:loadError}=await requestWithDeadline(historyQuery(),"Riwayat input");
       if(loadError)throw loadError;

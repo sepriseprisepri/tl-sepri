@@ -26,6 +26,30 @@ vm.runInNewContext(fs.readFileSync("ops-modules.js","utf8"),{
 },{filename:"ops-modules.js"});
 assert.equal(typeof window.SamsungOps.render,"function");
 
+
+// SQL draft must enforce allocation ceilings at the database layer, not only in JS.
+// This is a static contract check; concurrency still requires real staging transactions.
+const allocationSql=fs.readFileSync("docs/sql/20261110-focus-model-ec-allocations-draft.sql","utf8");
+for(const required of [
+  "CREATE TRIGGER focus_ec_allocation_ceiling",
+  "BEFORE INSERT OR UPDATE ON public.focus_model_ec_targets",
+  "FOR UPDATE;",
+  "allocated_qty + NEW.target_qty > ceiling_qty",
+  "allocated_amt + NEW.target_amt > ceiling_amt",
+  "CREATE TRIGGER focus_store_target_ceiling",
+  "BEFORE UPDATE OF target_qty, target_amt ON public.focus_model_targets",
+  "NEW.target_qty < used_qty OR NEW.target_amt < used_amt",
+  "REVOKE ALL ON SCHEMA app_private FROM PUBLIC, anon, authenticated",
+  "REVOKE ALL ON FUNCTION app_private.enforce_focus_ec_allocation()"
+])assert.ok(allocationSql.includes(required),"Missing database invariant: "+required);
+assert.ok(!allocationSql.includes("a.id<>OLD.id"),"INSERT trigger must not dereference OLD");
+const opsSource=fs.readFileSync("ops-modules.js","utf8");
+assert.match(opsSource,/\["42P01","PGRST205"\]\.includes\(error\.code\)/,
+ "Only missing-table errors may hide personal allocation loader");
+assert.doesNotMatch(opsSource,/focus_model_ec_targets[^\n]*\.catch\(\(\)=>null\)/,
+ "Never swallow authorization or connectivity errors in Focus Model");
+
+
 const html=fs.readFileSync("index.html","utf8");
 for(const match of html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)){
  if(match[1].trim())new vm.Script(match[1],{filename:"index.inline.js"});
@@ -62,8 +86,12 @@ const data={
   {store_id:"s2",shadow_month:"2026-11-01",is_shadow:true}
  ],
  focus_model_settings:[{model_code:"A07",display_name:"Galaxy A07",is_active:true}],
+ focus_model_ec_targets:[
+  {period_id:"p",store_id:"s1",manpower_id:"m1",model_code:"A07",target_qty:123,target_amt:25000000},
+  {period_id:"p",store_id:"s1",manpower_id:"m2",model_code:"A07",target_qty:456,target_amt:90000000}
+ ],
  focus_model_targets:[
-  {period_id:"p",store_id:"s1",model_code:"A07",target_qty:2,target_amt:4500000},
+  {period_id:"p",store_id:"s1",model_code:"A07",target_qty:600,target_amt:130000000},
   {period_id:"p",store_id:"s2",model_code:"A07",target_qty:10,target_amt:30000000}
  ]
 };
@@ -102,7 +130,7 @@ async function view(role,label){
  const client=makeClient(role),mount=new Element();
  const result=await window.SamsungOps.render({client,profile:client.profile,mount,period,label});
  assert.equal(result,true,label);
- const rendered=[mount.innerHTML,...mount.children.map(c=>c.querySelector("[data-body]").innerHTML)].join("\n");
+ const rendered=[mount.innerHTML,...mount.children.map(c=>c.innerHTML+"\n"+c.querySelector("[data-body]").innerHTML)].join("\n");
  assert.ok(!rendered.includes("Modul gagal"),label);
  assert.ok(mount.children.length>0,label);
  if(role!=="admin")assert.ok(!rendered.includes("Toko Rahasia"),label+" leaked off-scope store");
@@ -112,10 +140,26 @@ async function view(role,label){
  for(const [role,label] of [
   ["tl","Coverage & Toko"],["tl","RAW Sellout"],["tl","Store Shadow"],
   ["tl","Performa EC"],["tl","Focus Model"],["tl","Laporan"],
-  ["ec","Target Saya"],["ec","Laporan Saya"],
+  ["ec","Target Saya"],["ec","Focus Model"],["ec","Laporan Saya"],
   ["admin","Target"],["admin","Coverage"]
  ])await view(role,label);
 
+ const ownFocus=await view("ec","Focus Model");
+ assert.ok(ownFocus.includes("123"),"EC must see individually assigned Focus Model target");
+ assert.ok(!ownFocus.includes("456"),"EC must never see another EC focus allocation");
+ const tlFocus=await view("tl","Focus Model");
+ assert.ok(tlFocus.includes("579"),"TL must see allocated EC Qty separately");
+ assert.ok(tlFocus.includes("Sisa alokasi Qty"),"TL must see remaining allocation");
+ assert.ok(tlFocus.includes("Total target model"),"TL must retain store-level full target description");
+ assert.ok(tlFocus.includes("VALID Qty"),"TL focus should show actual achievement");
+ assert.ok(tlFocus.includes("Bagikan Focus Model kepada EC"),
+  "TL must see Focus Model allocation form after staging allocations exist");
+ assert.ok(!ownFocus.includes("Bagikan Focus Model kepada EC"),
+  "EC must not see allocation controls");
+ const ownTarget=await view("ec","Target Saya");
+ for(const label of ["Gap Qty","Gap Amt","Target Daily Qty","Target Daily Amt","AR Amt"]){
+  assert.ok(ownTarget.includes(label),"Missing EC KPI "+label);
+ }
  const raw=await view("tl","RAW Sellout");
  assert.ok(raw.includes("IMEI-P"),"pending entries must remain visible");
  assert.ok(raw.includes("EULA VALID"),"valid KPI missing");

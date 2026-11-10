@@ -1,0 +1,7 @@
+# Generated Supabase local environment (not connected to hosted project).
+supabase/
+node_modules/
+.env
+.env.*
+!.env.example
+*.log

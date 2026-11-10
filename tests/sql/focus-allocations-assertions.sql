@@ -163,6 +163,22 @@ DO $a$ BEGIN
  THEN RAISE EXCEPTION 'Transferred EC still sees old-store allocation'; END IF;
 END $a$;
 RESET ROLE;
+-- Disabling the model must not prevent cleanup of historical allocations.
+-- Nonzero assignments to disabled models remain forbidden.
+UPDATE public.focus_model_settings SET is_active=false WHERE model_code='GALAXY A55';
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
+DO $a$ BEGIN
+ BEGIN
+  PERFORM public.set_focus_model_ec_allocation(
+   'cccccccc-cccc-cccc-cccc-cccccccccccc',
+   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','GALAXY A55',
+   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',7,700);
+  RAISE EXCEPTION 'Disabled model accepted new allocation';
+ EXCEPTION WHEN invalid_parameter_value THEN NULL;
+ END;
+END $a$;
+RESET ROLE;
 -- Even after the EC transfers to S-02, TL1 may remove the stale S-01
 -- allocation without requiring the EC to be active at that old location.
 SET ROLE authenticated;

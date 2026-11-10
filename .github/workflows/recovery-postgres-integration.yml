@@ -58,6 +58,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-assertions.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-commit-master-database-recovery-guard-staging.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-master-commit-rpc-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-master-commit-happy-path.sql
       - name: Check 12 parallel requests allow only 5
         run: |
           set -euo pipefail

@@ -141,35 +141,44 @@ Deno.serve(async req=>{
   if(action==="list"){
     const {data,error}=await admin.from("password_recovery_requests")
       .select("id,employee_id,role,reason,status,created_at,expires_at")
-      .in("status",["pending","awaiting_delivery","delivered"])
+      .in("status",["pending","processing","awaiting_delivery","delivered","failed","expired"])
       .order("created_at",{ascending:false}).limit(100);
     if(error)return reply(req,{error:"Permintaan belum dapat dimuat"},503);
     return reply(req,{ok:true,requests:data||[]});
   }
-  if(action==="approve"){
+  if(action==="approve"||action==="reissue"){
+    const isReissue=action==="reissue";
     if(typeof body.request_id!=="string"||!/^[0-9a-f-]{36}$/i.test(body.request_id))
       return reply(req,{error:"Permintaan tidak valid"},400);
     const {data:target,error:getError}=await admin.from("password_recovery_requests")
       .select("id,user_id,employee_id,role,status").eq("id",body.request_id).maybeSingle();
-    if(getError||!target||target.status!=="pending")return reply(req,{error:"Permintaan tidak lagi menunggu persetujuan"},409);
+    const recoverable=["failed","awaiting_delivery","delivered","expired"];
+    if(getError||!target||!(isReissue?recoverable.includes(target.status):target.status==="pending"))
+      return reply(req,{error:"Status permintaan tidak valid untuk tindakan ini"},409);
     if(target.user_id===callerId)return reply(req,{error:"Tidak boleh menyetujui permintaan sendiri"},403);
     const {data:profile}=await admin.from("profiles")
       .select("id,employee_id,role,is_active,must_change_password").eq("id",target.user_id).maybeSingle();
     const {data:authUser}=await admin.auth.admin.getUserById(target.user_id);
     if(!profile||profile.employee_id!==target.employee_id||profile.role!==target.role||
-      !profile.is_active||profile.must_change_password||
+      !(isReissue
+        ? (profile.is_active===false && profile.must_change_password===true) ||
+          (target.status==="failed" && profile.is_active===true && profile.must_change_password===false)
+        : profile.is_active===true && profile.must_change_password===false) ||
       authUser?.user?.email?.toLowerCase()!==target.employee_id.toLowerCase()+"@login.tlsepri.internal")
       return reply(req,{error:"Identitas atau status akun berubah. Persetujuan dibatalkan"},409);
     // Prevent duplicate approval and parallel credentials issuance.
     const {data:claimed,error:claimError}=await admin.from("password_recovery_requests")
       .update({status:"processing",approved_by:callerId,approved_at:new Date().toISOString()})
-      .eq("id",target.id).eq("status","pending").select("id").maybeSingle();
+      .eq("id",target.id).eq("status",target.status).select("id").maybeSingle();
     if(claimError||!claimed)return reply(req,{error:"Permintaan sedang diproses"},409);
     // Disabling application access is necessary before password replacement.
-    const {error:disableError}=await admin.from("profiles")
-      .update({is_active:false,must_change_password:true,updated_at:new Date().toISOString()})
-      .eq("id",profile.id).eq("is_active",true).eq("must_change_password",false);
-    if(disableError){
+    const {data:locked,error:disableError}=profile.is_active===false && profile.must_change_password===true
+      ? {data:{id:profile.id},error:null}
+      : await admin.from("profiles")
+          .update({is_active:false,must_change_password:true,updated_at:new Date().toISOString()})
+          .eq("id",profile.id).eq("is_active",true).eq("must_change_password",false)
+          .select("id").maybeSingle();
+    if(disableError||!locked){
       await admin.from("password_recovery_requests").update({status:"failed"}).eq("id",target.id);
       return reply(req,{error:"Profil gagal dikunci; hubungi Admin"},503);
     }
@@ -181,7 +190,8 @@ Deno.serve(async req=>{
     }
     const expiry=new Date(Date.now()+24*3600_000).toISOString();
     const {error:stateError}=await admin.from("password_recovery_requests")
-      .update({status:"awaiting_delivery",expires_at:expiry}).eq("id",target.id);
+      .update({status:"awaiting_delivery",expires_at:expiry,delivered_at:null,completed_at:null})
+      .eq("id",target.id).eq("status","processing");
     if(stateError)return reply(req,{error:"Password diperbarui tetapi status perlu perbaikan manual; jangan kirim password"},503);
     return reply(req,{ok:true,employee_id:target.employee_id,temporary_password:temporary,expires_at:expiry,
       warning:"Tampilkan satu kali kepada Admin. Verifikasi pemilik akun dan kirim lewat kanal privat."});

@@ -161,10 +161,19 @@ async function run(){
  assert.ok(ecRow?.id,"EC request must be visible to Admin");
  const ecApproved=await edge("approve",{request_id:ecRow.id},adminJwt);
  expectResponse(ecApproved,200,"EC approved reset");
+ // Simulate a crashed Admin job. A fresh processing request must not be
+ // reissued; an older than 15m one can be claimed exactly once.
+ await updateRequest(ecRow.id,{status:"processing",approved_at:new Date().toISOString()});
+ const tooSoon=await edge("reissue",{request_id:ecRow.id},adminJwt);
+ expectResponse(tooSoon,409,"fresh processing cannot be stolen");
+ await updateRequest(ecRow.id,{status:"processing",approved_at:new Date(Date.now()-20*60_000).toISOString()});
+ const stuckRecovered=await edge("reissue",{request_id:ecRow.id},adminJwt);
+ expectResponse(stuckRecovered,200,"stalled EC processing can be reissued");
+ assert.equal(stuckRecovered.result?.temporary_password?.length,28);
  const ecOldData=await readBusiness(ecJwt);
  expectResponse(ecOldData,200,"stale EC token request");
  assert.equal(ecOldData.result.length,0,"stale EC token must lose market access");
- const ecTemporaryJwt=await login("ec",ecApproved.result.temporary_password);
+ const ecTemporaryJwt=await login("ec",stuckRecovered.result.temporary_password);
  const ecTempData=await readBusiness(ecTemporaryJwt);
  expectResponse(ecTempData,200,"temporary EC token request");
  assert.equal(ecTempData.result.length,0,"EC must not read business data until rotation");

@@ -85,7 +85,13 @@ GRANT EXECUTE ON FUNCTION public.current_app_role(),public.can_access_store(uuid
 -- Existing production policies grant authenticated SELECT on these master-data
 -- tables (with their own RLS); this minimal fixture needs those SQL grants for
 -- allocation-RLS subqueries to run under the authenticated role.
-GRANT SELECT ON public.manpower,public.stores TO authenticated;
+GRANT SELECT ON public.manpower,public.stores,public.store_assignments TO authenticated;
+ALTER TABLE public.store_assignments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY store_assignment_access_on_scope ON public.store_assignments
+ FOR SELECT TO authenticated USING (
+  public.can_access_store(store_id)
+  OR manpower_id=(SELECT p.manpower_id FROM public.profiles p WHERE p.id=auth.uid())
+);
 -- The existing production parent model policy used can_access_store for EC.
 -- Migration must replace this with TL/TSO/Admin-only parent reads.
 ALTER TABLE public.focus_model_targets ENABLE ROW LEVEL SECURITY;

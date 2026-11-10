@@ -19,6 +19,7 @@ on:
       - 'tests/ops-smoke.cjs'
       - 'password-recovery.js'
       - 'tests/password-recovery-smoke.cjs'
+      - 'tests/password-recovery-mock-integration.cjs'
       - 'supabase/functions/password-recovery/**'
       - 'docs/sql/20261110-password-recovery-approval-draft.sql'
       - '.github/workflows/ops-smoke.yml'
@@ -41,6 +42,7 @@ on:
       - 'tests/ops-smoke.cjs'
       - 'password-recovery.js'
       - 'tests/password-recovery-smoke.cjs'
+      - 'tests/password-recovery-mock-integration.cjs'
       - 'supabase/functions/password-recovery/**'
       - 'docs/sql/20261110-password-recovery-approval-draft.sql'
       - '.github/workflows/ops-smoke.yml'
@@ -60,6 +62,7 @@ jobs:
           node --version
           node --check password-recovery.js
           node tests/password-recovery-smoke.cjs
+          node tests/password-recovery-mock-integration.cjs
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs
           node tests/intelligence-smoke.cjs

@@ -18,7 +18,14 @@ const weekStart=day=>shift(day,-((iso(day).getUTCDay()+6)%7));
 const moneyFormat=x=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(x);
 const qtyFormat=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(x));
 // Display-only: EVERY Target Qty uses ceiling, never nearest-integer rounding.
-const targetQtyFormat=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(amount(x)));
+const targetQtyFormat=x=>{
+ // PostgREST gives numbers; also accept Indonesian example strings such as
+ // "3.794,25" without misreading decimal commas as grouping separators.
+ const normalized=typeof x==="string"&&x.includes(",")?
+   Number(x.trim().replace(/\\./g,"").replace(",", ".")):amount(x);
+ const value=Number.isFinite(normalized)?normalized:0;
+ return new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(value));
+};
 const percent=(n,d)=>d>0?n/d*100:null;
 
 function completeWeeks(valid,start,end,asOf,metric){

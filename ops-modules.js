@@ -285,7 +285,7 @@
       rows,cells:r=>[r.site_id,r.site_name,r.category,nfmt(r.qty),nfmt(r.eligible),currency(r.estimate)],
       filename:"shadow-"+period.period_start+".csv"});
   }
-  function focusPage(mount,period,settings,targets,stores,sales,profile,allocations){
+  function focusPage(mount,period,settings,targets,stores,sales,profile,allocations,client,roster){
     const personal=profile.role==="ec";
     const names=mapById(stores),modelNames=new Map(settings.map(x=>[x.model_code,x.display_name]));
     // Individual EC allocations are mandatory: never substitute a store target for an EC target.
@@ -321,6 +321,69 @@
       ["Gap Qty",qtyFmt(targetQty-actualQty),"Target dikurangi realisasi"],
       ["Gap Amt",currency(targetAmt-actualAmt),"Target dikurangi realisasi"]
     ]));
+    if(profile.role==="tl"||profile.role==="admin"){
+      const activeStores=new Set(stores.map(x=>x.id));
+      const eligible=(roster||[]).filter(m=>m.is_active&&m.fieldforce_position==="EC"&&
+        stores.some(st=>st.site_id===m.site_id));
+      if(!allocations){
+        mount.insertAdjacentHTML("beforeend",alert(
+          "Form pembagian target dinonaktifkan sampai tabel alokasi Focus Model dan RLS aktif di staging."));
+      }else if(eligible.length&&settings.length){
+        const form=document.createElement("form");
+        form.className="panel rounded-2xl p-4 sm:p-5 my-5 space-y-4";
+        form.innerHTML='<h4 class="font-semibold">Bagikan Focus Model kepada EC</h4>'+
+         '<p class="text-xs text-slate-400">Alokasi ditetapkan oleh TL untuk EC pada toko yang ditugaskan. Toko dan model dipilih dari data yang diizinkan.</p>'+
+         '<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">'+
+         '<label class="text-sm">EC<select data-ec required class="field block w-full rounded-lg p-2 mt-1">'+eligible.map(m=>
+           '<option value="'+esc(m.id)+'">'+esc(m.full_name)+" · "+esc(m.employee_id)+'</option>').join("")+'</select></label>'+
+         '<label class="text-sm">Model<select data-model required class="field block w-full rounded-lg p-2 mt-1">'+settings.filter(x=>x.is_active).map(x=>
+           '<option value="'+esc(x.model_code)+'">'+esc(x.display_name)+'</option>').join("")+'</select></label>'+
+         '<label class="text-sm">Target Qty<input data-qty class="field block w-full rounded-lg p-2 mt-1" type="number" min="0" step="0.001" required value="0"></label>'+
+         '<label class="text-sm">Target Amt (Rp)<input data-amt class="field block w-full rounded-lg p-2 mt-1" type="number" min="0" step="0.01" required value="0"></label>'+
+         '</div><p data-store class="text-xs text-cyan-300"></p>'+
+         '<button data-submit type="submit" class="rounded-lg bg-cyan-500 text-slate-950 font-semibold px-5 py-2">Simpan alokasi EC</button>'+
+         '<p data-status role="status" aria-live="polite" class="text-sm"></p>';
+        mount.append(form);
+        const ec=form.querySelector("[data-ec]"),model=form.querySelector("[data-model]"),
+         qty=form.querySelector("[data-qty]"),amt=form.querySelector("[data-amt]"),
+         status=form.querySelector("[data-status]"),submit=form.querySelector("[data-submit]");
+        const getAssignedStore=()=>stores.find(st=>st.site_id===eligible.find(m=>m.id===ec.value)?.site_id);
+        function sync(){
+          const st=getAssignedStore();form.querySelector("[data-store]").textContent=
+            st?"Toko: "+st.site_name+" · "+st.site_id:"Tidak ada toko aktif yang valid";
+          const existing=(allocations||[]).find(x=>x.manpower_id===ec.value&&x.store_id===st?.id&&x.model_code===model.value);
+          qty.value=existing?.target_qty??0;amt.value=existing?.target_amt??0;
+        }
+        ec.addEventListener("change",sync);model.addEventListener("change",sync);sync();
+        form.addEventListener("submit",async event=>{
+          event.preventDefault();
+          const st=getAssignedStore(),q=Number(qty.value),a=Number(amt.value);
+          if(!st||!activeStores.has(st.id)||!Number.isFinite(q)||!Number.isFinite(a)||q<0||a<0){
+            status.textContent="Periksa EC, toko, target Qty dan Amount.";return;
+          }
+          const target=targets.find(t=>t.store_id===st.id&&t.model_code===model.value);
+          const old=(allocations||[]).find(t=>t.manpower_id===ec.value&&t.store_id===st.id&&t.model_code===model.value);
+          const allocated=(allocations||[]).filter(t=>t.store_id===st.id&&t.model_code===model.value&&t!==old);
+          if(!target||sum(allocated,"target_qty")+q>num(target.target_qty)+0.000001||
+             sum(allocated,"target_amt")+a>num(target.target_amt)+0.01){
+            status.textContent="Alokasi melebihi total target model toko atau target toko belum ditetapkan.";return;
+          }
+          submit.disabled=true;status.textContent="Menyimpan alokasi...";
+          try{
+            const payload={period_id:period.id,manpower_id:ec.value,store_id:st.id,model_code:model.value,
+              target_qty:q,target_amt:a,updated_by:profile.id};
+            const {data,error}=await client.from("focus_model_ec_targets").upsert(payload,{
+              onConflict:"period_id,manpower_id,store_id,model_code"
+            }).select("manpower_id,store_id,model_code,target_qty,target_amt").single();
+            if(error)throw error;
+            if(!data)throw Error("Database tidak mengonfirmasi penyimpanan.");
+            status.textContent="Alokasi tersimpan. Memuat ulang Focus Model...";
+            await render({label:"Focus Model",client,profile,mount,period});
+          }catch(err){status.textContent="Gagal menyimpan: "+(err.message||"Permintaan ditolak RLS.");}
+          finally{submit.disabled=false;}
+        });
+      }
+    }
     if(personal&&!allocations)mount.insertAdjacentHTML("beforeend",alert(
       "Alokasi Focus Model untuk EC belum diaktifkan. Total target toko tidak ditampilkan sebagai target personal."));
     if(!personal&&(!allocations||!allocations.length))mount.insertAdjacentHTML("beforeend",alert(
@@ -365,7 +428,7 @@
       nowPeriod(period);
       const loadSales=true;
       const loadTargets=["Coverage & Toko","Coverage","Target","Target Saya","Laporan","Laporan Saya"].includes(label);
-      const loadManpower=label==="Performa EC";
+      const loadManpower=label==="Performa EC"||(label==="Focus Model"&&["tl","admin"].includes(profile.role));
       const loadShadow=label==="Store Shadow";
       const loadFocus=label==="Focus Model";
       const personal=profile.role==="ec";
@@ -386,7 +449,7 @@
       else if(label==="RAW Sellout")rawPage(mount,period,sales,stores);
       else if(label==="Performa EC")performancePage(mount,period,manpower,allocations,sales,stores);
       else if(label==="Store Shadow")shadowPage(mount,period,stores,history,sales);
-      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores,sales,profile,ecFocusTargets);
+      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores,sales,profile,ecFocusTargets,client,manpower);
       else if(label==="Laporan"||label==="Laporan Saya")reportPage(mount,period,sales,stores,targets,personal);
     }catch(error){
       console.error("[SamsungOps]",error);

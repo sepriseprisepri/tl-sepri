@@ -7,6 +7,8 @@ const cash=new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximu
 const n=x=>Number(x||0),N=x=>fmt.format(n(x)),money=x=>cash.format(n(x));
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pct=(a,b)=>b>0?Math.round(100*a/b*10)/10:0;
+const targetQtyText=x=>window.SamsungMarketMetrics?.targetQtyFormat?.(x) ??
+ new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(n(x)));
 const dateLocal=()=>{
  const parts=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).filter(p=>p.type!=="literal").map(p=>[p.type,p.value]));
  return parts.year+"-"+parts.month+"-"+parts.day;
@@ -57,7 +59,7 @@ const analytics={
   const a=analytics.compute(data),items=[];
   const roleText={admin:"seluruh wilayah",tl:"coverage TL",tso:"wilayah TSO",ec:"penjualan pribadi EC"}[role]||"cakupan Anda";
   items.push({type:"summary",title:"Performa "+roleText,
-    body:a.targetQty>0?"Capaian Qty VALID "+N(a.actualQty)+" dari "+N(a.targetQty)+" unit ("+N(pct(a.actualQty,a.targetQty))+"%). Pace periode "+N(a.timeGone*100)+"%.":"Tercatat "+N(a.actualQty)+" unit VALID; target Qty pada scope ini belum tersedia."});
+    body:a.targetQty>0?"Capaian Qty VALID "+N(a.actualQty)+" dari "+targetQtyText(a.targetQty)+" unit ("+N(pct(a.actualQty,a.targetQty))+"%). Pace periode "+N(a.timeGone*100)+"%.":"Tercatat "+N(a.actualQty)+" unit VALID; target Qty pada scope ini belum tersedia."});
   if(a.market&&window.SamsungMarketMetrics){
    for(const i of window.SamsungMarketMetrics.insights(a.market,role).slice(0,3))
     items.push({type:i.type==="warning"?"risk":i.type==="positive"?"opportunity":i.type,title:i.title,body:i.body});
@@ -85,9 +87,9 @@ function renderDashboard(ctx){
  const metricBox=(label,value,hint)=>'<div class="intel-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(hint)+'</small></div>';
  const q=window.SamsungMarketMetrics?.qtyFormat||N;
  const dailyInfo=market?'<div class="intel-stat-grid intel-market-pulse" aria-label="Ringkasan MTD dan pertumbuhan sellout">'+
-  metricBox("Target MTD Qty",market.targetQty>0?q(market.mtdQty):"—","Pace kalender · "+market.elapsed+"/"+market.duration+" hari")+
+  metricBox("Target MTD Qty",market.targetQty>0?targetQtyText(market.mtdQty):"—","Pace kalender · "+market.elapsed+"/"+market.duration+" hari")+
   metricBox("Gap MTD Qty",market.targetQty>0?q(market.mtdGapQty):"—","Positif berarti tertinggal dari pace")+
-  metricBox("Target Daily Qty",market.targetQty>0&&market.remainingDays?q(Math.ceil(market.dailyQty)):"—","Kebutuhan/hari · "+market.remainingDays+" hari tersisa")+
+  metricBox("Target Daily Qty",market.targetQty>0&&market.remainingDays?targetQtyText(market.dailyQty):"—","Kebutuhan/hari · "+market.remainingDays+" hari tersisa")+
   metricBox("Growth Sellout WoW",market.wowQty===null?"Belum cukup data":(market.wowQty>=0?"+":"")+market.wowQty.toFixed(1)+"%","Dua minggu kalender lengkap")+
   '</div>':"";
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};
@@ -270,7 +272,7 @@ function renderCharts(ctx,mount){
   const target=n((f.model||!fullPeriod)?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
   const a=analytics.compute({...ctx,sales:filtered,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
   const pctTarget=target>0?pct(dsum,target):0;
-  document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":N(target))+'</small></div>'+
+  document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":metric==="qty"?targetQtyText(target):money(target))+'</small></div>'+
     '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":!fullPeriod?"Rentang tanggal parsial tidak dibandingkan dengan target bulanan penuh.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+
     '<div class="intel-bar"><span style="width:'+Math.max(0,Math.min(100,pctTarget))+'%"></span></div>';
  };

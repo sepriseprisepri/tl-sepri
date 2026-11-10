@@ -30,7 +30,7 @@ function randomPassword():string{
 async function ipDigest(request:Request,salt:string){
   // Production requires a trusted ingress that normalizes forwarded headers.
   const forwarded=request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"not-provided";
-  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(salt),"HMAC",false,["sign"]);
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(salt),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(forwarded));
   return Array.from(new Uint8Array(signature)).map(x=>x.toString(16).padStart(2,"0")).join("");
 }

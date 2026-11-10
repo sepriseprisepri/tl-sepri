@@ -17,6 +17,14 @@ GRANT ALL ON public.profiles TO service_role;
 CREATE POLICY profiles_self_read ON public.profiles
  FOR SELECT TO authenticated USING (id = (SELECT auth.uid()));
 
+CREATE OR REPLACE FUNCTION public.current_app_role()
+RETURNS text LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = pg_catalog,pg_temp
+AS $
+ SELECT p.role FROM public.profiles p
+ WHERE p.id=(SELECT auth.uid()) AND p.is_active IS TRUE
+$;
+
 CREATE TABLE IF NOT EXISTS public.recovery_e2e_business_data (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  label text NOT NULL

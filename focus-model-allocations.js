@@ -9,6 +9,8 @@ const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({
  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 }[c]));
 const qty=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(num(x)));
+const targetQtyText=x=>window.SamsungMarketMetrics?.targetQtyFormat?.(x) ??
+ new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(num(x)));
 const money=x=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(num(x));
 const percentage=(a,b)=>b>0?(100*a/b).toFixed(1)+"%":"—";
 const key=s=>String(s??"").toUpperCase().normalize("NFKC").replace(/[^A-Z0-9]/g,"");
@@ -103,8 +105,8 @@ function setupUi(data){
     'Target toko adalah batas resmi; TL membagikan alokasi individual EC sesuai coverage.')+
    '</p></div><span class="pill text-cyan-200">EULA VALID · RLS</span></div>';
  const cards='<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">'+
-  (personal?"":metric("Target Qty model toko",qty(targetQty),"Batas total store dalam scope"))+
-  metric(personal?"Target Qty Saya":"Total Qty dialokasikan",qty(assignedQty),
+  (personal?"":metric("Target Qty model toko",targetQtyText(targetQty),"Batas total store dalam scope"))+
+  metric(personal?"Target Qty Saya":"Total Qty dialokasikan",targetQtyText(assignedQty),
    personal?"Alokasi pribadi dari TL":"Penjumlahan alokasi individual EC")+
   metric("Qty VALID tercapai",qty(achievedQty),"Hanya model yang cocok + Promoter ID")+
   metric("Gap Qty",qty(assignedQty-achievedQty),"Alokasi Qty dikurangi realisasi pribadi")+
@@ -112,15 +114,15 @@ function setupUi(data){
   metric("Target Amt dialokasikan",money(assignedAmt),"Total target rupiah alokasi")+
   metric("Gap Amt",money(assignedAmt-achievedAmt),"Selisih target rupiah terhadap VALID")+
  '</div>';
- const summary=manager?'<p class="text-xs text-slate-400 mb-4">Target toko Qty '+qty(targetQty)+
-  ' · Amt '+money(targetAmt)+' · telah dialokasikan Qty '+qty(assignedQty)+
+ const summary=manager?'<p class="text-xs text-slate-400 mb-4">Target toko Qty '+targetQtyText(targetQty)+
+  ' · Amt '+money(targetAmt)+' · telah dialokasikan Qty '+targetQtyText(assignedQty)+
   ' / Amt '+money(assignedAmt)+'. Alokasi tidak boleh melebihi tiap target model toko.</p>':
  '<p class="text-xs text-slate-400 mb-4">Pencapaian dihitung dari transaksi Anda pada toko penempatan, Promoter ID, model yang teridentifikasi, dan EULA VALID.</p>';
  const notice=migrationPending?
   '<div role="status" class="rounded-xl bg-amber-950/30 border border-amber-700/40 p-4 text-amber-200 mb-4">Migrasi alokasi EC belum tersedia di database ini. Target model toko tetap dapat dilihat, tetapi pengaturan personal belum aktif.</div>':"";
  const selections=targets.map((t,i)=>({value:String(i),
   text:(storesById.get(t.store_id)?.site_name||"Toko")+
-    " · "+(names.get(t.model_code)||t.model_code)+" · target "+qty(t.target_qty)}));
+    " · "+(names.get(t.model_code)||t.model_code)+" · target "+targetQtyText(t.target_qty)}));
  const activeAssignments=new Set(assignments.filter(a=>
   a.valid_from<=today()&&(!a.valid_to||a.valid_to>=today())).map(a=>a.manpower_id+"|"+a.store_id));
  const eligible=manpower.filter(m=>m.is_active&&m.fieldforce_position==="EC"&&
@@ -157,8 +159,8 @@ function setupUi(data){
    const qAlloc=total(subset,"target_qty"),amtAlloc=total(subset,"target_amt");
    return '<tr><td>'+esc(storesById.get(t.store_id)?.site_name||"—")+'</td>'+
      '<td>'+esc(names.get(t.model_code)||t.model_code)+'</td>'+
-     '<td>'+qty(t.target_qty)+'</td><td>'+qty(qAlloc)+'</td>'+
-     '<td>'+qty(num(t.target_qty)-qAlloc)+'</td>'+
+     '<td>'+targetQtyText(t.target_qty)+'</td><td>'+targetQtyText(qAlloc)+'</td>'+
+     '<td>'+targetQtyText(Math.max(0,num(t.target_qty)-qAlloc))+'</td>'+
      '<td>'+qty(total(subset,"actual_qty"))+'</td>'+
      '<td>'+money(t.target_amt)+'</td><td>'+money(amtAlloc)+'</td>'+
      '<td>'+money(num(t.target_amt)-amtAlloc)+'</td></tr>';
@@ -192,7 +194,7 @@ function setupUi(data){
     '<td>'+esc(people.get(h.manpower_id)?.full_name||"EC lama / tidak aktif")+'</td>'+
     '<td>'+esc(names.get(h.model_code)||h.model_code)+'</td>'+
     '<td>'+esc(h.action==="create"?"Dibuat":h.action==="update"?"Diubah":"Dihapus")+'</td>'+
-    '<td>'+qty(h.old_qty)+' → '+qty(h.new_qty)+'</td>'+
+    '<td>'+targetQtyText(h.old_qty)+' → '+targetQtyText(h.new_qty)+'</td>'+
     '<td>'+money(h.old_amt)+' → '+money(h.new_amt)+'</td></tr>').join("")+
    (history.length?"":'<tr><td colspan="6" class="text-slate-400 py-5">Belum ada perubahan.</td></tr>')+
   '</tbody></table></div><p class="text-xs text-slate-500 mt-3">25 aktivitas terbaru dalam periode; seluruh perubahan dicatat pada database.</p></section>':"";
@@ -205,7 +207,7 @@ function setupUi(data){
   body.innerHTML=filtered.map(r=>'<tr>'+
    (personal?"":'<td>'+esc(r.employee_name)+'</td>')+
    '<td>'+esc(r.store_name)+'</td><td>'+esc(r.model_name)+'</td>'+
-   '<td class="text-right">'+qty(r.target_qty)+'</td>'+
+   '<td class="text-right">'+targetQtyText(r.target_qty)+'</td>'+
    '<td class="text-right">'+qty(r.actual_qty)+'</td>'+
    '<td class="text-right">'+qty(r.target_qty-r.actual_qty)+'</td>'+
    '<td class="text-right">'+percentage(r.actual_qty,r.target_qty)+'</td>'+
@@ -237,8 +239,8 @@ function setupUi(data){
   if(parent.value===""||!t){capacity.textContent="Pilih target model toko.";return;}
   const others=assigned.filter(a=>a.store_id===t.store_id&&a.model_code===t.model_code&&
    a.manpower_id!==person.value);
-  capacity.textContent="Target toko: "+qty(t.target_qty)+" / "+money(t.target_amt)+
-   " · Sisa untuk EC terpilih: "+qty(num(t.target_qty)-total(others,"target_qty"))+
+  capacity.textContent="Target toko: "+targetQtyText(t.target_qty)+" / "+money(t.target_amt)+
+   " · Sisa untuk EC terpilih: "+targetQtyText(Math.max(0,num(t.target_qty)-total(others,"target_qty")))+
    " / "+money(num(t.target_amt)-total(others,"target_amt"));
  }
  function clear(){

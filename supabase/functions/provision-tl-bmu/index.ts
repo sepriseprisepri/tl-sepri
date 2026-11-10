@@ -56,6 +56,14 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
     if (caller.role !== "tl" || caller.employee_id !== "TL_BMU_KAL_02" || !caller.must_change_password) {
       return reply(request, { error: "Password rotation is not required for this account" }, 403);
     }
+    // Recovery-managed TL BMU must rotate through the approved recovery Edge
+    // Function, which enforces the 24-hour expiration and one-time delivery.
+    const {data:recentRecovery,error:recoveryError}=await admin
+      .from("password_recovery_requests").select("id,status")
+      .eq("user_id",userId).order("created_at",{ascending:false}).limit(1);
+    if(recoveryError)return reply(request,{error:"Layanan pemulihan sedang tidak tersedia"},503);
+    if((recentRecovery||[]).some(item=>item.status!=="completed"))
+      return reply(request,{error:"Gunakan penggantian password melalui pemulihan yang disetujui Admin"},403);
     const password = body.new_password;
     if (typeof password !== "string" || password.length < 14 || password.length > 128 ||
         !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
@@ -73,7 +81,7 @@ const authorized = withSupabase({ auth: "user" }, async (request, ctx) => {
   }
 
   if (body.action !== "activate") return reply(request, { error: "Unknown action" }, 400);
-  if (caller.role !== "admin") return reply(request, { error: "Active admin access required" }, 403);
+  if (caller.role !== "admin" || caller.must_change_password) return reply(request, { error: "Active admin access required" }, 403);
 
   const { data: manpower, error: manpowerError } = await admin.from("manpower")
     .select("id,employee_id,promoter_id,is_active")

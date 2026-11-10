@@ -39,6 +39,17 @@ const authenticated=withSupabase({ auth: "user" }, async (req, ctx) => {
       if(caller.role!=="ec" || !caller.must_change_password || caller.is_active || !caller.manpower_id) {
         return json(req,{error:"Perubahan password EC tidak diperlukan untuk akun ini"},403);
       }
+      // Defense against bypass: a recovery-managed EC may not rotate via
+      // the legacy provisioning endpoint, regardless of expiry or request state.
+      // This also prevents an expired 24h credential from being extended here.
+      const {data:recentRecoveries,error:recoveryError}=await admin
+        .from("password_recovery_requests")
+        .select("id,status")
+        .eq("user_id",callerId)
+        .order("created_at",{ascending:false}).limit(1);
+      if(recoveryError)return json(req,{error:"Periksa layanan pemulihan password; rotasi lama sementara tidak tersedia"},503);
+      if((recentRecoveries||[]).some(item=>item.status!=="completed"))
+        return json(req,{error:"Akun sedang dalam pemulihan. Gunakan halaman penggantian password yang disetujui Admin."},403);
       const password=body.new_password;
       if(typeof password!=="string" || password.length<14 || password.length>128 ||
          !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {

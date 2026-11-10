@@ -1,0 +1,88 @@
+name: Password Recovery Full Supabase Local E2E (No Production)
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/password-recovery/**'
+      - 'tests/recovery-supabase-local-e2e.cjs'
+      - 'tests/sql/recovery-supabase-local-fixture.sql'
+      - 'docs/sql/20261110-password-recovery-approval-draft.sql'
+      - 'docs/sql/20261110-password-recovery-rls-guard-staging.sql'
+      - 'docs/sql/20261110-password-recovery-restrictive-rls-staging.sql'
+      - '.github/workflows/recovery-fullstack-local.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.81.3
+      - name: Initialize standalone local stack
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase init --force
+          cat >> supabase/config.toml <<'EOF'
+
+          # This project is a disposable GitHub Actions local test, never hosted.
+          [functions.password-recovery]
+          verify_jwt = false
+          EOF
+          # Start only Auth, PostgREST, DB, API proxy and Edge runtime.
+          supabase start -x studio,imgproxy,realtime,storage-api,postgres-meta,logflare,vector,supavisor,mailpit
+      - name: Install PostgreSQL client
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Apply local-only recovery fixtures and draft migration
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGDATABASE=postgres
+          psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-supabase-local-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-approval-draft.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-rls-guard-staging.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-restrictive-rls-staging.sql
+      - name: Configure official Turnstile dummy secret locally and serve Edge Function
+        run: |
+          set -euo pipefail
+          {
+            echo 'PASSWORD_RECOVERY_IP_SALT=local-ci-only-salt-with-48-characters-for-dummy-users'
+            echo 'TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA'
+          } > /tmp/recovery-test.env
+          supabase functions serve password-recovery --env-file /tmp/recovery-test.env --no-verify-jwt > /tmp/recovery-edge.log 2>&1 &
+          echo $! > /tmp/recovery-edge.pid
+          # Status keys are scoped to the local stack and never printed to logs.
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+          for i in $(seq 1 40); do
+            if curl -s -o /dev/null -X OPTIONS -H 'Origin: http://localhost:3000' http://127.0.0.1:54321/functions/v1/password-recovery; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Local Edge Function failed to start (inspect no-secret log)"
+          tail -60 /tmp/recovery-edge.log
+          exit 1
+      - name: Real local GoTrue/PostgREST/Edge Function E2E
+        run: |
+          node --check tests/recovery-supabase-local-e2e.cjs
+          node tests/recovery-supabase-local-e2e.cjs
+      - name: Cleanup local stack
+        if: always()
+        run: |
+          supabase stop --no-backup || true

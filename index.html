@@ -191,6 +191,8 @@
 <script src="/survey-affordability.js"></script>
 <script src="/ec-account-provision.js"></script>
 <script src="/ec-password-reset.js"></script>
+<script>window.SAMSUNG_TURNSTILE_SITE_KEY="0x4AAAAAAF7X-UHoy8m2fpvy";</script>
+<script src="/password-recovery.js"></script>
 <script src="/user-experience.js"></script>
 <script src="/account-settings.js"></script>
 <script src="/sales-intelligence.js"></script>
@@ -214,7 +216,7 @@ const fmtNum=v=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(
 const money=v=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const pct=(a,b)=>b>0?(a/b*100):0;
 const dateFmt=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
-function showLoginError(msg){const el=$("login-error");el.className="text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3";el.textContent=msg}
+function showLoginError(msg){const el=$("login-error");el.className="text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3";el.textContent=msg;if(msg==="ID akun atau password tidak sesuai."||msg==="ID Akun atau Password tidak sesuai")window.SamsungPasswordRecovery?.open();}
 function setBusy(b){$("refresh-button").disabled=b;$("refresh-button").textContent=b?"Memuat…":"↻ Perbarui data"}
 function showDataError(msg){$("data-error").textContent=msg;$("data-error").classList.remove("hidden")}
 function hideDataError(){$("data-error").classList.add("hidden")}
@@ -299,6 +301,7 @@ function openSection(label){
   }else if(label==="Manpower"&&currentProfile&&currentProfile.role==="admin"){
    $("section-description").textContent="Aktivasi aman TL_BMU_KAL_02 setelah validasi 32 store coverage.";
    renderBmuActivation();
+   window.SamsungPasswordRecovery?.renderAdmin($("import-hub-container"),{profile:currentProfile,accessToken:activeAuthAccessToken});
   }else if(window.SamsungOps&&window.SamsungOps.supports(label)){
    $("section-description").textContent="Data operasional langsung dari Supabase, dibatasi sesuai role dan coverage Anda.";
    const selected=periods.find(p=>p.id===$("period-select").value)||periods[0]||null;
@@ -499,7 +502,7 @@ async function getLoginProfile(user,token){
 async function enterApp(user,token,preloadedProfile=null){
  const data=preloadedProfile||await getLoginProfile(user,token);
  const error=null;
- const rotationOnly=Boolean(data && data.must_change_password && ((data.role==="tl" && data.employee_id==="TL_BMU_KAL_02") || data.role==="ec"));
+ const rotationOnly=Boolean(data && data.must_change_password && ["tl","ec","tso"].includes(data.role));
  if(error)throw new Error("Gagal membaca profil akun: "+(error.message||"periksa koneksi dan coba lagi."));
  if(!data||!roleLabels[data.role]||(!data.is_active&&!rotationOnly)){
   // Do not block the interface indefinitely if signOut is stalled by browser auth locks.
@@ -564,17 +567,34 @@ $("rotate-form").addEventListener("submit",async event=>{
  try{
    const functionName=currentProfile?.role==="ec"?"provision-ec-accounts":"provision-tl-bmu";
    let data,error;
-   if(currentProfile?.role==="ec"){
-    // Direct authenticated request avoids a second browser SDK auth lock during
-    // the mandatory first-password change.
-    const response=await authorizedLoginFetch("/functions/v1/provision-ec-accounts",activeAuthAccessToken,{
+   // First try the new admin-approved recovery flow. Existing EC/TL BMU first-login
+   // onboarding remains supported when there is no approved recovery request.
+   let useLegacy=false;
+   try{
+    const response=await authorizedLoginFetch("/functions/v1/password-recovery",activeAuthAccessToken,{
+     method:"POST",headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({action:"rotate",new_password:password})
+    });
+    data=await response.json().catch(()=>({}));
+    if(!response.ok){
+     if(data?.error==="NO_RECOVERY_REQUEST")useLegacy=true;
+     else error=new Error(data?.error||"Tidak dapat mengganti password. Hubungi Admin.");
+    }
+   }catch(requestError){
+    error=new Error("Koneksi pemulihan password gagal. Periksa internet lalu coba lagi.");
+   }
+   if(useLegacy){
+    error=null;
+    if(currentProfile?.role==="ec"){
+     const response=await authorizedLoginFetch("/functions/v1/provision-ec-accounts",activeAuthAccessToken,{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({action:"rotate_password",new_password:password})
-    });
-    data=await response.json();
-    if(!response.ok)error=new Error(data?.error||"Tidak dapat mengganti password EC.");
-   }else{
-    ({data,error}=await client.functions.invoke(functionName,{body:{action:"rotate_password",new_password:password}}));
+     });
+     data=await response.json().catch(()=>({}));
+     if(!response.ok)error=new Error(data?.error||"Tidak dapat mengganti password EC.");
+    }else if(currentProfile?.role==="tl" && currentProfile?.employee_id==="TL_BMU_KAL_02"){
+     ({data,error}=await client.functions.invoke(functionName,{body:{action:"rotate_password",new_password:password}}));
+    }else error=new Error("Belum ada proses reset yang disetujui Admin untuk akun ini.");
    }
    if(error||!data?.ok)throw new Error(data?.error||"Password gagal diperbarui. Silakan coba lagi.");
    // A browser lock must not freeze the UI after the server saved the password.

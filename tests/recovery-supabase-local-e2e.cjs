@@ -27,14 +27,14 @@ async function request(url,method,body,headers){
 function expectResponse(v,status,subject){
  assert.equal(v.status,status,subject+": "+JSON.stringify({status:v.status,code:v.result?.code,error:v.result?.error}));
 }
-async function createUser(role,id){
+async function createUser(role,id,accountKey=role){
  const email=id.toLowerCase()+"@login.tlsepri.internal";
  const user=await request(authEndpoint+"/admin/users","POST",{
    email,password:tempPassword,email_confirm:true,app_metadata:{role,employee_id:id}
  },baseHeaders(ADMIN));
  expectResponse(user,200,"admin create dummy "+role);
  assert.ok(user.result?.id);
- accounts[role]={id:user.result.id,employee_id:id,email};
+ accounts[accountKey]={id:user.result.id,employee_id:id,email};
  const p=await request(restEndpoint+"/profiles","POST",{
    id:user.result.id,email,employee_id:id,full_name:"Dummy "+role,
    role,is_active:true,must_change_password:false
@@ -81,9 +81,11 @@ async function requests(){
 }
 async function run(){
  await createUser("admin","009991");
+ await createUser("admin","009992","admin2");
  await createUser("tl","432001");
  await createUser("ec","432002");
  const adminJwt=await login("admin");
+ const secondAdminJwt=await login("admin2");
  let tlJwt=await login("tl");
  const ecJwt=await login("ec");
  const before=await readBusiness(tlJwt);
@@ -159,7 +161,15 @@ async function run(){
  expectResponse(ecQueue,200,"Admin EC queue");
  const ecRow=ecQueue.result?.requests?.find(x=>x.employee_id==="432002"&&x.status==="pending");
  assert.ok(ecRow?.id,"EC request must be visible to Admin");
- const ecApproved=await edge("approve",{request_id:ecRow.id},adminJwt);
+ // Two different real Admin sessions race on the same pending request.
+ // Exactly one may issue a temporary credential.
+ const competingApprovals=await Promise.all([
+  edge("approve",{request_id:ecRow.id},adminJwt),
+  edge("approve",{request_id:ecRow.id},secondAdminJwt)
+ ]);
+ assert.deepEqual(competingApprovals.map(x=>x.status).sort((a,b)=>a-b),[200,409],
+  "Only one Admin may approve the same request");
+ const ecApproved=competingApprovals.find(x=>x.status===200);
  expectResponse(ecApproved,200,"EC approved reset");
  // Simulate a crashed Admin job. A fresh processing request must not be
  // reissued; an older than 15m one can be claimed exactly once.

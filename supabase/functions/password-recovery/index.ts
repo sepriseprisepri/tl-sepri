@@ -34,6 +34,21 @@ async function ipDigest(request:Request,salt:string){
   const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(forwarded));
   return Array.from(new Uint8Array(signature)).map(x=>x.toString(16).padStart(2,"0")).join("");
 }
+async function verifyHuman(token:unknown,secret:string):Promise<boolean>{
+  if(typeof token!=="string"||token.length<20||token.length>2048)return false;
+  const body=new URLSearchParams({secret,response:token});
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
+  try{
+    const response=await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",{
+      method:"POST",body,signal:controller.signal
+    });
+    if(!response.ok)return false;
+    const result=await response.json();
+    return result?.success===true && typeof result.hostname==="string" &&
+      ["samsung-kalteng.vercel.app","localhost"].includes(result.hostname);
+  }catch{return false;}finally{clearTimeout(timer);}
+}
 function accountIdFromToken(req:Request){
   const token=req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   return token||null;
@@ -46,7 +61,8 @@ Deno.serve(async req=>{
   const url=Deno.env.get("SUPABASE_URL"),serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const anonKey=Deno.env.get("SUPABASE_ANON_KEY");
   const salt=Deno.env.get("PASSWORD_RECOVERY_IP_SALT");
-  if(!url||!serviceKey||!anonKey||!salt||salt.length<32)return reply(req,{error:"Layanan pemulihan belum dikonfigurasi"},503);
+  const captchaSecret=Deno.env.get("TURNSTILE_SECRET_KEY");
+  if(!url||!serviceKey||!anonKey||!salt||salt.length<32||!captchaSecret)return reply(req,{error:"Layanan pemulihan belum dikonfigurasi"},503);
   const admin=createClient(url,serviceKey,{auth:{autoRefreshToken:false,persistSession:false}});
   const auth=createClient(url,anonKey,{auth:{autoRefreshToken:false,persistSession:false}});
   let body:Record<string,unknown>;
@@ -57,13 +73,16 @@ Deno.serve(async req=>{
   if(action==="request"){
     if(!validId(body.employee_id)||!["forgot","reset"].includes(String(body.reason)))return reply(req,{error:"ID atau jenis permintaan tidak valid"},400);
     const requested=normalizeId(body.employee_id);
+    // Fail closed: challenge must be verified server-side before touching account data.
+    if(!await verifyHuman(body.captcha_token,captchaSecret))
+      return reply(req,{error:"Verifikasi keamanan gagal. Silakan ulangi CAPTCHA."},400);
     const fingerprint=await ipDigest(req,salt);
-    const {count:ipCount,error:ipError}=await admin.from("password_recovery_requests")
-      .select("id",{count:"exact",head:true}).eq("requester_fingerprint",fingerprint)
-      .gte("created_at",new Date(Date.now()-3600_000).toISOString());
-    if(ipError)return reply(req,{error:"Layanan sementara tidak tersedia"},503);
-    // Generic response prevents probing. A reverse proxy and CAPTCHA must also be tested before release.
-    if((ipCount??0)>=5)return reply(req,{ok:true,message:GENERIC});
+    // Atomic database-side rate claim: concurrent requests cannot all pass a SELECT count.
+    const {data:rateAllowed,error:rateError}=await admin.rpc("password_recovery_claim_rate",{
+      p_fingerprint:fingerprint
+    });
+    if(rateError)return reply(req,{error:"Layanan sementara tidak tersedia"},503);
+    if(rateAllowed!==true)return reply(req,{ok:true,message:GENERIC});
     const email=requested.toLowerCase()+"@login.tlsepri.internal";
     const {data:profile,error:lookupError}=await admin.from("profiles")
       .select("id,employee_id,role,is_active")

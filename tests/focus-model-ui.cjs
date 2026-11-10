@@ -105,6 +105,14 @@ async function run(){
  assert.match(ecMount.nodes.get("focus-table-body").innerHTML,/33\.3%/,
   "EC sees own sale actual / assigned target");
  assert.doesNotMatch(ecMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Dua/);
+ const tsoMount=mountMock();
+ await focus.render({...args,mount:tsoMount,client:fakeClient("tso"),
+  profile:{role:"tso",manpower_id:null}});
+ assert.doesNotMatch(tsoMount.innerHTML,/id="focus-ec-form"/,
+  "TSO must not receive TL editor");
+ assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Satu/);
+ assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/33\\.3%/,
+  "TSO should see scoped EC real achievement, not zero from unloaded manpower");
  const pending=mountMock();
  await focus.render({...args,mount:pending,client:fakeClient("tl",true)});
  assert.match(pending.innerHTML,/Migrasi alokasi EC belum tersedia/);

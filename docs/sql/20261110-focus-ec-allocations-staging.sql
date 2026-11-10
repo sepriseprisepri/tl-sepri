@@ -79,6 +79,12 @@ CREATE POLICY focus_ec_read_scope ON public.focus_model_ec_allocations
       JOIN public.stores s ON s.site_id=m.site_id
       WHERE m.id=manpower_id AND m.is_active IS TRUE
         AND m.fieldforce_position='EC' AND s.id=store_id
+        AND EXISTS (
+          SELECT 1 FROM public.store_assignments sa
+          WHERE sa.manpower_id=m.id AND sa.store_id=s.id
+            AND (now() AT TIME ZONE 'Asia/Pontianak')::date
+              BETWEEN sa.valid_from AND COALESCE(sa.valid_to,'infinity'::date)
+        )
     )
 );
 DROP POLICY IF EXISTS focus_ec_history_read_scope ON public.focus_model_allocation_history;

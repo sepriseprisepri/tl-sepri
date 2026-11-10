@@ -163,4 +163,19 @@ DO $a$ BEGIN
  THEN RAISE EXCEPTION 'Transferred EC still sees old-store allocation'; END IF;
 END $a$;
 RESET ROLE;
-SELECT 'PASS: Focus Model allocation, TL coverage, EC visibility, audit, cap, rotation and transfer' AS result;
+-- Even after the EC transfers to S-02, TL1 may remove the stale S-01
+-- allocation without requiring the EC to be active at that old location.
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
+SELECT public.set_focus_model_ec_allocation(
+ 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+ 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','GALAXY A55',
+ 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',0,0);
+DO $a$ BEGIN
+ IF (SELECT count(*) FROM public.focus_model_ec_allocations)<>0
+ THEN RAISE EXCEPTION 'Transferred EC allocation could not be removed'; END IF;
+ IF (SELECT count(*) FROM public.focus_model_allocation_history)<>5
+ THEN RAISE EXCEPTION 'Transferred EC delete audit missing'; END IF;
+END $a$;
+RESET ROLE;
+SELECT 'PASS: Focus Model allocation, TL coverage, EC visibility, audit, cap, rotation and transfer cleanup' AS result;

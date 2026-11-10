@@ -155,6 +155,6 @@ begin
     'new_ec_assignments',v_new_store_assignments,'new_tl_coverage',v_new_coverage,
     'ec_allocations_upserted',v_allocation_count,'login_accounts_created',0);
 end;
-$function$
+$function$;
 
 COMMIT;

@@ -372,9 +372,12 @@
           try{
             const payload={period_id:period.id,manpower_id:ec.value,store_id:st.id,model_code:model.value,
               target_qty:q,target_amt:a,updated_by:profile.id};
-            const {data,error}=await client.from("focus_model_ec_targets").upsert(payload,{
-              onConflict:"period_id,manpower_id,store_id,model_code"
-            }).select("manpower_id,store_id,model_code,target_qty,target_amt").single();
+            const mutation=old?
+              client.from("focus_model_ec_targets").update({
+                target_qty:q,target_amt:a,updated_by:profile.id
+              }).eq("period_id",period.id).eq("manpower_id",ec.value).eq("store_id",st.id).eq("model_code",model.value):
+              client.from("focus_model_ec_targets").insert(payload);
+            const {data,error}=await mutation.select("manpower_id,store_id,model_code,target_qty,target_amt").single();
             if(error)throw error;
             if(!data)throw Error("Database tidak mengonfirmasi penyimpanan.");
             status.textContent="Alokasi tersimpan. Memuat ulang Focus Model...";

@@ -22,7 +22,7 @@
 - **Serialisasi transaksi:** `SELECT FOR UPDATE` terhadap parent model store memastikan dua TL/Admin tidak dapat bersama-sama melebihi plafon Qty **atau** Amt. Trigger parent melarang Admin menurunkan target toko di bawah Qty/Amt yang sudah dialokasikan. FK RESTRICT mencegah parent dengan alokasi aktif terhapus diam-diam.
 - RLS: tabel baru `ENABLE ROW LEVEL SECURITY` serta `AS RESTRICTIVE` recovery guard, pembacaan TL berdasarkan active coverage dan EC berdasarkan `manpower_id` dan toko aktif; tidak ada policy INSERT/UPDATE/DELETE langsung. Audit hanya TL/Admin/TSO dalam scope. Tidak ada service-role di frontend.
 - SQL membandingkan tanggal penempatan menggunakan timezone **Asia/Pontianak**. Timestamp audit tersimpan dalam timestamptz dan disajikan WIB.
-- **Perhitungan realisasi** di frontend: hanya `raw_sellout.eula_status=VALID`, tanggal periode sampai tanggal lokal berjalan, pasangan `site_id+promoter_id`, dengan model yang cocok setelah normalisasi `model_code` atau `display_name`. Model dengan penamaan berbeda tidak boleh diatribusikan otomatis tanpa mapping master yang diverifikasi. EULA PENDING tidak dihitung.
+- **Perhitungan realisasi** di frontend: hanya `raw_sellout.eula_status=VALID`, tanggal periode sampai tanggal lokal berjalan, pasangan `site_id+promoter_id`, dengan model yang cocok setelah normalisasi `model_code` atau `display_name`. Jika satu alias/nama digunakan lebih dari satu kode model, transaksi dengan alias ambigu **tidak** dihitung (menghindari pencapaian ganda). Model dengan penamaan berbeda perlu mapping master yang diverifikasi. EULA PENDING tidak dihitung.
 - Qty dibulatkan **hanya untuk tampilan**. Angka target/rasio dalam database dan logika perhitungan tetap presisi numerik.
 
 ## Source

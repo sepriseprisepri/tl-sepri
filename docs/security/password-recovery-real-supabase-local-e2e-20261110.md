@@ -4,7 +4,7 @@
 
 ## Successful proof
 
-**End-to-end job including both TL and EC:** https://github.com/sepriseprisepri/tl-sepri/actions/runs/42752638755 — test step `Real local GoTrue/PostgREST/Edge Function E2E` passed.
+**Latest full-stack job including TL, EC, and stalled Admin recovery:** https://github.com/sepriseprisepri/tl-sepri/actions/runs/42753014797 — PASS on commit `a1818c42d662337c73d3c721f61e8f0e379a91bf`.
 **Previous TL-only end-to-end job:** https://github.com/sepriseprisepri/tl-sepri/actions/runs/42752354411 — PASS.
 **PostgreSQL RLS/concurrency:** https://github.com/sepriseprisepri/tl-sepri/actions/runs/42752354420 — PASS.
 **Static/mock handler and injected Auth failure:** GitHub Actions `Samsung Kalteng Operational Smoke` on the latest branch, with `tests/password-recovery-mock-integration.cjs`.
@@ -28,6 +28,9 @@
 | User changes password and logs in again with new password | PASS |
 | TL market data access returns only after completing rotation | PASS |
 | EC request -> approval -> temporary login -> blocked data -> rotation -> restored access | PASS |
+| Fresh processing request cannot be reissued before 15 minutes | PASS: HTTP 409 |
+| Admin can reissue stalled processing request older than 15 minutes | PASS: renewed temporary password and completed EC rotation |
+| Synthetic Auth password update failure | PASS: no temporary secret returned; account remains locked and reissue possible |
 
 ### Tests and relevant files
 
@@ -43,7 +46,7 @@
 1. Real local RLS test protects **dummy business table**, not every Samsung Kalteng production table, RPC, view, storage bucket, and role. Complete coverage matrix is required.
 2. Ingress fingerprint currently reads `x-forwarded-for` without trusted proxy normalization; distributed abuse is not fully addressed.
 3. Cloudflare Turnstile real domain-specific sitekey/secret, allowed production hostname and client CSP have **not** been configured. Dummy test secret MUST NOT be deployed.
-4. `processing` recovery requests stuck after an interrupted Admin approval need a secure stale-request reconciliation path. Existing reissue covers `failed`, `expired`, `awaiting_delivery`, `delivered`.
+4. Stalled `processing` requests now have a 15-minute timeout and conditional timestamp claim, tested against Supabase local. **Still required:** concurrency test with two simultaneous Admin approvals/reissues under load, plus monitoring/alerting for stuck requests.
 5. Multi-admin contention and failure after successful Auth update but failed PostgREST status update require operational playbooks and potentially transaction/outbox patterns. No plaintext temporary passwords may ever be persisted in logs or database.
 6. Admin should authenticate recipient identity out of band, deliver secret via private channel, and record the acknowledgement without exposing it in a shared table.
 7. Regression test real production SQL definitions against isolated restored **schema-only** snapshot; no customer data or authentication secrets.

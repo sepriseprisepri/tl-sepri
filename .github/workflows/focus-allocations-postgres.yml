@@ -50,3 +50,21 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-assertions.sql
+      - name: Concurrency — two TL allocations cannot oversubscribe one store target
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c "UPDATE public.manpower SET site_id='S-01' WHERE id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1';"
+          mkdir -p /tmp/focus-race
+          psql -v ON_ERROR_STOP=1 -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false); SELECT public.set_focus_model_ec_allocation('cccccccc-cccc-cccc-cccc-cccccccccccc','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','GALAXY A55','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',6,600);" > /tmp/focus-race/one.log 2>&1 &
+          first=$!
+          psql -v ON_ERROR_STOP=1 -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false); SELECT public.set_focus_model_ec_allocation('cccccccc-cccc-cccc-cccc-cccccccccccc','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','GALAXY A55','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',6,600);" > /tmp/focus-race/two.log 2>&1 &
+          second=$!
+          if wait "$first"; then a=1; else a=0; fi
+          if wait "$second"; then b=1; else b=0; fi
+          test "$((a+b))" -eq 1 || {
+            echo "Expected exactly one concurrent allocation to succeed"; exit 1;
+          }
+          psql -v ON_ERROR_STOP=1 -tAc "SELECT CASE WHEN COALESCE(SUM(target_qty),0)=6 AND COALESCE(SUM(target_amt),0)=600 THEN 'PASS' ELSE 'FAIL' END FROM public.focus_model_ec_allocations;" | grep -q PASS
+          echo "PASS: two racing TL allocations are serialized under the store target cap"
+

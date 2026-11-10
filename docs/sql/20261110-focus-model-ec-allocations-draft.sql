@@ -47,6 +47,12 @@ CREATE POLICY focus_tl_insert_scope ON public.focus_model_ec_targets FOR INSERT 
      AND sa.valid_from<=p.period_end
      AND COALESCE(sa.valid_to,'infinity'::date)>=p.period_start
   )
+  AND EXISTS (
+    SELECT 1 FROM public.focus_model_targets ft
+    WHERE ft.period_id=focus_model_ec_targets.period_id
+      AND ft.store_id=focus_model_ec_targets.store_id
+      AND ft.model_code=focus_model_ec_targets.model_code
+  )
  );
 CREATE POLICY focus_tl_update_scope ON public.focus_model_ec_targets FOR UPDATE TO authenticated
  USING ((SELECT public.current_app_role()) IN ('tl','admin') AND public.can_access_store(store_id))
@@ -54,6 +60,21 @@ CREATE POLICY focus_tl_update_scope ON public.focus_model_ec_targets FOR UPDATE 
   (SELECT public.current_app_role()) IN ('tl','admin')
   AND updated_by=(SELECT auth.uid())
   AND public.can_access_store(store_id)
+  AND EXISTS (
+   SELECT 1 FROM public.manpower m
+   JOIN public.store_assignments sa ON sa.manpower_id=m.id
+   JOIN public.target_periods p ON p.id=period_id
+   WHERE m.id=manpower_id AND m.is_active AND m.fieldforce_position='EC'
+     AND sa.store_id=focus_model_ec_targets.store_id
+     AND sa.valid_from<=p.period_end
+     AND COALESCE(sa.valid_to,'infinity'::date)>=p.period_start
+  )
+  AND EXISTS (
+    SELECT 1 FROM public.focus_model_targets ft
+    WHERE ft.period_id=focus_model_ec_targets.period_id
+      AND ft.store_id=focus_model_ec_targets.store_id
+      AND ft.model_code=focus_model_ec_targets.model_code
+  )
  );
 CREATE POLICY focus_tl_delete_scope ON public.focus_model_ec_targets FOR DELETE TO authenticated
  USING ((SELECT public.current_app_role()) IN ('tl','admin') AND public.can_access_store(store_id));
@@ -61,5 +82,9 @@ COMMIT;
 -- Verify referenced table target_periods and FK types against actual staging schema before execution.
 -- Staging tests: EC1 only sees own model targets; EC2 cannot read EC1; TL sees sum per scope.
 -- TL cannot assign out-of-scope stores or inactive / unassigned EC.
+-- IMPORTANT: Browser checks summed EC allocations <= store-level focus target, but concurrency
+-- can bypass a client-only limit. Before production use, enforce this invariant with
+-- a transactional locked RPC or database trigger and test simultaneous TL writes.
+-- Exposed API SELECT/INSERT/UPDATE grants are intentional and RLS restricts rows.
 -- Compare sum of EC allocations vs store-level targets, flag discrepancies.
 -- Rollback: DROP TABLE public.focus_model_ec_targets (only after export/backup).

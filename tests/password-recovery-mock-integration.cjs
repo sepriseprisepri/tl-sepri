@@ -9,7 +9,7 @@ const {webcrypto}=require("node:crypto");
 const source=fs.readFileSync("supabase/functions/password-recovery/index.ts","utf8")
   .replace(/^import \{ createClient \} from .+;\s*/m,"");
 const js=stripTypeScriptTypes(source,{mode:"strip"});
-let handler=null,siteVerifyMode="reject",calls={rpc:0,insert:0,updatedPassword:0};
+let handler=null,siteVerifyMode="reject",failNextAuthUpdate=false,calls={rpc:0,insert:0,updatedPassword:0};
 let authUser=null,callerProfile=null,requestedProfile=null,targetProfile=null,recoveryRequest=null;
 const CALLER="11111111-1111-1111-1111-111111111111";
 const TARGET="22222222-2222-2222-2222-222222222222";
@@ -59,7 +59,7 @@ const admin={
  rpc:async(name)=>{assert.equal(name,"password_recovery_claim_rate");calls.rpc++;return {data:true,error:null};},
  auth:{admin:{
   getUserById:async()=>({data:{user:authUser},error:null}),
-  updateUserById:async()=>{calls.updatedPassword++;return {error:null};}
+  updateUserById:async()=>{if(failNextAuthUpdate){failNextAuthUpdate=false;return {error:new Error("synthetic Auth failure")};}calls.updatedPassword++;return {error:null};}
  }}
 };
 const auth={auth:{getUser:async(token)=>["ok-token","user-token"].includes(token)
@@ -115,6 +115,15 @@ async function call(payload,token){
  targetProfile={id:TARGET,role:"tl",employee_id:"032914",is_active:false,must_change_password:true};
  authUser={id:TARGET,email:"032914@login.tlsepri.internal"};
  recoveryRequest={id:"33333333-3333-3333-3333-333333333333",user_id:TARGET,employee_id:"032914",role:"tl",status:"failed",expires_at:"2020-01-01T00:00:00Z"};
+ // Failure injection: Auth update fails after request claim. No password may escape,
+ // user remains locked, and Admin can safely reissue after state returns to failed.
+ failNextAuthUpdate=true;
+ result=await call({action:"reissue",request_id:recoveryRequest.id},"ok-token");
+ assert.equal(result.status,503);
+ assert.equal(result.body.temporary_password,undefined);
+ assert.equal(recoveryRequest.status,"failed");
+ assert.equal(targetProfile.is_active,false);
+ assert.equal(calls.updatedPassword,0);
  result=await call({action:"reissue",request_id:recoveryRequest.id},"ok-token");
  assert.equal(result.status,200,JSON.stringify(result.body));
  assert.equal(result.body.temporary_password.length,28);

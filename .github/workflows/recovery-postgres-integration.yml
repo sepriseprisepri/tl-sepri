@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/sql/20261110-password-recovery-approval-draft.sql'
       - 'docs/sql/20261110-password-recovery-rls-guard-staging.sql'
+      - 'docs/sql/20261110-password-recovery-restrictive-rls-staging.sql'
       - 'tests/sql/**'
       - '.github/workflows/recovery-postgres-integration.yml'
   workflow_dispatch:
@@ -52,6 +53,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-bootstrap.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-approval-draft.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-rls-guard-staging.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-restrictive-rls-staging.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-assertions.sql
       - name: Check 12 parallel requests allow only 5
         run: |

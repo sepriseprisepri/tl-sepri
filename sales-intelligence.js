@@ -85,9 +85,9 @@ function renderDashboard(ctx){
  const metricBox=(label,value,hint)=>'<div class="intel-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(hint)+'</small></div>';
  const q=window.SamsungMarketMetrics?.qtyFormat||N;
  const dailyInfo=market?'<div class="intel-stat-grid intel-market-pulse" aria-label="Ringkasan MTD dan pertumbuhan sellout">'+
-  metricBox("Target MTD Qty",q(market.mtdQty),"Pace kalender · "+market.elapsed+"/"+market.duration+" hari")+
-  metricBox("Gap MTD Qty",q(market.mtdGapQty),"Positif berarti tertinggal dari pace")+
-  metricBox("Target Daily Qty",market.remainingDays?q(Math.ceil(market.dailyQty)):"—","Kebutuhan/hari · "+market.remainingDays+" hari tersisa")+
+  metricBox("Target MTD Qty",market.targetQty>0?q(market.mtdQty):"—","Pace kalender · "+market.elapsed+"/"+market.duration+" hari")+
+  metricBox("Gap MTD Qty",market.targetQty>0?q(market.mtdGapQty):"—","Positif berarti tertinggal dari pace")+
+  metricBox("Target Daily Qty",market.targetQty>0&&market.remainingDays?q(Math.ceil(market.dailyQty)):"—","Kebutuhan/hari · "+market.remainingDays+" hari tersisa")+
   metricBox("Growth Sellout WoW",market.wowQty===null?"Belum cukup data":(market.wowQty>=0?"+":"")+market.wowQty.toFixed(1)+"%","Dua minggu kalender lengkap")+
   '</div>':"";
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};

@@ -213,7 +213,17 @@ function renderCharts(ctx,mount){
    ['PENDING',N(pending.length)],['Model terjual',N(modelMap.size)]].map(([l,v])=>'<div class="intel-stat"><span>'+esc(l)+'</span><strong>'+esc(v)+'</strong></div>').join("");
   const base=[{data:day.map(x=>x[1]),label:metric==="qty"?"Qty":"Amount",borderColor:"#63e3fa",backgroundColor:"rgba(78,192,239,.20)",fill:true,tension:.32,pointRadius:2}];
   createChart(document.getElementById("intel-day-chart"),"line",day.map(x=>x[0].slice(5)),base);
-  const wow=weekRows.map((row,i)=>i>0&&weekRows[i-1][1]>0?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
+  const completed=window.SamsungMarketMetrics?.completeWeeks(
+    good,f.from,f.to,window.SamsungMarketMetrics.localToday(),metric)||[];
+  const fullByKey=new Map(completed.map(row=>[weekKey(row.start),row]));
+  const wow=weekRows.map((row,i)=>{
+   if(i===0||!fullByKey.has(row[0])||!fullByKey.has(weekRows[i-1][0]))return null;
+   const current=fullByKey.get(row[0]),previous=fullByKey.get(weekRows[i-1][0]);
+   const following=window.SamsungMarketMetrics.weekStart(
+     new Date(Date.parse(previous.start+"T12:00:00Z")+7*86400000).toISOString().slice(0,10));
+   if(following!==current.start||previous.total<=0)return null;
+   return Math.round(((current.total-previous.total)/previous.total)*1000)/10;
+  });
   createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>x[0]),[
     {type:"bar",label:metric==="qty"?"Qty per minggu":"Amount per minggu",data:weekRows.map(x=>x[1]),backgroundColor:"#4f92e7",borderRadius:5,yAxisID:"y"},
     {type:"line",label:"Growth WoW (%)",data:wow,borderColor:"#7be7c5",pointBackgroundColor:"#7be7c5",tension:.25,yAxisID:"y1"}
@@ -240,7 +250,7 @@ function renderCharts(ctx,mount){
   client:ctx.client,profile:ctx.profile,feature:"charts",mount:document.getElementById("intel-filter-bar"),
   getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];
    for(const [k,el] of [["from",selects[3]],["to",selects[4]]])
-    if(typeof s[k]==="string"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(s[k])&&s[k]>=el.min&&s[k]<=el.max)el.value=s[k];
+    if(typeof s[k]==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s[k])&&s[k]>=el.min&&s[k]<=el.max)el.value=s[k];
    redraw();}
  });
 }

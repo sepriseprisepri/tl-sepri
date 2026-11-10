@@ -49,7 +49,7 @@
       let query=client.from(table).select(cols);
       if(configure) query=configure(query);
       const {data,error}=await query.range(from,from+pageSize-1);
-      if(error) throw new Error("Gagal mengambil "+table+": "+error.message);
+      if(error){const failure=new Error("Gagal mengambil "+table+": "+error.message);failure.code=error.code;throw failure;}
       result.push(...(data||[]));
       if(!data||data.length<pageSize) return result;
     }
@@ -446,7 +446,7 @@
         loadShadow?all(client,"store_shadow_history","store_id,shadow_month,is_shadow",q=>q.eq("shadow_month",period.period_start.slice(0,7)+"-01")):Promise.resolve([]),
         loadFocus?all(client,"focus_model_settings","model_code,display_name,is_active",q=>q.order("display_name")):Promise.resolve([]),
         loadFocus?all(client,"focus_model_targets","store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)):Promise.resolve([]),
-        loadFocus?all(client,"focus_model_ec_targets","manpower_id,store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)).catch(()=>null):Promise.resolve(null)
+        loadFocus?all(client,"focus_model_ec_targets","manpower_id,store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id)).catch(error=>{if(["42P01","PGRST205"].includes(error.code))return null;throw error;}):Promise.resolve(null)
       ]);
       if(token!==renderToken || !mount.isConnected)return true;
       if(label==="Coverage & Toko"||label==="Coverage")coveragePage(mount,period,stores,targets,sales);

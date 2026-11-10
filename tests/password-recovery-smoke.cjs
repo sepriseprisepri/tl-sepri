@@ -33,7 +33,7 @@ assert.ok(html.includes('data?.error==="NO_RECOVERY_REQUEST"'));
 assert.ok(!html.includes('response.status===404||data?.error'));
 assert.ok(ui.includes("window.SAMSUNG_TURNSTILE_SITE_KEY"));
 assert.ok(ui.includes("captcha_token:captchaToken"));
-assert.ok(backend.includes("verifyHuman(body.captcha_token,captchaSecret)"));
+assert.ok(backend.includes("verifyHuman(body.captcha_token,captchaSecret,"));
 assert.ok(backend.includes("https://challenges.cloudflare.com/turnstile/v0/siteverify"));
 assert.ok(backend.includes('admin.rpc("password_recovery_claim_rate"'));
 assert.ok(!backend.includes("ipCount"));

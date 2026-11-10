@@ -8,6 +8,7 @@ on:
       - 'tests/sql/recovery-supabase-local-fixture.sql'
       - 'docs/sql/20261110-password-recovery-approval-draft.sql'
       - 'docs/sql/20261110-password-recovery-rls-guard-staging.sql'
+      - 'docs/sql/20261110-password-recovery-restrictive-rls-staging.sql'
       - '.github/workflows/recovery-fullstack-local.yml'
   workflow_dispatch:
 
@@ -56,6 +57,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/recovery-supabase-local-fixture.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-approval-draft.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-rls-guard-staging.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-password-recovery-restrictive-rls-staging.sql
       - name: Configure official Turnstile dummy secret locally and serve Edge Function
         run: |
           set -euo pipefail

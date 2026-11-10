@@ -106,7 +106,7 @@ async function view(role,label){
  const client=makeClient(role),mount=new Element();
  const result=await window.SamsungOps.render({client,profile:client.profile,mount,period,label});
  assert.equal(result,true,label);
- const rendered=[mount.innerHTML,...mount.children.map(c=>c.querySelector("[data-body]").innerHTML)].join("\n");
+ const rendered=[mount.innerHTML,...mount.children.map(c=>c.innerHTML+"\n"+c.querySelector("[data-body]").innerHTML)].join("\n");
  assert.ok(!rendered.includes("Modul gagal"),label);
  assert.ok(mount.children.length>0,label);
  if(role!=="admin")assert.ok(!rendered.includes("Toko Rahasia"),label+" leaked off-scope store");
@@ -126,6 +126,10 @@ async function view(role,label){
  const tlFocus=await view("tl","Focus Model");
  assert.ok(tlFocus.includes("579"),"TL must see aggregated EC model allocation targets");
  assert.ok(tlFocus.includes("VALID Qty"),"TL focus should show actual achievement");
+ assert.ok(tlFocus.includes("Bagikan Focus Model kepada EC"),
+  "TL must see Focus Model allocation form after staging allocations exist");
+ assert.ok(!ownFocus.includes("Bagikan Focus Model kepada EC"),
+  "EC must not see allocation controls");
  const ownTarget=await view("ec","Target Saya");
  for(const label of ["Gap Qty","Gap Amt","Target Daily Qty","Target Daily Amt","AR Amt"]){
   assert.ok(ownTarget.includes(label),"Missing EC KPI "+label);

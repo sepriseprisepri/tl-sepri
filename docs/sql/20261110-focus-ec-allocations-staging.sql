@@ -163,14 +163,21 @@ BEGIN
  END IF;
  -- This lock serializes allocations for all ECs on the same store/model/period
  -- and competes with Admin edits of the parent target.
- SELECT t.id,t.target_qty,t.target_amt
+ SELECT t.id,t.target_qty,t.target_amt,fs.is_active AS model_active
  INTO v_parent FROM public.focus_model_targets t
  JOIN public.focus_model_settings fs ON fs.model_code=t.model_code
  WHERE t.period_id=p_period_id AND t.store_id=p_store_id
-   AND t.model_code=p_model_code AND fs.is_active IS TRUE
+   AND t.model_code=p_model_code
  FOR UPDATE OF t;
  IF NOT FOUND THEN
-  RAISE EXCEPTION 'Target model toko belum dibuat atau model tidak aktif'
+  RAISE EXCEPTION 'Target model toko belum dibuat'
+   USING ERRCODE='22023';
+ END IF;
+ -- Deactivated models cannot receive new or increased allocations; existing
+ -- target may still be cleared without reactivating the discontinued model.
+ IF v_parent.model_active IS NOT TRUE
+    AND (p_target_qty<>0 OR p_target_amt<>0) THEN
+  RAISE EXCEPTION 'Model tidak aktif; hanya penghapusan alokasi yang diizinkan'
    USING ERRCODE='22023';
  END IF;
  SELECT a.id,a.target_qty,a.target_amt

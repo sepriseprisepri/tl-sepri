@@ -122,7 +122,7 @@ async function run(){
  assert.doesNotMatch(tsoMount.innerHTML,/id="focus-ec-form"/,
   "TSO must not receive TL editor");
  assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Satu/);
- assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/33\\.3%/,
+ assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/33\.3%/,
   "TSO should see scoped EC real achievement, not zero from unloaded manpower");
  const adminMount=mountMock(),adminClient=fakeClient("admin");
  await focus.render({...args,mount:adminMount,client:adminClient,

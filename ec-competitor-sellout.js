@@ -49,7 +49,7 @@
     const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
      method,signal:controller.signal,cache:"no-store",
      headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
-       ...(method!=="GET"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+       ...(method!=="GET"?{"Content-Type":"application/json",Prefer:method==="POST"?"return=minimal":"return=representation"}:{})},
      ...(body?{body:JSON.stringify(body)}:{})
     });
     if(!response.ok){
@@ -58,7 +58,7 @@
      const details=await response.json().catch(()=>({}));
      throw Error(details.message||details.error||"Permintaan database gagal (HTTP "+response.status+").");
     }
-    return method==="GET"?{data:await response.json(),error:null}:{data:null,error:null};
+    return method==="GET"||method==="PATCH"||method==="DELETE"?{data:await response.json(),error:null}:{data:null,error:null};
    }catch(err){
     if(err.name==="AbortError")throw Error("Koneksi ke database tidak merespons. Periksa koneksi dan muat ulang menu.");
     throw err;
@@ -71,9 +71,9 @@
   const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
     ctx.client.from("competitor_sellout").insert(record);
   const updateQuery=(id,record)=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"PATCH",record):
-    ctx.client.from("competitor_sellout").update(record).eq("id",id);
+    ctx.client.from("competitor_sellout").update(record).eq("id",id).select("id");
   const deleteQuery=id=>useRest?rest("competitor_sellout?id=eq."+encodeURIComponent(id),"DELETE"):
-    ctx.client.from("competitor_sellout").delete().eq("id",id);
+    ctx.client.from("competitor_sellout").delete().eq("id",id).select("id");
   let editingId=null,historyRows=[];
   const resetEdit=()=>{
     editingId=null;form.elements.namedItem("store_id").disabled=false;form.elements.namedItem("sold_at").readOnly=false;form.reset();form.elements.namedItem("sold_at").value=localDate();
@@ -132,6 +132,7 @@
     try{
       const result=await requestWithDeadline(deleteQuery(id),"Penghapusan transaksi");
       if(result.error)throw result.error;
+      if(!Array.isArray(result.data)||result.data.length!==1)throw Error("Transaksi tidak ditemukan atau akses hapus ditolak.");
       say("Transaksi dihapus.");
       const refresh=await requestWithDeadline(historyQuery(),"Riwayat input");
       if(refresh.error)throw refresh.error;
@@ -158,8 +159,10 @@
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
      const record=editingId?(({store_id,sold_at,...mutable})=>mutable)(payload):{...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
-     const {error}=await requestWithDeadline(editingId?updateQuery(editingId,record):insertQuery(record),"Penyimpanan transaksi");
-     if(error)throw error;
+     const mutation=await requestWithDeadline(editingId?updateQuery(editingId,record):insertQuery(record),"Penyimpanan transaksi");
+     if(mutation.error)throw mutation.error;
+     if(editingId&&(!Array.isArray(mutation.data)||mutation.data.length!==1))
+       throw Error("Transaksi tidak ditemukan atau akses edit ditolak.");
      const selectedStore=form.elements.namedItem("store_id").value;
      resetEdit();form.elements.namedItem("store_id").disabled=false;form.elements.namedItem("sold_at").readOnly=false;form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
      say("Data kompetitor berhasil disimpan. Data Samsung tidak berubah.");

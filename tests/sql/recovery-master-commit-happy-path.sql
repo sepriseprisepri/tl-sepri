@@ -6,6 +6,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name text;
 ALTER TABLE public.manpower ALTER COLUMN id SET DEFAULT gen_random_uuid();
 -- Only the RLS leak simulation fixture has profile_id; production manpower does not.
 ALTER TABLE public.manpower ALTER COLUMN profile_id DROP NOT NULL;
+ALTER TABLE public.manpower ALTER COLUMN label DROP NOT NULL;
 UPDATE public.profiles SET full_name=CASE role WHEN 'admin' THEN 'DUMMY ADMIN'
  WHEN 'tl' THEN 'DUMMY TL' ELSE 'DUMMY EC' END;
 

@@ -8,7 +8,35 @@
  const endpoint=()=>window.SAMSUNG_RECOVERY_API_URL || "https://xirmqdcdqpocdfqqvxmh.supabase.co/functions/v1/password-recovery";
  const publicKey=()=>window.SAMSUNG_RECOVERY_PUBLISHABLE_KEY || "sb_publishable_-IN453_OWCSKnepIDCCkFg_7Y2kebO4";
  const generic="Jika ID akun terdaftar, permintaan Anda akan diteruskan ke Admin.";
- let dialog=null,originalFocus=null,busy=false;
+ let dialog=null,originalFocus=null,busy=false,captchaToken="",captchaWidget=null;
+ const siteKey=()=>window.SAMSUNG_TURNSTILE_SITE_KEY||"";
+ function renderChallenge(){
+  if(!dialog)return;
+  const host=dialog.querySelector("[data-recovery-captcha]");
+  if(!siteKey()){
+    setStatus("Layanan pemulihan belum dikonfigurasi. Hubungi Admin.",true);
+    return;
+  }
+  const mount=()=>{
+    if(!dialog||!window.turnstile)return;
+    captchaWidget=window.turnstile.render(host,{
+      sitekey:siteKey(),
+      callback:token=>{captchaToken=token;setStatus("Verifikasi keamanan selesai.");},
+      "expired-callback":()=>{captchaToken="";setStatus("Verifikasi kedaluwarsa. Ulangi CAPTCHA.",true);},
+      "error-callback":()=>{captchaToken="";setStatus("CAPTCHA gagal dimuat. Coba lagi.",true);}
+    });
+  };
+  if(window.turnstile){mount();return;}
+  let script=document.querySelector("script[data-samsung-turnstile]");
+  if(!script){
+   script=document.createElement("script");
+   script.dataset.samsungTurnstile="";
+   script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+   script.async=true;
+   document.head.appendChild(script);
+  }
+  script.addEventListener("load",mount,{once:true});
+ }
  function setStatus(message,error=false){
   if(!dialog)return;
   const output=dialog.querySelector("[data-recovery-status]");
@@ -34,7 +62,8 @@
  }
  function close(){
   if(!dialog||busy)return;
-  dialog.remove();dialog=null;
+  if(window.turnstile && captchaWidget!==null){try{window.turnstile.remove(captchaWidget);}catch{}}
+  captchaWidget=null;captchaToken="";dialog.remove();dialog=null;
   if(originalFocus?.isConnected)originalFocus.focus();
  }
  function open(){
@@ -54,6 +83,7 @@
     <p class="mt-3 text-sm text-slate-300 leading-6">ID Akun atau Password tidak sesuai. Pilih tindakan untuk mengirim permintaan persetujuan kepada Admin.</p>
     <label for="recovery-employee-id" class="mt-5 block text-sm text-slate-200">ID Akun</label>
     <input id="recovery-employee-id" maxlength="40" autocomplete="username" class="field mt-2 w-full rounded-xl px-4 py-3" placeholder="Masukkan ID akun" />
+    <div data-recovery-captcha class="mt-5 min-h-[65px]" aria-label="Verifikasi keamanan CAPTCHA"></div>
     <div class="mt-5 grid grid-cols-2 gap-3">
       <button type="button" data-recovery-request="forgot" class="rounded-xl border border-cyan-500 px-3 py-3 text-sm font-semibold text-cyan-200">Lupa Password</button>
       <button type="button" data-recovery-request="reset" class="rounded-xl bg-cyan-400 px-3 py-3 text-sm font-semibold text-slate-950">Reset Password</button>
@@ -77,16 +107,18 @@
    if(busy)return;
    const id=dialog.querySelector("#recovery-employee-id").value.trim();
    if(!ID_PATTERN.test(id)){setStatus("Masukkan ID akun yang valid (4–40 karakter).",true);return;}
+   if(!captchaToken){setStatus("Selesaikan verifikasi keamanan CAPTCHA terlebih dahulu.",true);return;}
    busy=true;
    dialog.querySelectorAll("button").forEach(b=>b.disabled=true);
    setStatus("Mengirim permintaan…");
    try{
-    await post({action:"request",employee_id:id,reason:button.dataset.recoveryRequest});
+    await post({action:"request",employee_id:id,reason:button.dataset.recoveryRequest,captcha_token:captchaToken});
     setStatus(generic);
    }catch(e){setStatus(e.message||"Permintaan gagal dikirim.",true);}
-   finally{busy=false;dialog?.querySelectorAll("button").forEach(b=>b.disabled=false);}
+   finally{busy=false;captchaToken="";if(window.turnstile&&captchaWidget!==null){try{window.turnstile.reset(captchaWidget);}catch{}}dialog?.querySelectorAll("button").forEach(b=>b.disabled=false);}
   }));
   dialog.querySelector("#recovery-employee-id").focus();
+  renderChallenge();
  }
  function init(){
   const form=document.getElementById("login-form");

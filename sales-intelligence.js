@@ -140,10 +140,20 @@ function createChart(node,type,labels,datasets,opts={}){
  const chart=new window.Chart(node,{
   type,data:{labels,datasets},
   options:{responsive:true,maintainAspectRatio:false,
-   plugins:{legend:{display:datasets.length>1,labels:{color:"#abc9dc",boxWidth:11,font:{size:11}}}},
+   plugins:{
+    legend:{display:datasets.length>1,labels:{color:"#abc9dc",boxWidth:11,font:{size:11}}},
+    tooltip:{callbacks:{label:ctx=>{
+     const parsed=ctx.parsed;
+     const value=typeof parsed==="number"?parsed:typeof parsed?.y==="number"?parsed.y:Number(parsed?.x||0);
+     const label=ctx.dataset.label||"Sellout";
+     return label+": "+(label.toLowerCase().includes("amount")?money(value):N(value));
+    }}}
+   },
    scales:type==="doughnut"?undefined:{
     x:{ticks:{color:"#91adc1",maxTicksLimit:12},grid:{color:"rgba(133,180,217,.07)"}},
-    y:{beginAtZero:true,ticks:{color:"#91adc1"},grid:{color:"rgba(133,180,217,.08)"}}
+    y:{beginAtZero:true,ticks:{color:"#91adc1",
+     callback:v=>new Intl.NumberFormat("id-ID",{notation:"compact",maximumFractionDigits:1}).format(v)},
+     grid:{color:"rgba(133,180,217,.08)"}}
    },...opts}
  });chartObjs.push(chart);
 }
@@ -251,9 +261,9 @@ function renderCharts(ctx,mount){
    y:{beginAtZero:true,position:"left",ticks:{color:"#91adc1"},grid:{color:"rgba(133,180,217,.08)"}},
    y1:{position:"right",ticks:{color:"#8ee4c9",callback:value=>value+"%"},grid:{display:false}}
   }});
-  createChart(document.getElementById("intel-model-chart"),"bar",rank.map(x=>x[0]),[{data:rank.map(x=>x[1]),backgroundColor:"#68d8f7",borderRadius:5}]);
-  createChart(document.getElementById("intel-store-chart"),"bar",storeRank.map(x=>nameMap.get(x[0])||x[0]),[{data:storeRank.map(x=>x[1]),backgroundColor:"#7a9eff",borderRadius:5}],{indexAxis:"y"});
-  createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
+  createChart(document.getElementById("intel-model-chart"),"bar",rank.map(x=>x[0]),[{label:metric==="qty"?"Qty":"Amount",data:rank.map(x=>x[1]),backgroundColor:"#68d8f7",borderRadius:5}]);
+  createChart(document.getElementById("intel-store-chart"),"bar",storeRank.map(x=>nameMap.get(x[0])||x[0]),[{label:metric==="qty"?"Qty":"Amount",data:storeRank.map(x=>x[1]),backgroundColor:"#7a9eff",borderRadius:5}],{indexAxis:"y"});
+  createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{label:"Qty",data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
   const allTargets=ctx.targets||[];
   const storeIds=new Set(stores.filter(s=>!f.store||s.site_id===f.store).map(s=>s.id));
   const fullPeriod=f.from===(ctx.period?.period_start||"")&&f.to===(ctx.period?.period_end||"");

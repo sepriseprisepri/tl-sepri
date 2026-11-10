@@ -43,6 +43,12 @@ for(const required of [
   "REVOKE ALL ON FUNCTION app_private.enforce_focus_ec_allocation()"
 ])assert.ok(allocationSql.includes(required),"Missing database invariant: "+required);
 assert.ok(!allocationSql.includes("a.id<>OLD.id"),"INSERT trigger must not dereference OLD");
+const opsSource=fs.readFileSync("ops-modules.js","utf8");
+assert.match(opsSource,/\["42P01","PGRST205"\]\.includes\(error\.code\)/,
+ "Only missing-table errors may hide personal allocation loader");
+assert.doesNotMatch(opsSource,/focus_model_ec_targets[^\n]*\.catch\(\(\)=>null\)/,
+ "Never swallow authorization or connectivity errors in Focus Model");
+
 
 const html=fs.readFileSync("index.html","utf8");
 for(const match of html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)){

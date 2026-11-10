@@ -27,11 +27,14 @@ function randomPassword():string{
   while(s.length<28){const bytes=crypto.getRandomValues(new Uint8Array(48));for(const b of bytes){if(b<max){s+=alphabet[b%alphabet.length];if(s.length===28)break;}}}
   return s;
 }
-async function ipDigest(request:Request,salt:string){
-  // Production requires a trusted ingress that normalizes forwarded headers.
-  const forwarded=request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"not-provided";
-  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(salt),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
-  const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(forwarded));
+async function recoverySubjectDigest(employeeId:string,salt:string){
+  // Do not trust client-controlled x-forwarded-for as a security identity.
+  // Subject-based throttling is stable across networks and VPNs; it complements
+  // Turnstile but still needs gateway-wide abuse protection before production.
+  const subject=employeeId.trim().toUpperCase();
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(salt),
+    {name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(subject));
   return Array.from(new Uint8Array(signature)).map(x=>x.toString(16).padStart(2,"0")).join("");
 }
 async function verifyHuman(token:unknown,secret:string,localBackend:boolean):Promise<boolean>{
@@ -77,7 +80,7 @@ Deno.serve(async req=>{
     // Fail closed: challenge must be verified server-side before touching account data.
     if(!await verifyHuman(body.captcha_token,captchaSecret,new URL(url).hostname==="127.0.0.1" || new URL(url).hostname==="kong"))
       return reply(req,{error:"Verifikasi keamanan gagal. Silakan ulangi CAPTCHA."},400);
-    const fingerprint=await ipDigest(req,salt);
+    const fingerprint=await recoverySubjectDigest(requested,salt);
     // Atomic database-side rate claim: concurrent requests cannot all pass a SELECT count.
     const {data:rateAllowed,error:rateError}=await admin.rpc("password_recovery_claim_rate",{
       p_fingerprint:fingerprint

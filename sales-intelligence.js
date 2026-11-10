@@ -19,7 +19,9 @@ const modelNorm=x=>String(x||"").trim().toUpperCase().replace(/\s+/g," ");
 let activeContext=null,lastToken=0,chartObjs=[],searchBound=false;
 const analytics={
  compute({period,stores=[],targets=[],sales=[],manpower=[],profile, promos=[]}){
-  const good=sales.filter(valid),pending=sales.filter(s=>String(s.eula_status).toUpperCase()==="PENDING");
+  const market=window.SamsungMarketMetrics?.summarize({period,targets,sales})||null;
+  const good=market?market.valid:sales.filter(valid),
+        pending=market?market.pending:sales.filter(s=>String(s.eula_status).toUpperCase()==="PENDING");
   const targetsByStore=new Map();
   for(const t of targets)targetsByStore.set(t.store_id,(targetsByStore.get(t.store_id)||0)+n(t.target_qty));
   const siteById=new Map(stores.map(s=>[s.id,s.site_id]));
@@ -49,13 +51,17 @@ const analytics={
   if(unmapped.length)alerts.push({id:"mapping",level:"critical",count:unmapped.length,title:"Promoter belum termapping",desc:unmapped.length+" transaksi membutuhkan pemeriksaan identitas promoter.",target:profile.role==="admin"?"Data & Import":"RAW Sellout"});
   if(missing.length)alerts.push({id:"target",level:"warning",count:missing.length,title:"Store tanpa target",desc:missing.length+" store dalam cakupan belum mempunyai target periode.",target:profile.role==="admin"?"Target":"Coverage & Toko"});
   if(slowStores.length)alerts.push({id:"pace",level:"info",count:slowStores.length,title:"Di bawah pace",desc:slowStores.length+" toko di bawah 65% proyeksi pace bulan berjalan.",target:profile.role==="admin"?"Target":"Coverage & Toko"});
-  return {good,pending,unmapped,missing,slowStores,alerts,models,promoOpportunity,targetQty,actualQty,totalAmt,actualAmt,timeGone,pace,elapsed,duration,covered,activePromo,validCount:good.length,actualByStore,siteById};
+  return {good,pending,unmapped,missing,slowStores,alerts,models,promoOpportunity,targetQty,actualQty,totalAmt,actualAmt,timeGone,pace,elapsed,duration,covered,activePromo,validCount:good.length,actualByStore,siteById,market};
  },
  insights(data,role){
   const a=analytics.compute(data),items=[];
   const roleText={admin:"seluruh wilayah",tl:"coverage TL",tso:"wilayah TSO",ec:"penjualan pribadi EC"}[role]||"cakupan Anda";
   items.push({type:"summary",title:"Performa "+roleText,
     body:a.targetQty>0?"Capaian Qty VALID "+N(a.actualQty)+" dari "+N(a.targetQty)+" unit ("+N(pct(a.actualQty,a.targetQty))+"%). Pace periode "+N(a.timeGone*100)+"%.":"Tercatat "+N(a.actualQty)+" unit VALID; target Qty pada scope ini belum tersedia."});
+  if(a.market&&window.SamsungMarketMetrics){
+   for(const i of window.SamsungMarketMetrics.insights(a.market,role).slice(0,3))
+    items.push({type:i.type==="warning"?"risk":i.type==="positive"?"opportunity":i.type,title:i.title,body:i.body});
+  }
   if(a.models.length)items.push({type:"opportunity",title:"Model terlaris dalam scope",body:a.models[0].model+" menyumbang "+N(a.models[0].qty)+" unit VALID. Kontribusi dihitung dari transaksi yang dapat diakses akun."});
   else items.push({type:"info",title:"Belum ada penjualan VALID",body:"Tidak ada data VALID dalam periode dan cakupan yang dipilih."});
   if(a.pending.length)items.push({type:"risk",title:"Kualitas EULA perlu perhatian",body:N(a.pending.length)+" transaksi PENDING tidak masuk pencapaian. Cek sumber transaksi dan status EULA."});
@@ -75,9 +81,18 @@ function renderDashboard(ctx){
  activeContext=ctx;const token=++lastToken;const root=document.getElementById("intel-dashboard");
  if(!root)return;
  const stats=analytics.compute(ctx);
+ const market=stats.market;
+ const metricBox=(label,value,hint)=>'<div class="intel-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(hint)+'</small></div>';
+ const q=window.SamsungMarketMetrics?.qtyFormat||N;
+ const dailyInfo=market?'<div class="intel-stat-grid intel-market-pulse" aria-label="Ringkasan MTD dan pertumbuhan sellout">'+
+  metricBox("Target MTD Qty",q(market.mtdQty),"Pace kalender · "+market.elapsed+"/"+market.duration+" hari")+
+  metricBox("Gap MTD Qty",q(market.mtdGapQty),"Positif berarti tertinggal dari pace")+
+  metricBox("Target Daily Qty",market.remainingDays?q(Math.ceil(market.dailyQty)):"—","Kebutuhan/hari · "+market.remainingDays+" hari tersisa")+
+  metricBox("Growth Sellout WoW",market.wowQty===null?"Belum cukup data":(market.wowQty>=0?"+":"")+market.wowQty.toFixed(1)+"%","Dua minggu kalender lengkap")+
+  '</div>':"";
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};
  const action=({admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"})[ctx.profile.role];
- root.innerHTML='<div class="intel-dashboard-top">'+
+ root.innerHTML=dailyInfo+'<div class="intel-dashboard-top">'+
    panel("Smart Data Alerts",'<div id="intel-alert-list" class="intel-alert-list"></div><p class="intel-caption">Prioritas berbasis transaksi dan target yang saat ini terlihat oleh akun.</p>')+
    panel("Dashboard Personal",'<div class="intel-personal"><p class="intel-overline">'+esc(roleNames[ctx.profile.role]||"Workspace")+'</p>'+
     '<div class="intel-personal-number">'+N(stats.actualQty)+' <small>unit VALID</small></div>'+

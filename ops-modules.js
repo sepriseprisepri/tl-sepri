@@ -139,23 +139,51 @@
     }).filter(Boolean).sort((a,b)=>b.ar-a.ar);
   }
   function targetPage(mount,period,stores,targets,sales,personal) {
-    const rows=groupingTargets(stores,targets,sales);
-    const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt"),actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
+    const metrics=window.SamsungMarketMetrics;
+    const m=metrics?.summarize({period,targets,sales});
+    const visibleSales=m?sales.filter(s=>m.elapsed>0 && s.sold_at<=m.effective):sales;
+    const rows=groupingTargets(stores,targets,visibleSales);
+    const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt");
+    const actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
+    const q=v=>metrics?metrics.qtyFormat(v):nfmt(Math.round(v));
+    const elapsed=m?.elapsed||0,duration=m?.duration||1,remaining=m?.remainingDays||0;
     mount.innerHTML=sectionHead(personal?"Target Saya":"Target Penjualan",
-      personal?"Alokasi personal EC dari database, bukan total target toko.":"Target November per toko sesuai cakupan akun.",period);
+      personal?"Target dan pencapaian pribadi EC, berdasarkan alokasi personal dan EULA VALID.":
+        "Target seluruh toko yang menjadi cakupan akun; seluruh angka mengikuti periode terpilih.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Toko bertarget",nfmt(rows.length),"Periode "+period.period_name],
-      ["Target Qty",nfmt(qty),"Alokasi sesuai hak akses"],
-      ["VALID Qty",nfmt(actual),"EULA PENDING dikecualikan"],
-      ["AR% Qty",percent(actual,qty),"Gap Qty: "+nfmt(qty-actual)]
+      ["Target Qty",q(qty),"Target periode; dibulatkan hanya untuk tampilan"],
+      ["VALID Qty",q(actual),"Achievement: "+percent(actual,qty)],
+      ["Gap Qty",q(qty-actual),"Target penuh dikurangi VALID"],
+      ["Gap Amt",currency(amount-actualAmt),"Target amount dikurangi VALID"],
+      ["Target Qty MTD",q(qty*elapsed/duration),"Hari "+elapsed+" dari "+duration],
+      ["Target Amt MTD",currency(amount*elapsed/duration),"Pace kalender berjalan"],
+      ["Target Daily Qty",remaining>0?q(Math.ceil(Math.max(0,qty-actual)/remaining)):"—",
+        remaining>0?"Rata-rata "+remaining+" hari tersisa":"Periode sudah berakhir"],
+      ["Target Daily Amt",remaining>0?currency(Math.ceil(Math.max(0,amount-actualAmt)/remaining)):"—",
+        "Kebutuhan harian hingga target akhir"]
     ]));
-    mount.insertAdjacentHTML("beforeend",alert("Target Qty dapat berupa nilai desimal sesuai file resmi. PENDING tidak dihitung sebagai pencapaian."));
-    makeTable(mount,{title:personal?"Rincian target EC":"Rincian target per toko",
-      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","AR Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.category,nfmt(r.target_qty),nfmt(r.actual_qty),
-        nfmt(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),currency(r.target_amt),
-        currency(r.actual_amt),percent(r.actual_amt,r.target_amt)],
-      filename:personal?"target-ec.csv":"target-toko.csv"});
+    mount.insertAdjacentHTML("beforeend",alert(
+      "Qty dibulatkan hanya pada tampilan, sedangkan pencapaian dihitung dari nilai sebenarnya. "+
+      "Daily Target adalah kebutuhan rata-rata per hari kalender tersisa (termasuk hari ini); "+
+      "MTD mengikuti jumlah hari yang telah berjalan. Transaksi PENDING tidak dihitung."
+    ));
+    const info=m?metrics.insights(m,personal?"ec":"tl"):[];
+    if(info.length)mount.insertAdjacentHTML("beforeend",
+      '<section class="panel rounded-2xl p-5 mt-4" aria-label="Artificial Insight Target"><h3 class="font-semibold mb-3">Artificial Insight · Target</h3>'+
+      info.map(i=>'<p class="text-sm text-slate-300 mb-2"><strong>'+esc(i.title)+'</strong> — '+esc(i.body)+'</p>').join("")+
+      '<p class="text-xs text-slate-500">Analisis otomatis berbasis aturan; bukan prediksi AI generatif.</p></section>');
+    makeTable(mount,{title:personal?"Rincian target pribadi EC":"Rincian target per toko",
+      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty",
+        "Target MTD Qty","Daily Qty","Target Amt","VALID Amt","Gap Amt","AR Amt"],
+      rows,cells:r=>[
+        r.site_id,r.site_name,r.category,q(r.target_qty),q(r.actual_qty),
+        q(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),
+        q(r.target_qty*elapsed/duration),
+        remaining>0?q(Math.ceil(Math.max(0,r.target_qty-r.actual_qty)/remaining)):"—",
+        currency(r.target_amt),currency(r.actual_amt),
+        currency(r.target_amt-r.actual_amt),percent(r.actual_amt,r.target_amt)
+      ],
+      filename:personal?"target-ec-mtd.csv":"target-toko-mtd.csv"});
   }
   function coveragePage(mount,period,stores,targets,sales) {
     const rows=groupingTargets(stores,targets,sales);

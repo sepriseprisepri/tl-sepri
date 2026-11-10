@@ -1,0 +1,52 @@
+name: Focus Model TL EC Isolated PostgreSQL Integration
+
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/20261110-focus-ec-allocations-staging.sql'
+      - 'tests/sql/focus-allocations-bootstrap.sql'
+      - 'tests/sql/focus-allocations-assertions.sql'
+      - '.github/workflows/focus-allocations-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focus-allocations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testowner
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: focus_tests
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U testowner -d focus_tests"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: testowner
+      PGPASSWORD: local-ci-only
+      PGDATABASE: focus_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client if missing
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Check SQL allocation and RLS against disposable PostgreSQL 16
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-assertions.sql

@@ -109,6 +109,12 @@ async function run(){
  await focus.render({...args,mount:pending,client:fakeClient("tl",true)});
  assert.match(pending.innerHTML,/Migrasi alokasi EC belum tersedia/);
  assert.doesNotMatch(pending.innerHTML,/id="focus-ec-form"/);
- console.log("PASS Focus UI: TL allocation RPC, EC-only view, actual sellout and schema pending fallback");
+ const aliases=mountMock();
+ await focus.render({...args,mount:aliases,client:fakeClient("tl"),
+  settings:[...settings,{model_code:"OTHER-MODEL",display_name:"Galaxy A55",is_active:true}]});
+ assert.match(aliases.nodes.get("focus-table-body").innerHTML,
+  /<td class="text-right">6<\/td><td class="text-right">0<\/td>/,
+  "Ambiguous model display names must not double count sellout");
+ console.log("PASS Focus UI: TL allocation RPC, EC-only view, alias collision protection and schema fallback");
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});

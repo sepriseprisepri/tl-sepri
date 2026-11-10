@@ -7,6 +7,7 @@
 - **Admin** tetap membuat `focus_model_targets` sebagai plafon resmi per periode + toko + model.
 - **TL** aktif dengan `coverage_assignments` berlaku dapat membagikan target Qty dan Amount kepada EC aktif yang mempunyai profil `role=ec`, `manpower.site_id` sesuai toko, dan `store_assignments` aktif pada toko yang sama.
 - **EC** membaca **hanya** alokasi untuk `profiles.manpower_id` miliknya dan toko penempatan saat ini. EC tidak bisa membuat/mengubah/menghapus alokasi, melihat riwayat TL, atau membaca target EC lain.
+- Kebijakan `focus_targets_read_authorized` pada tabel parent **dipersempit**: hanya Admin/TL/TSO dapat membaca target toko. EC tetap bisa membaca alokasi individual tanpa mengambil target toko di API. Ini mencegah target toko bocor melalui network inspector.
 - **TL/Admin** melihat ringkasan target model toko, total Qty/Amt yang dialokasikan, sisa alokasi, realisasi VALID oleh EC teralokasi, gap, achievement dan riwayat 25 aktivitas.
 - Toko dan EC di luar coverage TL tidak dapat dialokasikan; `tso` dapat membaca dalam coverage, tetapi **tidak** dapat mengubah.
 - Alokasi lama setelah EC pindah toko tidak tampil kepada EC di toko baru; TL yang masih membawahi toko asal dapat **menghapus alokasi lama** untuk membebaskan plafon.
@@ -39,7 +40,7 @@
 ## QA / release gate
 
 - PostgreSQL 16 lokal: cek TL hanya toko sendiri, Admin, EC self-select, anon ditolak, RPC tanpa hak ditolak, Qty/Amt cap, riwayat edit/hapus, rotasi password, pindah toko, model nonaktif, parent target tidak boleh turun, dan **dua transaksi bersamaan tidak melampaui plafon**.
-- UI Node.js: TL form memanggil RPC, EC hanya melihat target/realisasi pribadi (2 VALID dari 6 = 33,3%), status migrasi belum ada dapat ditangani.
+- UI Node.js: TL form memanggil RPC, EC tetap melihat target/realisasi pribadi meski parent focus model targets **tidak tersedia melalui RLS** (2 VALID dari 6 = 33,3%), status migrasi belum ada dapat ditangani.
 - Smoke test sebelumnya (dashboard, login, promo, monitoring) tetap lulus.
 - **Belum diuji di backend hosted staging** karena belum ada Supabase staging lengkap dan belum menerapkan migration; pengujian PostgreSQL 16 dengan fixture tidak identik seluruh constraint produksi.
 - **Belum tersedia preview Vercel dari commit terbaru** karena kuota deployment harian sebelumnya habis. Jangan memakai preview lama sebagai bukti UI final.

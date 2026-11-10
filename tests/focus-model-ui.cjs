@@ -41,11 +41,12 @@ function element(id){
   scrollIntoView(){},getAttribute(n){return this[n];}};
  if(id==="focus-qty"||id==="focus-amt")o.value="0";
  if(id==="focus-parent"||id==="focus-person"||id.startsWith("focus-filter"))o.value="";
- if(id==="focus-ec-form")o.querySelector=()=>({disabled:false});
+ if(id==="focus-ec-form"||id==="focus-admin-parent-form")o.querySelector=()=>({disabled:false,isConnected:true});
  return o;
 }
 function mountMock(){
- const nodes=new Map(),mount={html:"",onclick:null,events:{},
+ const nodes=new Map(),mount={html:"",onclick:null,events:{},parentBox:null,
+  prepend(box){this.parentBox=box;},
   set innerHTML(text){this.html=text;nodes.clear();
    for(const [,id] of text.matchAll(/id="([^"]+)"/g))nodes.set(id,element(id));},
   get innerHTML(){return this.html;},
@@ -59,7 +60,9 @@ function fakeClient(role,missing=false){
  const calls=[];
  const client={calls,from(name){
   let filters=[];
-  return {select(){return this;},eq(col,value){filters.push([col,value]);return this;},
+  return {select(){return this;},
+   upsert(payload,opts){calls.push({name:"upsert",table:name,payload,opts});return Promise.resolve({error:null});},
+   eq(col,value){filters.push([col,value]);return this;},
    async range(){
     if(name==="focus_model_ec_allocations"&&missing)
      return {data:null,error:{code:"PGRST205",message:"Could not find the table"}};
@@ -72,7 +75,15 @@ function fakeClient(role,missing=false){
 }
 async function run(){
  const context={window:{SamsungMarketMetrics:metrics,confirm:()=>true},console,Intl,
-  Number,Date,Map,Set,Math};
+  Number,Date,Map,Set,Math,document:{createElement(){
+   const nodes=new Map(),box={setAttribute(){},className:"",
+    set innerHTML(html){this.markup=html;nodes.clear();
+     for(const [,id] of html.matchAll(/id="([^"]+)"/g))nodes.set(id,element(id));},
+    get innerHTML(){return this.markup;},
+    querySelector(sel){return nodes.get(sel.replace("#",""))||null;},
+    nodes};
+   return box;
+  }}};
  vm.runInNewContext(code,context);
  const focus=context.window.FocusModelAllocationUI;
  const tlMount=mountMock(),tlClient=fakeClient("tl");
@@ -113,6 +124,24 @@ async function run(){
  assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Satu/);
  assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/33\\.3%/,
   "TSO should see scoped EC real achievement, not zero from unloaded manpower");
+ const adminMount=mountMock(),adminClient=fakeClient("admin");
+ await focus.render({...args,mount:adminMount,client:adminClient,
+  profile:{id:"11111111-1111-1111-1111-111111111111",role:"admin"}});
+ assert.ok(adminMount.parentBox,"Admin must receive a store/model target budget editor");
+ const parentBox=adminMount.parentBox;
+ assert.match(parentBox.innerHTML,/Simpan Target Induk/);
+ parentBox.querySelector("#focus-admin-store").value="st-1";
+ parentBox.querySelector("#focus-admin-model").value="GALAXY A55";
+ parentBox.querySelector("#focus-admin-store").events.change();
+ parentBox.querySelector("#focus-admin-qty").value="11";
+ parentBox.querySelector("#focus-admin-amt").value="1100";
+ await parentBox.querySelector("#focus-admin-parent-form").events.submit({preventDefault(){}});
+ const upsertCall=adminClient.calls.find(x=>x.name==="upsert");
+ assert.ok(upsertCall,"Admin parent budget must be saved through RLS-scoped Data API");
+ assert.equal(upsertCall.table,"focus_model_targets");
+ assert.equal(upsertCall.payload.target_qty,11);
+ assert.equal(upsertCall.payload.target_amt,1100);
+ assert.equal(upsertCall.payload.updated_by,"11111111-1111-1111-1111-111111111111");
  const pending=mountMock();
  await focus.render({...args,mount:pending,client:fakeClient("tl",true)});
  assert.match(pending.innerHTML,/Migrasi alokasi EC belum tersedia/);
@@ -123,6 +152,6 @@ async function run(){
  assert.match(aliases.nodes.get("focus-table-body").innerHTML,
   /<td class="text-right">6<\/td><td class="text-right">0<\/td>/,
   "Ambiguous model display names must not double count sellout");
- console.log("PASS Focus UI: TL allocation RPC, EC-only view, alias collision protection and schema fallback");
+ console.log("PASS Focus UI: Admin target store editor, TL RPC, EC-only view, TSO read-only, aliases and schema fallback");
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});

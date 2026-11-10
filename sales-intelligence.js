@@ -148,8 +148,17 @@ function createChart(node,type,labels,datasets,opts={}){
  });chartObjs.push(chart);
 }
 function clearCharts(){for(const chart of chartObjs){try{chart.destroy();}catch{}}chartObjs=[];}
-function byDay(sales,key){
- const map=group(sales,key,s=>s.sold_at);return [...map.entries()].sort(([a],[b])=>a.localeCompare(b));
+function byDay(sales,key,from,to){
+ const map=group(sales,key,s=>s.sold_at);
+ const end=to<dateLocal()?to:dateLocal();
+ const rows=[];
+ if(!from||!to||from>end)return rows;
+ const startMs=Date.parse(from+"T12:00:00Z"),endMs=Date.parse(end+"T12:00:00Z");
+ for(let ms=startMs;ms<=endMs&&rows.length<400;ms+=86400000){
+  const day=new Date(ms).toISOString().slice(0,10);
+  rows.push([day,map.get(day)||0]);
+ }
+ return rows;
 }
 function weekKey(date){
  const d=new Date(date+"T12:00:00Z"),w=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));
@@ -175,7 +184,7 @@ function renderCharts(ctx,mount){
     '<p class="intel-caption">Growth dihitung dari dua minggu kalender lengkap. Minggu berjalan bukan pembanding setara.</p>')+
   '<div class="intel-chart-grid">'+
    panel("Tren Sellout Harian",'<div class="intel-chart-canvas"><canvas id="intel-day-chart" role="img" aria-label="Grafik sellout harian"></canvas></div>')+
-   panel("Weekly Growth",'<div class="intel-chart-canvas"><canvas id="intel-week-chart" role="img" aria-label="Grafik sellout mingguan"></canvas></div>')+
+   panel("Weekly Growth",'<div class="intel-chart-canvas"><canvas id="intel-week-chart" role="img" aria-label="Grafik sellout mingguan, minggu belum lengkap diberi tanda bintang"></canvas></div><p class="intel-caption">* Minggu parsial. Garis pertumbuhan hanya muncul untuk minggu lengkap yang berurutan.</p>')+
    panel("Kontribusi Model",'<div class="intel-chart-canvas"><canvas id="intel-model-chart" role="img" aria-label="Peringkat model"></canvas></div>')+
    panel("Peringkat Store",'<div class="intel-chart-canvas"><canvas id="intel-store-chart" role="img" aria-label="Peringkat toko"></canvas></div>')+
    panel("EULA VALID dan PENDING",'<div class="intel-chart-canvas"><canvas id="intel-status-chart" role="img" aria-label="Perbandingan status EULA"></canvas></div>')+
@@ -202,11 +211,20 @@ function renderCharts(ctx,mount){
    "Belum tersedia dua minggu kalender lengkap dengan pembanding yang memiliki penjualan. Perlu data historis untuk WoW yang adil.":
    "Pertumbuhan "+(metric==="qty"?"Qty":"Amount")+" WoW: "+(comparison>=0?"+":"")+comparison.toFixed(1)+"% antara dua minggu kalender lengkap. "+
    "Data dihitung dari transaksi EULA VALID pada filter ini.";
-  const day=byDay(good,metric),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
+  const day=byDay(good,metric,f.from,f.to),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
   const nameMap=new Map(stores.map(s=>[s.site_id,s.site_name]));
   const storeMap=group(good,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
   const storeRank=[...storeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const weekRows=[...weeks.entries()].sort(([a],[b])=>a.localeCompare(b));
+  const weekRows=[];
+  const endWeek=f.to<dateLocal()?f.to:dateLocal();
+  if(f.from<=endWeek&&window.SamsungMarketMetrics){
+   let monday=window.SamsungMarketMetrics.weekStart(f.from);
+   for(let count=0;monday<=endWeek&&count<80;count++){
+    const key=weekKey(monday);
+    weekRows.push([key,weeks.get(key)||0]);
+    monday=new Date(Date.parse(monday+"T12:00:00Z")+7*86400000).toISOString().slice(0,10);
+   }
+  }else weekRows.push(...[...weeks.entries()].sort(([a],[b])=>a.localeCompare(b)));
   const dsum=allBy(good,s=>s[metric]),pendingQty=allBy(pending,s=>s.qty);
   document.getElementById("intel-chart-stats").innerHTML=
    [['EULA VALID',N(good.length)],['Total '+(metric==="qty"?"Qty":"Amount"),metric==="qty"?N(dsum):money(dsum)],
@@ -224,7 +242,8 @@ function renderCharts(ctx,mount){
    if(following!==current.start||previous.total<=0)return null;
    return Math.round(((current.total-previous.total)/previous.total)*1000)/10;
   });
-  createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>x[0]),[
+  createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>
+    x[0]+(fullByKey.has(x[0])?"":" *")),[
     {type:"bar",label:metric==="qty"?"Qty per minggu":"Amount per minggu",data:weekRows.map(x=>x[1]),backgroundColor:"#4f92e7",borderRadius:5,yAxisID:"y"},
     {type:"line",label:"Growth WoW (%)",data:wow,borderColor:"#7be7c5",pointBackgroundColor:"#7be7c5",tension:.25,yAxisID:"y1"}
   ],{scales:{

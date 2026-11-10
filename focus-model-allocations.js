@@ -50,6 +50,15 @@ function setupUi(data){
  const storesById=new Map(stores.map(s=>[s.id,s]));
  const people=new Map(manpower.map(m=>[m.id,m]));
  const names=new Map(settings.map(m=>[m.model_code,m.display_name]));
+ // A model name/alias that maps to multiple master codes is ambiguous.
+ // Never double-count a RAW Sellout transaction under two Focus Model targets.
+ const aliasOwners=new Map();
+ for(const setting of settings){
+  for(const alias of new Set([key(setting.model_code),key(setting.display_name)].filter(Boolean))){
+   if(!aliasOwners.has(alias))aliasOwners.set(alias,setting.model_code);
+   else if(aliasOwners.get(alias)!==setting.model_code)aliasOwners.set(alias,null);
+  }
+ }
  const targetByTriple=new Map(targets.map(t=>[t.store_id+"|"+t.model_code,t]));
  const assigned=personal?allocations:allocations.filter(a=>targetByTriple.has(a.store_id+"|"+a.model_code));
  const salesByTriple=new Map();
@@ -65,6 +74,7 @@ function setupUi(data){
   const found=new Set(words);
   const acc={qty:0,amt:0,match:true};
   for(const name of found){
+   if(aliasOwners.get(name)!==a.model_code)continue;
    const x=salesByTriple.get(store.site_id+"|"+m.promoter_id+"|"+name);
    if(x){acc.qty+=x.qty;acc.amt+=x.amt;}
   }

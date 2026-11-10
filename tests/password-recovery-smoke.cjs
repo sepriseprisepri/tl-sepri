@@ -33,7 +33,7 @@ assert.doesNotMatch(html,/response\\.status===404\\|\\|data\\?\\.error/);
 assert.match(ui,/window\\.SAMSUNG_TURNSTILE_SITE_KEY/);
 assert.match(ui,/captcha_token:captchaToken/);
 assert.match(backend,/verifyHuman\\(body\\.captcha_token,captchaSecret\\)/);
-assert.match(backend,/challenges\\.cloudflare\\.com\\/turnstile\\/v0\\/siteverify/);
+assert.ok(backend.includes("https://challenges.cloudflare.com/turnstile/v0/siteverify"));
 assert.match(backend,/admin\\.rpc\\("password_recovery_claim_rate"/);
 assert.doesNotMatch(backend,/ipCount/);
 assert.match(migration,/ON CONFLICT \\(requester_fingerprint,bucket_started_at\\)/);

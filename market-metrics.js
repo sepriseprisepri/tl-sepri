@@ -22,7 +22,7 @@ const targetQtyFormat=x=>{
  // PostgREST gives numbers; also accept Indonesian example strings such as
  // "3.794,25" without misreading decimal commas as grouping separators.
  const normalized=typeof x==="string"&&x.includes(",")?
-   Number(x.trim().replace(/\\./g,"").replace(",", ".")):amount(x);
+   Number(x.trim().replace(/\./g,"").replace(",", ".")):amount(x);
  const value=Number.isFinite(normalized)?normalized:0;
  return new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(value));
 };

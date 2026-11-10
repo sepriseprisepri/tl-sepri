@@ -2,6 +2,8 @@
 -- Minimal schema of Master Database tables used by the CURRENT production RPC.
 -- Existing profiles/manpower originate from tests/sql/recovery-bootstrap.sql.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name text;
+-- Production manpower.id defaults to gen_random_uuid(); base RLS fixture omitted it.
+ALTER TABLE public.manpower ALTER COLUMN id SET DEFAULT gen_random_uuid();
 UPDATE public.profiles SET full_name=CASE role WHEN 'admin' THEN 'DUMMY ADMIN'
  WHEN 'tl' THEN 'DUMMY TL' ELSE 'DUMMY EC' END;
 

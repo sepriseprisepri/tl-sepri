@@ -173,7 +173,19 @@ BEGIN
   RAISE EXCEPTION 'Target model toko belum dibuat atau model tidak aktif'
    USING ERRCODE='22023';
  END IF;
- IF NOT EXISTS (
+ SELECT a.id,a.target_qty,a.target_amt
+ INTO v_existing FROM public.focus_model_ec_allocations a
+ WHERE a.period_id=p_period_id AND a.store_id=p_store_id
+   AND a.model_code=p_model_code AND a.manpower_id=p_manpower_id
+ FOR UPDATE;
+ IF FOUND THEN
+  v_old_qty := v_existing.target_qty;
+  v_old_amt := v_existing.target_amt;
+ END IF;
+ -- A TL must be able to clear an obsolete assignment after an EC transfers
+ -- or becomes inactive. The original store coverage still remains mandatory.
+ IF NOT (p_target_qty=0 AND p_target_amt=0 AND v_existing.id IS NOT NULL)
+ AND NOT EXISTS (
   SELECT 1 FROM public.manpower m
   JOIN public.stores s ON s.site_id=m.site_id
   JOIN public.profiles p ON p.manpower_id=m.id
@@ -189,15 +201,6 @@ BEGIN
  ) THEN
   RAISE EXCEPTION 'EC belum aktif atau tidak ditempatkan pada toko tersebut'
    USING ERRCODE='22023';
- END IF;
- SELECT a.id,a.target_qty,a.target_amt
- INTO v_existing FROM public.focus_model_ec_allocations a
- WHERE a.period_id=p_period_id AND a.store_id=p_store_id
-   AND a.model_code=p_model_code AND a.manpower_id=p_manpower_id
- FOR UPDATE;
- IF FOUND THEN
-  v_old_qty := v_existing.target_qty;
-  v_old_amt := v_existing.target_amt;
  END IF;
  SELECT COALESCE(SUM(a.target_qty),0)-v_old_qty+p_target_qty,
         COALESCE(SUM(a.target_amt),0)-v_old_amt+p_target_amt

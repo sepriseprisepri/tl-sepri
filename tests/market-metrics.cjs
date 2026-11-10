@@ -70,6 +70,17 @@ for(const [input,expected] of ceilingCases){
    "Target Qty must always be rounded UP: "+input);
 }
 assert.equal(metrics.qtyFormat(1.001),"1","Actual quantities must not inherit target-only ceiling");
+
+// Literal Indonesian number formatting from the request is also supported.
+for(const [input,expected] of [
+ ["3.794,25","3.795"],
+ ["1,955","2"],
+ ["3,911","4"],
+ ["34,218","35"],
+ ["4,888","5"]
+])assert.equal(metrics.targetQtyFormat(input),expected,
+ "Indonesian target formatting: "+input);
+
 const fractional=metrics.summarize({
  period,targets:[{target_qty:34.218,target_amt:123456.78}],
  sales:[],asOf:"2026-11-01"
@@ -95,6 +106,7 @@ assert.match(ops,/targetQtyText\(qty\*elapsed\/duration\)/,"MTD target uses ceil
 assert.match(ops,/targetQtyText\(Math\.max\(0,qty-actual\)\/remaining\)/,"Daily target uses ceil");
 assert.match(focus,/targetQtyText\(t\.target_qty\)/,"Focus Model store targets use ceil");
 assert.match(focus,/targetQtyText\(r\.target_qty\)/,"Focus Model EC targets use ceil");
+assert.match(focus,/remainingQtyText\(num\(t\.target_qty\)-qAlloc\)/,"Remaining allocatable capacity is never overstated by ceiling");
 assert.match(intelligence,/targetQtyText\(market\.mtdQty\)/,"Artificial Insight pulse uses ceil");
 assert.match(master,/targetQtyFormat\?\.\(p\.qtySum\)/,"Master preview target uses ceil");
 

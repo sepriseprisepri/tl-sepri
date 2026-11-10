@@ -23,6 +23,7 @@ CREATE TABLE public.focus_model_targets(
  model_code text NOT NULL REFERENCES public.focus_model_settings(model_code),
  target_qty numeric NOT NULL CHECK(target_qty>=0),
  target_amt numeric NOT NULL CHECK(target_amt>=0),
+ updated_by uuid REFERENCES public.profiles(id),updated_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE(period_id,store_id,model_code)
 );
 CREATE TABLE public.coverage_assignments(
@@ -72,6 +73,7 @@ END $f$;
 GRANT SELECT ON public.profiles,public.manpower,public.stores,
  public.target_periods,public.focus_model_settings,public.focus_model_targets,
  public.coverage_assignments,public.store_assignments TO authenticated;
+GRANT INSERT,UPDATE,DELETE ON public.focus_model_targets TO authenticated;
 GRANT ALL ON public.profiles,public.manpower,public.stores,
  public.target_periods,public.focus_model_settings,public.focus_model_targets,
  public.coverage_assignments,public.store_assignments TO service_role;
@@ -89,6 +91,9 @@ CREATE POLICY focus_model_settings_read ON public.focus_model_settings
  FOR SELECT TO authenticated USING(public.current_app_role() IS NOT NULL);
 CREATE POLICY focus_targets_read_authorized ON public.focus_model_targets
  FOR SELECT TO authenticated USING(public.can_access_store(store_id));
+CREATE POLICY focus_targets_admin_manage ON public.focus_model_targets
+ FOR ALL TO authenticated USING(public.current_app_role()='admin')
+ WITH CHECK(public.current_app_role()='admin');
 CREATE POLICY coverage_read ON public.coverage_assignments FOR SELECT TO authenticated
  USING(profile_id=auth.uid() OR public.current_app_role()='admin');
 CREATE POLICY store_assignments_read ON public.store_assignments

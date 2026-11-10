@@ -15,6 +15,8 @@
   }[ch]));
   const num = value => Number(value||0);
   const nfmt = value => formatter.format(num(value));
+  const targetQtyText = value => window.SamsungMarketMetrics?.targetQtyFormat?.(value) ??
+    new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(num(value)));
   const currency = value => rupiah.format(num(value));
   const share = (actual,target) => target>0 ? (100*actual/target) : 0;
   const percent = (actual,target) => (target>0 ? share(actual,target).toFixed(1)+"%" : "—");
@@ -151,19 +153,19 @@
       personal?"Target dan pencapaian pribadi EC, berdasarkan alokasi personal dan EULA VALID.":
         "Target seluruh toko yang menjadi cakupan akun; seluruh angka mengikuti periode terpilih.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Target Qty",qty>0?q(qty):"—","Target periode; dibulatkan hanya untuk tampilan"],
+      ["Target Qty",qty>0?targetQtyText(qty):"—","Target periode; selalu dibulatkan ke atas pada tampilan"],
       ["VALID Qty",q(actual),"Achievement: "+percent(actual,qty)],
       ["Gap Qty",qty>0?q(qty-actual):"—","Target penuh dikurangi VALID"],
       ["Gap Amt",amount>0?currency(amount-actualAmt):"—","Target amount dikurangi VALID"],
-      ["Target Qty MTD",qty>0?q(qty*elapsed/duration):"—","Hari "+elapsed+" dari "+duration],
+      ["Target Qty MTD",qty>0?targetQtyText(qty*elapsed/duration):"—","Hari "+elapsed+" dari "+duration],
       ["Target Amt MTD",amount>0?currency(amount*elapsed/duration):"—","Pace kalender berjalan"],
-      ["Target Daily Qty",qty>0&&remaining>0?q(Math.ceil(Math.max(0,qty-actual)/remaining)):"—",
+      ["Target Daily Qty",qty>0&&remaining>0?targetQtyText(Math.max(0,qty-actual)/remaining):"—",
         remaining>0?"Rata-rata "+remaining+" hari tersisa":"Periode sudah berakhir"],
       ["Target Daily Amt",amount>0&&remaining>0?currency(Math.ceil(Math.max(0,amount-actualAmt)/remaining)):"—",
         "Kebutuhan harian hingga target akhir"]
     ]));
     mount.insertAdjacentHTML("beforeend",alert(
-      "Qty dibulatkan hanya pada tampilan, sedangkan pencapaian dihitung dari nilai sebenarnya. "+
+      "Target Qty selalu dibulatkan ke atas (ceil) pada tampilan; nilai tersimpan dan persentase pencapaian tetap presisi. "+
       "Daily Target adalah kebutuhan rata-rata per hari kalender tersisa (termasuk hari ini); "+
       "MTD mengikuti jumlah hari yang telah berjalan. Transaksi PENDING tidak dihitung."
     ));
@@ -176,10 +178,10 @@
       headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty",
         "Target MTD Qty","Daily Qty","Target Amt","VALID Amt","Gap Amt","AR Amt"],
       rows,cells:r=>[
-        r.site_id,r.site_name,r.category,q(r.target_qty),q(r.actual_qty),
+        r.site_id,r.site_name,r.category,targetQtyText(r.target_qty),q(r.actual_qty),
         q(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),
-        q(r.target_qty*elapsed/duration),
-        remaining>0?q(Math.ceil(Math.max(0,r.target_qty-r.actual_qty)/remaining)):"—",
+        targetQtyText(r.target_qty*elapsed/duration),
+        remaining>0?targetQtyText(Math.max(0,r.target_qty-r.actual_qty)/remaining):"—",
         currency(r.target_amt),currency(r.actual_amt),
         currency(r.target_amt-r.actual_amt),percent(r.actual_amt,r.target_amt)
       ],
@@ -206,7 +208,7 @@
       headers:["Site ID","Toko","Kategori","Target Qty","Qty VALID","PENDING","AR Qty"],
       rows:combined,cells:r=>[
         r.site_id,r.site_name,r.channel_category||"—",
-        bySite.has(r.site_id)?nfmt(r.target_qty):"Belum ada",
+        bySite.has(r.site_id)?targetQtyText(r.target_qty):"Belum ada",
         nfmt(r.actual_qty),nfmt(r.pending),
         bySite.has(r.site_id)?percent(r.actual_qty,r.target_qty):"—"
       ],filename:"coverage-toko.csv"});
@@ -247,14 +249,14 @@
       "Achievement dihitung berdasarkan Promoter ID dan penempatan store. Hanya EC yang terlihat melalui RLS.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
       ["EC terlihat",nfmt(rows.length),"Manpower aktif dalam scope"],
-      ["Target EC Qty",nfmt(sum(rows,"target_qty")),"Alokasi personal"],
+      ["Target EC Qty",targetQtyText(sum(rows,"target_qty")),"Alokasi personal"],
       ["VALID Qty",nfmt(sum(rows,"qty")),"Transaksi promoter yang cocok"],
       ["AR Qty",percent(sum(rows,"qty"),sum(rows,"target_qty")),"Tidak mencakup promotor Shadow"]
     ]));
     makeTable(mount,{title:"Produktivitas EC",
       headers:["Employee ID","Nama EC","Promoter ID","Store","Target Qty","VALID Qty","AR Qty","VALID Amt"],
       rows,cells:r=>[r.employee_id,r.full_name,r.promoter_id,r.site_name,
-        nfmt(r.target_qty),nfmt(r.qty),percent(r.qty,r.target_qty),currency(r.amt)],
+        targetQtyText(r.target_qty),nfmt(r.qty),percent(r.qty,r.target_qty),currency(r.amt)],
       filename:"performa-ec.csv"});
   }
   function shadowRate(model) {
@@ -309,13 +311,13 @@
     mount.insertAdjacentHTML("beforeend",kpiPanel([
       ["Model aktif",nfmt(settings.filter(s=>s.is_active).length),"Daftar model pengaturan"],
       ["Target focus tersimpan",nfmt(rows.length),"Kombinasi model dan toko"],
-      ["Total target Qty",nfmt(sum(rows,"target_qty")),"Untuk scope akun"],
+      ["Total target Qty",targetQtyText(sum(rows,"target_qty")),"Untuk scope akun"],
       ["Total target Amt",currency(sum(rows,"target_amt")),"Untuk scope akun"]
     ]));
     mount.insertAdjacentHTML("beforeend",alert("Pengeditan focus model belum dibuka untuk TL karena kebijakan database saat ini hanya mengizinkan Admin mengubah focus_model_targets. Halaman ini hanya menampilkan data yang sudah disimpan."));
     makeTable(mount,{title:"Target Focus Model",
       headers:["Site ID","Toko","Model","Target Qty","Target Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.model_name,nfmt(r.target_qty),currency(r.target_amt)],
+      rows,cells:r=>[r.site_id,r.site_name,r.model_name,targetQtyText(r.target_qty),currency(r.target_amt)],
       filename:"focus-model.csv"});
     makeTable(mount,{title:"Daftar model tersedia",headers:["Kode Model","Nama","Status"],
       rows:settings,cells:r=>[r.model_code,r.display_name,r.is_active?"Aktif":"Nonaktif"],
@@ -333,7 +335,7 @@
     mount.innerHTML=sectionHead(personal?"Laporan Saya":"Laporan Performa",
       personal?"Ringkasan EC yang dibatasi Promoter ID oleh RLS.":"Ringkasan pencapaian EULA VALID berdasarkan model untuk scope akun.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Target Qty",nfmt(targetQty),"Periode saat ini"],
+      ["Target Qty",targetQtyText(targetQty),"Periode saat ini"],
       ["Qty VALID",nfmt(sum(valid,"qty")),"Tidak termasuk PENDING"],
       ["AR Qty",percent(sum(valid,"qty"),targetQty),"Achievement Qty"],
       ["AR Amt",percent(sum(valid,"amt"),targetAmt),"Achievement Amt"]

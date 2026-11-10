@@ -34,7 +34,7 @@ async function ipDigest(request:Request,salt:string){
   const signature=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(forwarded));
   return Array.from(new Uint8Array(signature)).map(x=>x.toString(16).padStart(2,"0")).join("");
 }
-async function verifyHuman(token:unknown,secret:string):Promise<boolean>{
+async function verifyHuman(token:unknown,secret:string,localBackend:boolean):Promise<boolean>{
   if(typeof token!=="string"||token.length<20||token.length>2048)return false;
   const body=new URLSearchParams({secret,response:token});
   const controller=new AbortController();
@@ -46,7 +46,8 @@ async function verifyHuman(token:unknown,secret:string):Promise<boolean>{
     if(!response.ok)return false;
     const result=await response.json();
     return result?.success===true && typeof result.hostname==="string" &&
-      ["samsung-kalteng.vercel.app","localhost"].includes(result.hostname);
+      (["samsung-kalteng.vercel.app","localhost"].includes(result.hostname) ||
+        (localBackend && secret==="1x0000000000000000000000000000000AA" && result.hostname==="example.com"));
   }catch{return false;}finally{clearTimeout(timer);}
 }
 function accountIdFromToken(req:Request){
@@ -74,7 +75,7 @@ Deno.serve(async req=>{
     if(!validId(body.employee_id)||!["forgot","reset"].includes(String(body.reason)))return reply(req,{error:"ID atau jenis permintaan tidak valid"},400);
     const requested=normalizeId(body.employee_id);
     // Fail closed: challenge must be verified server-side before touching account data.
-    if(!await verifyHuman(body.captcha_token,captchaSecret))
+    if(!await verifyHuman(body.captcha_token,captchaSecret,new URL(url).hostname==="127.0.0.1" || new URL(url).hostname==="kong"))
       return reply(req,{error:"Verifikasi keamanan gagal. Silakan ulangi CAPTCHA."},400);
     const fingerprint=await ipDigest(req,salt);
     // Atomic database-side rate claim: concurrent requests cannot all pass a SELECT count.

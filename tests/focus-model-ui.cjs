@@ -98,6 +98,7 @@ async function run(){
  assert.equal(tlClient.calls[0].args.p_target_qty,5);
  const ecMount=mountMock();
  await focus.render({...args,mount:ecMount,client:fakeClient("ec"),
+  targets:[], // EC is intentionally denied parent store targets by RLS
   profile:{role:"ec",manpower_id:"m-1"}});
  assert.doesNotMatch(ecMount.innerHTML,/id="focus-ec-form"/);
  assert.match(ecMount.innerHTML,/Target Focus Model Saya/);

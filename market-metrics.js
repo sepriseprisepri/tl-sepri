@@ -17,6 +17,8 @@ const localToday=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Pontianak",
 const weekStart=day=>shift(day,-((iso(day).getUTCDay()+6)%7));
 const moneyFormat=x=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(x);
 const qtyFormat=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(x));
+// Display-only: EVERY Target Qty uses ceiling, never nearest-integer rounding.
+const targetQtyFormat=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(amount(x)));
 const percent=(n,d)=>d>0?n/d*100:null;
 
 function completeWeeks(valid,start,end,asOf,metric){
@@ -73,11 +75,11 @@ function insights(m,role){
   insights.push({
    type:m.mtdGapQty>0?"warning":"positive",
    title:m.mtdGapQty>0?"Qty di bawah pace MTD":"Qty memenuhi pace MTD",
-   body:"Target MTD "+qtyFormat(m.mtdQty)+" unit; pencapaian VALID "+qtyFormat(m.actualQty)+
+   body:"Target MTD "+targetQtyFormat(m.mtdQty)+" unit; pencapaian VALID "+qtyFormat(m.actualQty)+
      " unit. Selisih pace "+qtyFormat(m.mtdGapQty)+" unit pada "+scope+"."
   });
   if(m.remainingDays>0)insights.push({type:"recommendation",title:"Kebutuhan harian hingga akhir periode",
-   body:"Perlu rata-rata "+qtyFormat(Math.ceil(m.dailyQty))+" unit dan "+moneyFormat(Math.ceil(m.dailyAmt))+
+   body:"Perlu rata-rata "+targetQtyFormat(m.dailyQty)+" unit dan "+moneyFormat(Math.ceil(m.dailyAmt))+
    " per hari dalam "+m.remainingDays+" hari kalender tersisa (termasuk hari ini)."});
  }else insights.push({type:"info",title:"Target belum tersedia",
   body:"Belum ada target pada periode dan cakupan akun ini. Hindari menyimpulkan performa buruk."});
@@ -93,5 +95,5 @@ function insights(m,role){
   body:m.pending.length+" transaksi PENDING tidak dimasukkan ke pencapaian VALID."});
  return insights;
 }
-return Object.freeze({summarize,insights,weekStart,completeWeeks,localToday,qtyFormat,moneyFormat});
+return Object.freeze({summarize,insights,weekStart,completeWeeks,localToday,qtyFormat,targetQtyFormat,moneyFormat});
 });

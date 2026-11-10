@@ -66,7 +66,7 @@ jobs:
           supabase functions serve password-recovery --env-file /tmp/recovery-test.env --no-verify-jwt > /tmp/recovery-edge.log 2>&1 &
           echo $! > /tmp/recovery-edge.pid
           # Status keys are scoped to the local stack and never printed to logs.
-          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' >> "$GITHUB_ENV"
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
           for i in $(seq 1 40); do
             if curl -s -o /dev/null -X OPTIONS -H 'Origin: http://localhost:3000' http://127.0.0.1:54321/functions/v1/password-recovery; then
               exit 0

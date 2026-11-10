@@ -417,9 +417,11 @@ function renderDashboard(d){
  const targetByStore=new Map();
  let targetQty=0,targetAmt=0;
  targets.forEach(t=>{targetQty+=Number(t.target_qty||0);targetAmt+=Number(t.target_amt||0);const x=targetByStore.get(t.store_id)||{qty:0,amt:0};x.qty+=Number(t.target_qty||0);x.amt+=Number(t.target_amt||0);targetByStore.set(t.store_id,x)});
- const valid=sales.filter(s=>(s.eula_status||"").toUpperCase()==="VALID");
- const pending=sales.filter(s=>(s.eula_status||"").toUpperCase()==="PENDING");
- const actualQty=valid.reduce((n,s)=>n+Number(s.qty||0),0),actualAmt=valid.reduce((n,s)=>n+Number(s.amt||0),0);
+ const marketSummary=window.SamsungMarketMetrics?.summarize({period,targets,sales});
+ const valid=marketSummary?.valid||sales.filter(s=>(s.eula_status||"").toUpperCase()==="VALID");
+ const pending=marketSummary?.pending||sales.filter(s=>(s.eula_status||"").toUpperCase()==="PENDING");
+ const actualQty=marketSummary?.actualQty??valid.reduce((n,s)=>n+Number(s.qty||0),0);
+ const actualAmt=marketSummary?.actualAmt??valid.reduce((n,s)=>n+Number(s.amt||0),0);
  const storeActual=new Map(),daily=new Map(),segments=new Map();
  valid.forEach(s=>{
   const key=s.site_id||"unknown",a=storeActual.get(key)||{qty:0,amt:0};a.qty+=Number(s.qty||0);a.amt+=Number(s.amt||0);storeActual.set(key,a);

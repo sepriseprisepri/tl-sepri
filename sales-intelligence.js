@@ -232,13 +232,16 @@ function renderCharts(ctx,mount){
   const a=analytics.compute({...ctx,sales:filtered,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
   const pctTarget=target>0?pct(dsum,target):0;
   document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":N(target))+'</small></div>'+
-    '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+
+    '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":!fullPeriod?"Rentang tanggal parsial tidak dibandingkan dengan target bulanan penuh.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+
     '<div class="intel-bar"><span style="width:'+Math.max(0,Math.min(100,pctTarget))+'%"></span></div>';
  };
  selects.forEach(el=>el.addEventListener("change",redraw));redraw();
  if(window.UserPrefs)window.UserPrefs.savedFilterControls({
   client:ctx.client,profile:ctx.profile,feature:"charts",mount:document.getElementById("intel-filter-bar"),
-  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];redraw();}
+  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];
+   for(const [k,el] of [["from",selects[3]],["to",selects[4]]])
+    if(typeof s[k]==="string"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(s[k])&&s[k]>=el.min&&s[k]<=el.max)el.value=s[k];
+   redraw();}
  });
 }
 function renderAlerts(ctx,mount){

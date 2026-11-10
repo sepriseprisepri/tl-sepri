@@ -27,6 +27,8 @@ SELECT public.set_focus_model_ec_allocation(
 DO $a$
 DECLARE result text;
 BEGIN
+ IF (SELECT count(*) FROM public.focus_model_targets)<>1
+ THEN RAISE EXCEPTION 'TL should see parent store focus model'; END IF;
  IF (SELECT count(*) FROM public.focus_model_ec_allocations)<>2
  THEN RAISE EXCEPTION 'TL should see two allocations'; END IF;
  IF (SELECT sum(target_qty) FROM public.focus_model_ec_allocations)<>9
@@ -82,6 +84,8 @@ RESET ROLE;
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333331',false);
 DO $a$ BEGIN
+ IF (SELECT count(*) FROM public.focus_model_targets)<>0
+ THEN RAISE EXCEPTION 'EC can still read store-wide Focus Model parent target'; END IF;
  IF (SELECT count(*) FROM public.focus_model_ec_allocations)<>1
  THEN RAISE EXCEPTION 'EC sees other EC allocation'; END IF;
  IF (SELECT count(*) FROM public.focus_model_allocation_history)<>0

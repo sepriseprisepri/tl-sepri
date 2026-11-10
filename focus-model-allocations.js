@@ -134,6 +134,27 @@ function setupUi(data){
    '<p id="focus-form-feedback" role="status" aria-live="polite" class="text-sm text-slate-300"></p>'+
   '</form></section>':
   manager&&!migrationPending?'<p class="text-amber-200 mb-4">Belum ada target Focus Model toko. Admin perlu membuat target toko terlebih dahulu.</p>':"";
+ const storeOverview=manager?
+  '<section class="panel rounded-2xl p-5 mb-5" aria-label="Ringkasan batas Focus Model per toko">'+
+  '<h4 class="text-white font-semibold mb-3">Kontrol Target Model Toko</h4>'+
+  '<p class="text-xs text-slate-400 mb-4">Target toko adalah plafon alokasi. Sisa belum dialokasikan bukan berarti pencapaian penjualan nol.</p>'+
+  '<div class="table-wrap"><table class="w-full text-sm"><thead><tr>'+
+  '<th>Toko</th><th>Model</th><th>Target Qty Toko</th><th>Qty Dialokasikan</th>'+
+  '<th>Sisa Alokasi</th><th>VALID Qty EC</th><th>Target Amt Toko</th>'+
+  '<th>Amt Dialokasikan</th><th>Sisa Amt</th></tr></thead><tbody>'+
+  targets.map(t=>{
+   const subset=rows.filter(a=>a.store_id===t.store_id&&a.model_code===t.model_code);
+   const qAlloc=total(subset,"target_qty"),amtAlloc=total(subset,"target_amt");
+   return '<tr><td>'+esc(storesById.get(t.store_id)?.site_name||"—")+'</td>'+
+     '<td>'+esc(names.get(t.model_code)||t.model_code)+'</td>'+
+     '<td>'+qty(t.target_qty)+'</td><td>'+qty(qAlloc)+'</td>'+
+     '<td>'+qty(num(t.target_qty)-qAlloc)+'</td>'+
+     '<td>'+qty(total(subset,"actual_qty"))+'</td>'+
+     '<td>'+money(t.target_amt)+'</td><td>'+money(amtAlloc)+'</td>'+
+     '<td>'+money(num(t.target_amt)-amtAlloc)+'</td></tr>';
+  }).join("")+
+  (targets.length?"":'<tr><td colspan="9" class="py-5 text-slate-400">Belum ada target Focus Model toko.</td></tr>')+
+  '</tbody></table></div></section>':"";
  const filterData=[
   {id:"focus-filter-store",label:"Toko",opts:[{value:"",text:"Semua toko"},...stores.map(s=>({value:s.id,text:s.site_name}))]},
   {id:"focus-filter-model",label:"Model",opts:[{value:"",text:"Semua model"},...settings.map(s=>({value:s.model_code,text:s.display_name}))]}
@@ -165,7 +186,7 @@ function setupUi(data){
     '<td>'+money(h.old_amt)+' → '+money(h.new_amt)+'</td></tr>').join("")+
    (history.length?"":'<tr><td colspan="6" class="text-slate-400 py-5">Belum ada perubahan.</td></tr>')+
   '</tbody></table></div><p class="text-xs text-slate-500 mt-3">25 aktivitas terbaru dalam periode; seluruh perubahan dicatat pada database.</p></section>':"";
- mount.innerHTML=head+notice+cards+summary+form+table+activity;
+ mount.innerHTML=head+notice+cards+summary+form+storeOverview+table+activity;
  const body=mount.querySelector("#focus-table-body");
  const stFilter=mount.querySelector("#focus-filter-store"),modelFilter=mount.querySelector("#focus-filter-model");
  function paint(){

@@ -78,13 +78,105 @@ CREATE POLICY focus_tl_update_scope ON public.focus_model_ec_targets FOR UPDATE 
  );
 CREATE POLICY focus_tl_delete_scope ON public.focus_model_ec_targets FOR DELETE TO authenticated
  USING ((SELECT public.current_app_role()) IN ('tl','admin') AND public.can_access_store(store_id));
+-- All writers (including direct PostgREST INSERT/UPDATE) must satisfy the same ceiling.
+-- Serialize by locking the parent store/model target before checking the aggregate.
+-- Put the SECURITY DEFINER helper in a non-exposed schema; never grant EXECUTE to API roles.
+CREATE SCHEMA IF NOT EXISTS app_private;
+REVOKE ALL ON SCHEMA app_private FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE FUNCTION app_private.enforce_focus_ec_allocation()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $fn$
+DECLARE
+  ceiling_qty numeric;
+  ceiling_amt numeric;
+  allocated_qty numeric;
+  allocated_amt numeric;
+BEGIN
+  IF TG_OP = 'UPDATE' AND
+    (NEW.period_id, NEW.manpower_id, NEW.store_id, NEW.model_code)
+      IS DISTINCT FROM
+    (OLD.period_id, OLD.manpower_id, OLD.store_id, OLD.model_code) THEN
+    RAISE EXCEPTION 'Identitas alokasi tidak boleh diubah'
+      USING ERRCODE = '23514';
+  END IF;
+
+  -- Parent row acts as an exclusive mutex for each (period, store, model).
+  SELECT ft.target_qty, ft.target_amt INTO ceiling_qty, ceiling_amt
+  FROM public.focus_model_targets AS ft
+  WHERE ft.period_id = NEW.period_id
+    AND ft.store_id = NEW.store_id
+    AND ft.model_code = NEW.model_code
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Target model toko belum tersedia'
+      USING ERRCODE = '23514';
+  END IF;
+
+  SELECT COALESCE(SUM(a.target_qty),0), COALESCE(SUM(a.target_amt),0)
+    INTO allocated_qty, allocated_amt
+  FROM public.focus_model_ec_targets AS a
+  WHERE a.period_id=NEW.period_id
+    AND a.store_id=NEW.store_id
+    AND a.model_code=NEW.model_code
+    AND (TG_OP='INSERT' OR a.id<>OLD.id);
+
+  IF allocated_qty + NEW.target_qty > ceiling_qty OR
+     allocated_amt + NEW.target_amt > ceiling_amt THEN
+    RAISE EXCEPTION 'Jumlah alokasi EC melampaui target model toko'
+      USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END
+$fn$;
+REVOKE ALL ON FUNCTION app_private.enforce_focus_ec_allocation() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS focus_ec_allocation_ceiling ON public.focus_model_ec_targets;
+CREATE TRIGGER focus_ec_allocation_ceiling
+  BEFORE INSERT OR UPDATE ON public.focus_model_ec_targets
+  FOR EACH ROW EXECUTE FUNCTION app_private.enforce_focus_ec_allocation();
+
+-- Parent targets may be reduced later; prevent invalidating existing allocations.
+CREATE OR REPLACE FUNCTION app_private.enforce_focus_store_target_ceiling()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $fn$
+DECLARE
+  used_qty numeric;
+  used_amt numeric;
+BEGIN
+  SELECT COALESCE(SUM(a.target_qty),0), COALESCE(SUM(a.target_amt),0)
+    INTO used_qty, used_amt
+  FROM public.focus_model_ec_targets AS a
+  WHERE a.period_id=NEW.period_id
+    AND a.store_id=NEW.store_id
+    AND a.model_code=NEW.model_code;
+  IF NEW.target_qty < used_qty OR NEW.target_amt < used_amt THEN
+    RAISE EXCEPTION 'Target toko tidak boleh lebih kecil dari total alokasi EC'
+      USING ERRCODE='23514';
+  END IF;
+  RETURN NEW;
+END
+$fn$;
+REVOKE ALL ON FUNCTION app_private.enforce_focus_store_target_ceiling() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS focus_store_target_ceiling ON public.focus_model_targets;
+CREATE TRIGGER focus_store_target_ceiling
+  BEFORE UPDATE OF target_qty, target_amt ON public.focus_model_targets
+  FOR EACH ROW EXECUTE FUNCTION app_private.enforce_focus_store_target_ceiling();
 COMMIT;
 -- Verify referenced table target_periods and FK types against actual staging schema before execution.
 -- Staging tests: EC1 only sees own model targets; EC2 cannot read EC1; TL sees sum per scope.
 -- TL cannot assign out-of-scope stores or inactive / unassigned EC.
--- IMPORTANT: Browser checks summed EC allocations <= store-level focus target, but concurrency
--- can bypass a client-only limit. Before production use, enforce this invariant with
--- a transactional locked RPC or database trigger and test simultaneous TL writes.
+-- The DB trigger now serializes allocations on the parent target row and enforces the ceiling.
+-- Staging tests must cover two concurrent inserts, update racing with insert, parent-target
+-- reduction, invalid identity updates, and roles with no table or schema privileges.
 -- Exposed API SELECT/INSERT/UPDATE grants are intentional and RLS restricts rows.
 -- Compare sum of EC allocations vs store-level targets, flag discrepancies.
--- Rollback: DROP TABLE public.focus_model_ec_targets (only after export/backup).
+-- Rollback after exporting allocation data: DROP TRIGGER focus_store_target_ceiling
+-- ON public.focus_model_targets; DROP TABLE public.focus_model_ec_targets;
+-- DROP FUNCTION app_private.enforce_focus_store_target_ceiling();
+-- DROP FUNCTION app_private.enforce_focus_ec_allocation();
+-- Retain private schema if used by other features. Review dependent access first.

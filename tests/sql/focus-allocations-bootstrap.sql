@@ -81,3 +81,8 @@ CREATE FUNCTION public.can_access_store(p_store_id uuid) RETURNS boolean
  AND current_date BETWEEN c.valid_from AND COALESCE(c.valid_to,'infinity'::date))
 $f$;
 GRANT EXECUTE ON FUNCTION public.current_app_role(),public.can_access_store(uuid) TO authenticated;
+
+-- Existing production policies grant authenticated SELECT on these master-data
+-- tables (with their own RLS); this minimal fixture needs those SQL grants for
+-- allocation-RLS subqueries to run under the authenticated role.
+GRANT SELECT ON public.manpower,public.stores TO authenticated;

@@ -149,7 +149,7 @@ BEGIN
  IF v_role='tl' AND NOT EXISTS (
   SELECT 1 FROM public.coverage_assignments ca
   WHERE ca.profile_id=v_actor AND ca.store_id=p_store_id
-    AND ca.coverage_role='tl' AND current_date BETWEEN ca.valid_from
+    AND ca.coverage_role='tl' AND (now() AT TIME ZONE 'Asia/Pontianak')::date BETWEEN ca.valid_from
     AND COALESCE(ca.valid_to,'infinity'::date)
  ) THEN
   RAISE EXCEPTION 'Toko di luar coverage TL'
@@ -203,7 +203,7 @@ BEGIN
     AND EXISTS (
       SELECT 1 FROM public.store_assignments sa
       WHERE sa.manpower_id=m.id AND sa.store_id=p_store_id
-        AND current_date BETWEEN sa.valid_from AND COALESCE(sa.valid_to,'infinity'::date)
+        AND (now() AT TIME ZONE 'Asia/Pontianak')::date BETWEEN sa.valid_from AND COALESCE(sa.valid_to,'infinity'::date)
     )
  ) THEN
   RAISE EXCEPTION 'EC belum aktif atau tidak ditempatkan pada toko tersebut'

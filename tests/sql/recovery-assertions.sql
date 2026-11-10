@@ -26,6 +26,7 @@ BEGIN
  IF public.current_app_role() IS NOT NULL THEN RAISE EXCEPTION 'Recovery TL must have no business role'; END IF;
  IF public.is_admin() THEN RAISE EXCEPTION 'Recovery TL must not be Admin'; END IF;
  IF (SELECT COUNT(*) FROM public.protected_market_data) <> 0 THEN RAISE EXCEPTION 'Recovery TL sees protected data'; END IF;
+ IF (SELECT COUNT(*) FROM public.manpower) <> 0 THEN RAISE EXCEPTION 'Recovery TL sees ownership-only manpower data'; END IF;
 END
 $test$;
 RESET ROLE;
@@ -36,6 +37,7 @@ DO $test$
 BEGIN
  IF public.current_app_role() IS DISTINCT FROM 'ec' THEN RAISE EXCEPTION 'Active EC must retain role'; END IF;
  IF (SELECT COUNT(*) FROM public.protected_market_data) <> 1 THEN RAISE EXCEPTION 'Active EC should see dummy data'; END IF;
+ IF (SELECT COUNT(*) FROM public.manpower) <> 1 THEN RAISE EXCEPTION 'Active EC should see own manpower'; END IF;
 END
 $test$;
 RESET ROLE;
@@ -48,6 +50,7 @@ DO $test$
 BEGIN
  IF public.current_app_role() IS NOT NULL THEN RAISE EXCEPTION 'Unrotated active TL cannot have role'; END IF;
  IF (SELECT COUNT(*) FROM public.protected_market_data) <> 0 THEN RAISE EXCEPTION 'Unrotated active TL sees data'; END IF;
+ IF (SELECT COUNT(*) FROM public.manpower) <> 0 THEN RAISE EXCEPTION 'Unrotated TL sees ownership-only manpower'; END IF;
 END
 $test$;
 RESET ROLE;
@@ -60,6 +63,7 @@ DO $test$
 BEGIN
  IF public.current_app_role() IS DISTINCT FROM 'tl' THEN RAISE EXCEPTION 'Recovered TL missing business role'; END IF;
  IF (SELECT COUNT(*) FROM public.protected_market_data) <> 1 THEN RAISE EXCEPTION 'Recovered TL missing dummy data'; END IF;
+ IF (SELECT COUNT(*) FROM public.manpower) <> 1 THEN RAISE EXCEPTION 'Recovered TL missing own manpower'; END IF;
 END
 $test$;
 RESET ROLE;

@@ -40,6 +40,17 @@ CREATE TABLE IF NOT EXISTS public.focus_model_allocation_history (
 CREATE INDEX IF NOT EXISTS focus_ec_history_store_idx
  ON public.focus_model_allocation_history(store_id,changed_at DESC);
 
+-- Parent target is store-wide; EC must only see personal allocations.
+-- The previous parent policy permitted EC to read total store targets via
+-- can_access_store(store_id). Restrict parent SELECT to TL/TSO/Admin.
+DROP POLICY IF EXISTS focus_targets_read_authorized ON public.focus_model_targets;
+CREATE POLICY focus_targets_read_authorized ON public.focus_model_targets
+ FOR SELECT TO authenticated
+ USING (
+  (SELECT public.current_app_role()) IN ('admin','tl','tso')
+  AND public.can_access_store(store_id)
+ );
+
 ALTER TABLE public.focus_model_ec_allocations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.focus_model_allocation_history ENABLE ROW LEVEL SECURITY;
 

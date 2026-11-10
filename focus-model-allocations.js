@@ -40,7 +40,7 @@ const missingTable=e=>/PGRST205|PGRST116|does not exist|could not find the table
  String(e?.code||"")+" "+String(e?.message||""));
 function setupUi(data){
  const {mount,client,profile,period,stores,settings,targets,allocations,manpower,
-  assignments,sales,migrationPending,isCurrent}=data;
+  assignments,history=[],sales,migrationPending,isCurrent}=data;
  if(!isCurrent())return;
  const role=profile.role;
  const manager=role==="tl"||role==="admin";
@@ -149,7 +149,23 @@ function setupUi(data){
   '<th class="text-right">Target Amt</th><th class="text-right">VALID Amt</th><th class="text-right">Gap Amt</th>'+
   (manager?"<th>Aksi</th>":"")+'</tr></thead><tbody id="focus-table-body"></tbody></table></div>'+
   '<p class="text-xs text-slate-500 mt-3">Model dihitung jika kode/nama model setelah normalisasi cocok dengan model RAW Sellout. Data yang tidak cocok perlu diverifikasi agar tidak dihitung sebagai pencapaian keliru.</p></section>';
- mount.innerHTML=head+notice+cards+summary+form+table;
+ const activity=manager&&!migrationPending?
+  '<section class="panel rounded-2xl p-5 mt-4" aria-label="Riwayat perubahan Focus Model">'+
+  '<h4 class="text-white font-semibold mb-3">Riwayat Perubahan Alokasi</h4>'+
+  '<div class="table-wrap"><table class="w-full text-sm"><thead><tr>'+
+  '<th>Waktu (WIB)</th><th>EC</th><th>Model</th><th>Aksi</th>'+
+  '<th>Qty sebelum → sesudah</th><th>Amt sebelum → sesudah</th></tr></thead><tbody>'+
+  [...history].sort((a,b)=>String(b.changed_at||"").localeCompare(String(a.changed_at||"")))
+   .slice(0,25).map(h=>'<tr>'+
+    '<td>'+esc(h.changed_at?new Date(h.changed_at).toLocaleString("id-ID",{timeZone:"Asia/Pontianak"}):"—")+'</td>'+
+    '<td>'+esc(people.get(h.manpower_id)?.full_name||"EC lama / tidak aktif")+'</td>'+
+    '<td>'+esc(names.get(h.model_code)||h.model_code)+'</td>'+
+    '<td>'+esc(h.action==="create"?"Dibuat":h.action==="update"?"Diubah":"Dihapus")+'</td>'+
+    '<td>'+qty(h.old_qty)+' → '+qty(h.new_qty)+'</td>'+
+    '<td>'+money(h.old_amt)+' → '+money(h.new_amt)+'</td></tr>').join("")+
+   (history.length?"":'<tr><td colspan="6" class="text-slate-400 py-5">Belum ada perubahan.</td></tr>')+
+  '</tbody></table></div><p class="text-xs text-slate-500 mt-3">25 aktivitas terbaru dalam periode; seluruh perubahan dicatat pada database.</p></section>':"";
+ mount.innerHTML=head+notice+cards+summary+form+table+activity;
  const body=mount.querySelector("#focus-table-body");
  const stFilter=mount.querySelector("#focus-filter-store"),modelFilter=mount.querySelector("#focus-filter-model");
  function paint(){
@@ -246,7 +262,7 @@ function setupUi(data){
 async function render(data){
  const {client,period,profile,isCurrent,mount}=data;
  const canManage=profile.role==="tl"||profile.role==="admin";
- let allocations=[],manpower=[],assignments=[],migrationPending=false;
+ let allocations=[],manpower=[],assignments=[],history=[],migrationPending=false;
  try{
   allocations=await readAll(client,"focus_model_ec_allocations",
    "id,period_id,store_id,model_code,manpower_id,target_qty,target_amt,updated_at",
@@ -256,6 +272,9 @@ async function render(data){
   else throw new Error("Gagal mengambil alokasi Focus Model: "+error.message);
  }
  if(canManage){
+  if(!migrationPending)history=await readAll(client,"focus_model_allocation_history",
+   "period_id,store_id,model_code,manpower_id,action,old_qty,new_qty,old_amt,new_amt,changed_at",
+   q=>q.eq("period_id",period.id));
   manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
    q=>q.eq("fieldforce_position","EC").eq("is_active",true));
   assignments=await readAll(client,"store_assignments","manpower_id,store_id,valid_from,valid_to");
@@ -264,7 +283,7 @@ async function render(data){
    q=>q.eq("id",profile.manpower_id));
  }
  if(!isCurrent())return;
- setupUi({...data,allocations,manpower,assignments,migrationPending});
+ setupUi({...data,allocations,manpower,assignments,history,migrationPending});
 }
 window.FocusModelAllocationUI={render};
 })();

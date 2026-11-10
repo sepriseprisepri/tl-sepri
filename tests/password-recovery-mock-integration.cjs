@@ -76,7 +76,7 @@ const Deno={
  serve:fn=>{handler=fn;}
 };
 const context={Deno,createClient:(url,key)=>key==="mock-server-only"?admin:auth,
-  crypto:webcrypto,Response,Request,URLSearchParams,AbortController,TextEncoder,
+  crypto:webcrypto,Response,Request,URL,URLSearchParams,AbortController,TextEncoder,
   Uint8Array,Date,Set,Math,Array,String,Number,RegExp,Error,JSON,setTimeout,clearTimeout,
   fetch:async url=>({ok:true,json:async()=>({success:siteVerifyMode==="accept",hostname:"samsung-kalteng.vercel.app"})})};
 vm.runInNewContext(js,context,{filename:"password-recovery.ts"});

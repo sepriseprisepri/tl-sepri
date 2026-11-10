@@ -162,13 +162,14 @@
     if(!requests.length){list.textContent="Belum ada permintaan yang memerlukan tindakan.";status.textContent="";return;}
     list.innerHTML='<table class="w-full text-sm"><thead><tr><th class="p-2 text-left">ID</th><th class="p-2 text-left">Role</th><th class="p-2 text-left">Jenis</th><th class="p-2 text-left">Status</th><th class="p-2 text-left">Tindakan</th></tr></thead><tbody>'+
       requests.map(item=>'<tr class="border-t border-slate-700"><td class="p-2">'+encoder(item.employee_id)+'</td><td class="p-2">'+encoder(item.role)+'</td><td class="p-2">'+encoder(item.reason)+'</td><td class="p-2">'+encoder(item.status)+'</td><td class="p-2">'+
-      (item.status==="pending"?'<button type="button" data-approve="'+encoder(item.id)+'" class="rounded-lg border border-cyan-500 px-3 py-1 text-cyan-300">Setujui</button>':'<span class="text-amber-200">Perlu tindak lanjut</span>')+'</td></tr>').join("")+"</tbody></table>";
-    list.querySelectorAll("[data-approve]").forEach(button=>button.addEventListener("click",async()=>{
-     const found=requests.find(item=>item.id===button.dataset.approve);
-     if(!found||!window.confirm("Sudah memverifikasi identitas pemilik "+found.employee_id+"? Persetujuan akan mengganti password dan mengunci akses dashboard sementara."))return;
+      (item.status==="pending"?'<button type="button" data-recovery-action="approve" data-request-id="'+encoder(item.id)+'" class="rounded-lg border border-cyan-500 px-3 py-1 text-cyan-300">Setujui</button>':(["failed","expired","awaiting_delivery","delivered"].includes(item.status)?'<button type="button" data-recovery-action="reissue" data-request-id="'+encoder(item.id)+'" class="rounded-lg border border-amber-500 px-3 py-1 text-amber-200">Terbitkan ulang</button>':'<span class="text-amber-200">Sedang diproses</span>'))+'</td></tr>').join("")+"</tbody></table>";
+    list.querySelectorAll("[data-recovery-action]").forEach(button=>button.addEventListener("click",async()=>{
+     const found=requests.find(item=>item.id===button.dataset.requestId);
+     const action=button.dataset.recoveryAction;
+     if(!found||!window.confirm("Sudah memverifikasi identitas pemilik "+found.employee_id+"? "+(action==="reissue"?"Password sementara sebelumnya akan diganti.":"Persetujuan akan mengganti password dan mengunci akses dashboard sementara.")))return;
      button.disabled=true;status.textContent="Memproses persetujuan…";
      try{
-      const result=await adminPost({action:"approve",request_id:found.id});
+      const result=await adminPost({action,request_id:found.id});
       activeRequest=found.id;secret.querySelector("[data-secret-identity]").textContent="ID akun: "+found.employee_id;
       secret.querySelector("[data-secret-value]").textContent=result.temporary_password;
       secret.classList.remove("hidden");status.textContent="Reset berhasil. Sampaikan password sementara secara privat, lalu tandai terkirim.";

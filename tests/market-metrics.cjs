@@ -55,11 +55,49 @@ assert.equal(noTarget.achievementQty,null,"No target is not 0 percent achievemen
 assert.ok(metrics.insights(noTarget,"ec").some(x=>x.title.includes("Target belum")));
 assert.equal(metrics.qtyFormat(1.6),"2","Display rounds only, raw math retains fractional targets");
 
+const ceilingCases=[
+  [3794.25,"3.795"],
+  [1.955,"2"],
+  [3.911,"4"],
+  [34.218,"35"],
+  [4.888,"5"],
+  [3,"3"],
+  [0,"0"],
+  [1.001,"2"]
+];
+for(const [input,expected] of ceilingCases){
+ assert.equal(metrics.targetQtyFormat(input),expected,
+   "Target Qty must always be rounded UP: "+input);
+}
+assert.equal(metrics.qtyFormat(1.001),"1","Actual quantities must not inherit target-only ceiling");
+const fractional=metrics.summarize({
+ period,targets:[{target_qty:34.218,target_amt:123456.78}],
+ sales:[],asOf:"2026-11-01"
+});
+assert.equal(fractional.targetQty,34.218,"Raw targets must not be mutated");
+assert.equal(fractional.targetAmt,123456.78,"Amount is not rounded by Qty display logic");
+assert.equal(metrics.targetQtyFormat(fractional.targetQty),"35");
+assert.equal(fractional.mtdQty,34.218/30,"MTD must retain numeric precision");
+
+
 const html=fs.readFileSync("index.html","utf8");
 const ops=fs.readFileSync("ops-modules.js","utf8");
 const charts=fs.readFileSync("sales-intelligence.js","utf8");
 assert.match(html,/<script src="\/market-metrics\.js"><\/script>/);
 assert.match(ops,/Target Daily Qty/);
+const focus=fs.readFileSync("focus-model-allocations.js","utf8");
+const intelligence=fs.readFileSync("sales-intelligence.js","utf8");
+const master=fs.readFileSync("master-import.js","utf8");
+assert.match(html,/fmtTargetQty\(targetQty\)/,"Dashboard Qty uses ceil");
+assert.match(html,/fmtTargetQty\(r\.target\)/,"Store target rows use ceil");
+assert.match(ops,/targetQtyText\(r\.target_qty\)/,"EC\/TL target rows use ceil");
+assert.match(ops,/targetQtyText\(qty\*elapsed\/duration\)/,"MTD target uses ceil");
+assert.match(ops,/targetQtyText\(Math\.max\(0,qty-actual\)\/remaining\)/,"Daily target uses ceil");
+assert.match(focus,/targetQtyText\(t\.target_qty\)/,"Focus Model store targets use ceil");
+assert.match(focus,/targetQtyText\(r\.target_qty\)/,"Focus Model EC targets use ceil");
+assert.match(intelligence,/targetQtyText\(market\.mtdQty\)/,"Artificial Insight pulse uses ceil");
+assert.match(master,/targetQtyFormat\?\.\(p\.qtySum\)/,"Master preview target uses ceil");
+
 assert.match(ops,/Gap Amt/);
 assert.match(charts,/intel-chart-from/);
 assert.match(charts,/intel-chart-to/);

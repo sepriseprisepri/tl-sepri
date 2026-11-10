@@ -6,6 +6,8 @@ const html=fs.readFileSync("index.html","utf8");
 const ui=fs.readFileSync("password-recovery.js","utf8");
 const backend=fs.readFileSync("supabase/functions/password-recovery/index.ts","utf8");
 const migration=fs.readFileSync("docs/sql/20261110-password-recovery-approval-draft.sql","utf8");
+const guard=fs.readFileSync("docs/sql/20261110-password-recovery-rls-guard-staging.sql","utf8");
+const ecBackend=fs.readFileSync("supabase/functions/provision-ec-accounts/index.ts","utf8");
 new vm.Script(ui,{filename:"password-recovery.js"});
 assert.match(html,/<script src="\/password-recovery\.js"><\/script>/);
 assert.match(html,/SamsungPasswordRecovery\?\.open\(\)/);

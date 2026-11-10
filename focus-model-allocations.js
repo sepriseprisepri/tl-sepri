@@ -290,6 +290,69 @@ function setupUi(data){
   catch(error){feedback.textContent="Gagal menghapus: "+error.message;}
  };
 }
+
+function setupAdminStoreTargets(data){
+ const {mount,client,profile,period,stores,settings,targets,isCurrent}=data;
+ if(profile.role!=="admin"||!isCurrent())return;
+ const box=document.createElement("section");
+ box.className="panel rounded-2xl p-5 mb-5";
+ box.setAttribute("aria-labelledby","focus-admin-target-title");
+ box.innerHTML='<h4 id="focus-admin-target-title" class="text-white font-semibold">Admin · Plafon Focus Model per Toko</h4>'+
+  '<p class="text-sm text-slate-400 mt-2">Tetapkan target induk Qty dan Amount per model dan toko sebelum TL membaginya ke EC. Angka ini bukan target pribadi EC.</p>'+
+  '<form id="focus-admin-parent-form" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mt-4">'+
+  '<label class="grid gap-2 text-xs text-slate-300">Toko<select id="focus-admin-store" class="field rounded-lg p-3" required></select></label>'+
+  '<label class="grid gap-2 text-xs text-slate-300">Model aktif<select id="focus-admin-model" class="field rounded-lg p-3" required></select></label>'+
+  '<label class="grid gap-2 text-xs text-slate-300">Plafon Qty<input id="focus-admin-qty" class="field rounded-lg p-3" type="number" min="0" step="any" required></label>'+
+  '<label class="grid gap-2 text-xs text-slate-300">Plafon Amount (Rp)<input id="focus-admin-amt" class="field rounded-lg p-3" type="number" min="0" step="1" required></label>'+
+  '<div class="sm:col-span-2 xl:col-span-4 flex items-center gap-3 flex-wrap">'+
+  '<button type="submit" class="bg-cyan-500 text-slate-950 font-semibold rounded-lg px-5 py-3 hover:bg-cyan-400">Simpan Target Induk</button>'+
+  '<span id="focus-admin-parent-status" role="status" aria-live="polite" class="text-sm text-cyan-200"></span></div></form>'+
+  '<p class="text-xs text-amber-200 mt-3">Target yang sudah dialokasikan kepada EC tidak dapat diturunkan di bawah total alokasi. Untuk perubahan tersebut, ubah alokasi EC terlebih dahulu.</p>';
+ mount.prepend(box);
+ const form=box.querySelector("#focus-admin-parent-form");
+ const store=box.querySelector("#focus-admin-store"),model=box.querySelector("#focus-admin-model");
+ const q=box.querySelector("#focus-admin-qty"),a=box.querySelector("#focus-admin-amt");
+ const status=box.querySelector("#focus-admin-parent-status");
+ const activeModels=settings.filter(x=>x.is_active);
+ store.innerHTML='<option value="">Pilih toko</option>'+
+  stores.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.site_name+' · '+x.site_id)+'</option>').join("");
+ model.innerHTML='<option value="">Pilih model</option>'+
+  activeModels.map(x=>'<option value="'+esc(x.model_code)+'">'+esc(x.display_name)+'</option>').join("");
+ function showExisting(){
+  const found=targets.find(x=>x.store_id===store.value&&x.model_code===model.value);
+  q.value=found?String(found.target_qty):"0";
+  a.value=found?String(found.target_amt):"0";
+  status.textContent=found?"Memuat target yang sudah ditetapkan.":"Belum ada target model pada toko ini.";
+ }
+ store.addEventListener("change",showExisting);model.addEventListener("change",showExisting);
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const qtyValue=Number(q.value),amtValue=Number(a.value);
+  if(!store.value||!model.value||!activeModels.some(x=>x.model_code===model.value)||
+   !Number.isFinite(qtyValue)||!Number.isFinite(amtValue)||qtyValue<0||amtValue<0||
+   qtyValue>100000000||amtValue>100000000000000){
+   status.textContent="Pilih toko, model aktif, dan Qty/Amount yang valid.";return;
+  }
+  if(period.status==="closed"){status.textContent="Periode sudah ditutup.";return;}
+  if(!profile.id){status.textContent="Identitas Admin belum tersedia.";return;}
+  if(!window.confirm("Simpan target induk ini sebagai plafon untuk seluruh EC di toko dan model terpilih?"))return;
+  const button=form.querySelector('button[type="submit"]');button.disabled=true;
+  status.textContent="Menyimpan plafon target...";
+  try{
+   const {error}=await client.from("focus_model_targets").upsert({
+    period_id:period.id,store_id:store.value,model_code:model.value,
+    target_qty:qtyValue,target_amt:amtValue,updated_by:profile.id,
+    updated_at:new Date().toISOString()
+   },{onConflict:"period_id,store_id,model_code"});
+   if(error)throw Error(error.message);
+   const updated=await readAll(client,"focus_model_targets",
+    "period_id,store_id,model_code,target_qty,target_amt",q=>q.eq("period_id",period.id));
+   if(!isCurrent())return;
+   await window.FocusModelAllocationUI.render({...data,targets:updated});
+  }catch(err){if(isCurrent())status.textContent="Gagal menyimpan target induk: "+err.message;}
+  finally{if(isCurrent()&&button.isConnected)button.disabled=false;}
+ });
+}
 async function render(data){
  const {client,period,profile,isCurrent,mount}=data;
  const canManage=profile.role==="tl"||profile.role==="admin";
@@ -320,6 +383,7 @@ async function render(data){
  }
  if(!isCurrent())return;
  setupUi({...data,allocations,manpower,assignments,history,migrationPending});
+ if(profile.role==="admin"&&isCurrent())setupAdminStoreTargets(data);
 }
 window.FocusModelAllocationUI={render};
 })();

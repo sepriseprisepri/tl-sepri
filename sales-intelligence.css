@@ -209,3 +209,19 @@
  color:#ffe0a1;background:rgba(144,96,31,.14);
  border-color:rgba(235,181,91,.38);
 }
+
+/* Dashboard market pulse — compact at desktop/tablet, readable on mobile. */
+.intel-market-pulse{margin:0 0 18px;}
+.intel-market-pulse .intel-stat{
+ min-height:104px;
+ background:linear-gradient(135deg,rgba(20,60,92,.72),rgba(12,33,55,.8));
+ border-color:rgba(81,188,218,.26);
+}
+.intel-market-pulse .intel-stat small{font-size:11px;line-height:1.5;color:#9bbbd0;}
+.intel-market-pulse .intel-stat strong{font-size:clamp(21px,2vw,29px);}
+.intel-filters input[type="date"]{min-height:40px;padding:9px 10px;color-scheme:dark;}
+@media(max-width:640px){
+ .intel-market-pulse{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+ .intel-market-pulse .intel-stat{padding:11px;min-height:103px;}
+ .intel-market-pulse .intel-stat strong{font-size:22px;}
+}

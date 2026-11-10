@@ -293,6 +293,7 @@ function setupUi(data){
 async function render(data){
  const {client,period,profile,isCurrent,mount}=data;
  const canManage=profile.role==="tl"||profile.role==="admin";
+ const canReadTeam=canManage||profile.role==="tso";
  let allocations=[],manpower=[],assignments=[],history=[],migrationPending=false;
  try{
   allocations=await readAll(client,"focus_model_ec_allocations",
@@ -309,6 +310,10 @@ async function render(data){
   manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
    q=>q.eq("fieldforce_position","EC").eq("is_active",true));
   assignments=await readAll(client,"store_assignments","manpower_id,store_id,valid_from,valid_to");
+ }else if(canReadTeam){
+  // TSO may inspect its RLS-scoped team, but cannot change allocations or see audit.
+  manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
+   q=>q.eq("fieldforce_position","EC").eq("is_active",true));
  }else if(profile.role==="ec"&&profile.manpower_id){
   manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
    q=>q.eq("id",profile.manpower_id));

@@ -17,6 +17,8 @@ on:
       - 'tests/intelligence-smoke.cjs'
       - 'docs/sql/sales-intelligence-promotions-20261106.sql'
       - 'ops-modules.js'
+      - 'focus-model-allocations.js'
+      - 'tests/focus-model-ui.cjs'
       - 'futuristic-ui.css'
       - 'tests/ui-regression.cjs'
       - 'tests/ops-smoke.cjs'
@@ -43,6 +45,8 @@ on:
       - 'tests/intelligence-smoke.cjs'
       - 'docs/sql/sales-intelligence-promotions-20261106.sql'
       - 'ops-modules.js'
+      - 'focus-model-allocations.js'
+      - 'tests/focus-model-ui.cjs'
       - 'futuristic-ui.css'
       - 'tests/ui-regression.cjs'
       - 'tests/ops-smoke.cjs'
@@ -69,6 +73,8 @@ jobs:
           node --check password-recovery.js
           node tests/password-recovery-smoke.cjs
           node tests/password-recovery-mock-integration.cjs
+          node --check focus-model-allocations.js
+          node tests/focus-model-ui.cjs
           node tests/market-metrics.cjs
           node tests/market-chart-interactions.cjs
           node tests/ops-smoke.cjs

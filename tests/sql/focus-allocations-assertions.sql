@@ -101,6 +101,23 @@ DO $a$ BEGIN
 END $a$;
 RESET ROLE;
 
+-- If an EC's store assignment expires, the prior allocation must cease
+-- to be readable immediately, even while their manpower.site_id is unchanged.
+UPDATE public.store_assignments SET valid_to=current_date-1
+ WHERE manpower_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1'
+ AND store_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1';
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333331',false);
+DO $a$ BEGIN
+ IF (SELECT count(*) FROM public.focus_model_ec_allocations)<>0
+ THEN RAISE EXCEPTION 'EC with expired store assignment can still see old focus allocation';
+ END IF;
+END $a$;
+RESET ROLE;
+UPDATE public.store_assignments SET valid_to=NULL
+ WHERE manpower_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1'
+ AND store_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1';
+
 -- Account rotation must deny access even if an old JWT remains valid.
 UPDATE public.profiles SET must_change_password=true
  WHERE id='22222222-2222-2222-2222-222222222222';

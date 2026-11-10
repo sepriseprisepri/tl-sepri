@@ -8,6 +8,7 @@ const backend=fs.readFileSync("supabase/functions/password-recovery/index.ts","u
 const migration=fs.readFileSync("docs/sql/20261110-password-recovery-approval-draft.sql","utf8");
 const guard=fs.readFileSync("docs/sql/20261110-password-recovery-rls-guard-staging.sql","utf8");
 const ecBackend=fs.readFileSync("supabase/functions/provision-ec-accounts/index.ts","utf8");
+const tlBackend=fs.readFileSync("supabase/functions/provision-tl-bmu/index.ts","utf8");
 new vm.Script(ui,{filename:"password-recovery.js"});
 assert.match(html,/<script src="\/password-recovery\.js"><\/script>/);
 assert.match(html,/SamsungPasswordRecovery\?\.open\(\)/);
@@ -43,4 +44,6 @@ assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.password_recovery
 assert.ok(guard.includes("p.must_change_password IS FALSE"));
 assert.ok(ecBackend.includes('.from("password_recovery_requests")'));
 assert.ok(ecBackend.includes('item.status!=="completed"'));
-console.log("Password recovery static UI + security gates passed; DB integration NOT tested.");
+assert.ok(tlBackend.includes('item.status!=="completed"'));
+assert.ok(tlBackend.includes('caller.must_change_password'));
+console.log("Password recovery static UI + security gates passed; DB integration runs in separate workflow.");

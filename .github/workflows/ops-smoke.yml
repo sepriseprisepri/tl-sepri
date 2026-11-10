@@ -17,6 +17,7 @@ on:
       - 'futuristic-ui.css'
       - 'tests/ui-regression.cjs'
       - 'tests/ops-smoke.cjs'
+      - 'tests/frontend-release-gate.cjs'
       - '.github/workflows/ops-smoke.yml'
   push:
     branches: [main]
@@ -35,6 +36,7 @@ on:
       - 'futuristic-ui.css'
       - 'tests/ui-regression.cjs'
       - 'tests/ops-smoke.cjs'
+      - 'tests/frontend-release-gate.cjs'
       - '.github/workflows/ops-smoke.yml'
 
 permissions:
@@ -50,6 +52,7 @@ jobs:
       - name: Verify JavaScript and scoped operational views
         run: |
           node --version
+          node tests/frontend-release-gate.cjs
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs
           node tests/intelligence-smoke.cjs

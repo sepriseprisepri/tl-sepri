@@ -77,6 +77,10 @@ function renderDashboard(ctx){
  const stats=analytics.compute(ctx);
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};
  const action=({admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"})[ctx.profile.role];
+ const completed=completedWeekTotals((ctx.sales||[]).filter(valid),"qty",ctx.period);
+ const recent=completed.at(-1),previous=completed.at(-2);
+ const growth=recent&&previous&&previous[1]>0?(recent[1]-previous[1])/previous[1]*100:null;
+
  root.innerHTML='<div class="intel-dashboard-top">'+
    panel("Smart Data Alerts",'<div id="intel-alert-list" class="intel-alert-list"></div><p class="intel-caption">Prioritas berbasis transaksi dan target yang saat ini terlihat oleh akun.</p>')+
    panel("Dashboard Personal",'<div class="intel-personal"><p class="intel-overline">'+esc(roleNames[ctx.profile.role]||"Workspace")+'</p>'+
@@ -87,6 +91,8 @@ function renderDashboard(ctx){
    '<div class="intel-dashboard-bottom">'+
    panel("AI Sales Insight <small>· Analisis otomatis berbasis aturan</small>",'<div id="intel-insight-items">'+insightsHtml(analytics.insights(ctx,ctx.profile.role))+'</div>'+
    '<div class="intel-panel-actions"><button id="intel-copy-insights" class="intel-link">Salin analisis</button><button id="intel-open-charts" class="intel-link">Grafik detail ↗</button></div><p class="intel-caption">Bukan model AI generatif atau prediksi. Seluruh kesimpulan berasal dari angka yang terlihat.</p>')+
+   panel("Growth Sellout Samsung · Week to Week",'<div class="intel-personal"><div class="intel-personal-number">'+(growth===null?"—":(growth>=0?"+":"")+N(growth)+"%")+'</div><p>'+(recent&&previous?esc(previous[0])+" → "+esc(recent[0]):"Belum ada dua minggu penuh dengan data pembanding yang memadai.")+'</p><p class="intel-caption">Hanya EULA VALID; periode minggu lengkap yang tersedia pada cakupan akun. Angka WoW bisa berubah jika data historis dikoreksi.</p><button class="intel-link" id="intel-week-details">Lihat grafik mingguan ↗</button></div>')+
+   panel("Market Radar · Teknologi & Smartphone",'<div class="intel-insight"><div><strong>Sumber perkembangan teknologi dan smartphone</strong><p>Portal resmi untuk rilis perangkat, spesifikasi, dan pembaruan brand. Harga Indonesia harus diverifikasi terhadap kanal resmi, bukan dikonversi langsung dari harga global.</p><p><a class="intel-link" target="_blank" rel="noopener noreferrer" href="https://news.samsung.com/global/category/mobile">Samsung Newsroom ↗</a> · <a class="intel-link" target="_blank" rel="noopener noreferrer" href="https://www.apple.com/id/newsroom/topics/iphone/">Apple Newsroom Indonesia ↗</a> · <a class="intel-link" target="_blank" rel="noopener noreferrer" href="https://c.mi.com/global/">Xiaomi Community ↗</a></p><p class="intel-caption">Belum merupakan feed otomatis. Untuk harga lintas brand dan berita terbaru terkurasi diperlukan sinkronisasi server, sumber bertanggal, serta pemeriksaan harga Indonesia.</p></div></div>')+
    panel("Promo Samsung Terverifikasi",'<div id="intel-promo-summary" class="intel-promo-summary">Memeriksa promo aktif...</div>'+
      '<button id="intel-open-promos" class="intel-link">Lihat semua promo ↗</button><p class="intel-caption">Hanya penawaran dengan sumber resmi, tanggal dan status verifikasi yang ditampilkan.</p>')+'</div>';
  const list=document.getElementById("intel-alert-list");
@@ -99,6 +105,7 @@ function renderDashboard(ctx){
  }else list.innerHTML='<div class="intel-zero">Tidak ada alert yang terdeteksi dari data dalam cakupan saat ini.</div>';
  document.getElementById("intel-role-action").onclick=()=>ctx.openSection(action);
  document.getElementById("intel-open-charts").onclick=()=>ctx.openSection("Grafik Sellout");
+ document.getElementById("intel-week-details").onclick=()=>ctx.openSection("Grafik Sellout");
  document.getElementById("intel-open-promos").onclick=()=>ctx.openSection("Promo");
  document.getElementById("intel-copy-insights").onclick=async()=>{
    const text=analytics.insights(ctx,ctx.profile.role).map(x=>x.title+": "+x.body).join("\n");
@@ -142,6 +149,18 @@ function weekKey(date){
  const year=w.getUTCFullYear(),yearStart=new Date(Date.UTC(year,0,1));
  return year+"-W"+String(Math.ceil((((w-yearStart)/86400000)+1)/7)).padStart(2,"0");
 }
+function completedWeekTotals(sales,metric,period){
+ if(!period?.period_start||!period?.period_end)return [];
+ const today=dateLocal(),end=period.period_end<today?period.period_end:today;
+ if(end<period.period_start)return [];
+ const counts=new Map(),totals=group(sales,metric,r=>weekKey(r.sold_at));
+ for(const day=new Date(period.period_start+"T12:00:00Z");day.toISOString().slice(0,10)<=end;day.setUTCDate(day.getUTCDate()+1)){
+  const key=weekKey(day.toISOString().slice(0,10));
+  counts.set(key,(counts.get(key)||0)+1);
+ }
+ return [...counts].filter(([key,days])=>days===7&&key<weekKey(today))
+  .map(([key])=>[key,totals.get(key)||0]).sort(([a],[b])=>a.localeCompare(b));
+}
 function renderCharts(ctx,mount){
  clearCharts();const unique=x=>[...new Set(x)];
  const sales=(ctx.sales||[]),stores=ctx.stores||[];
@@ -151,8 +170,9 @@ function renderCharts(ctx,mount){
    '<label>Store<select id="intel-chart-store" class="field"><option value="">Seluruh scope</option>'+siteCodes.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("")+'</select></label>'+
    '<label>Model<select id="intel-chart-model" class="field"><option value="">Semua model</option>'+models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")+'</select></label>'+
    '<label>Metrik<select id="intel-chart-metric" class="field"><option value="qty">Qty</option><option value="amt">Amount</option></select></label>'+
+   '<label>Status EULA<select id="intel-chart-eula" class="field"><option value="all">Semua</option><option value="valid">VALID saja</option><option value="pending">PENDING saja</option></select></label>'+
   '</div><div id="intel-filter-bar"></div>'+
-  '<div id="intel-chart-stats" class="intel-stat-grid"></div>'+
+  '<div id="intel-chart-stats" class="intel-stat-grid"></div><div id="intel-chart-insights" class="intel-panel" role="status" aria-live="polite"></div>'+
   '<div class="intel-chart-grid">'+
    panel("Tren Sellout Harian",'<div class="intel-chart-canvas"><canvas id="intel-day-chart" role="img" aria-label="Grafik sellout harian"></canvas></div>')+
    panel("Weekly Growth",'<div class="intel-chart-canvas"><canvas id="intel-week-chart" role="img" aria-label="Grafik sellout mingguan"></canvas></div>')+
@@ -161,24 +181,40 @@ function renderCharts(ctx,mount){
    panel("EULA VALID dan PENDING",'<div class="intel-chart-canvas"><canvas id="intel-status-chart" role="img" aria-label="Perbandingan status EULA"></canvas></div>')+
    panel("Pace terhadap Target",'<div id="intel-pace-panel" class="intel-pace-panel"></div><p class="intel-caption">Target penuh vs pencapaian sesuai data. Pace adalah asumsi linear menurut hari kalender.</p>')+
   '</div>';
- const selects=["store","model","metric"].map(k=>document.getElementById("intel-chart-"+k));
- const state=()=>({store:selects[0].value,model:selects[1].value,metric:selects[2].value});
+ const selects=["store","model","metric","eula"].map(k=>document.getElementById("intel-chart-"+k));
+ const state=()=>({store:selects[0].value,model:selects[1].value,metric:selects[2].value,eula:selects[3].value});
  const redraw=()=>{
   clearCharts();const f=state(),metric=f.metric;
-  const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model));
-  const good=filtered.filter(valid),pending=filtered.filter(s=>s.eula_status==="PENDING");
-  const day=byDay(good,metric),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
+  const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model)&&(f.eula==="all"||String(s.eula_status||"").toLowerCase()===f.eula));
+  const good=filtered.filter(valid),pending=filtered.filter(s=>String(s.eula_status||"").toUpperCase()==="PENDING");
+  const plotRows=f.eula==="pending"?pending:good;
+  const day=byDay(plotRows,metric),weeks=group(plotRows,metric,s=>weekKey(s.sold_at)),modelMap=group(plotRows,metric,s=>s.model||"Tidak diketahui");
   const nameMap=new Map(stores.map(s=>[s.site_id,s.site_name]));
-  const storeMap=group(good,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
+  const storeMap=group(plotRows,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
   const storeRank=[...storeMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
   const weekRows=[...weeks.entries()].sort(([a],[b])=>a.localeCompare(b));
-  const dsum=allBy(good,s=>s[metric]),pendingQty=allBy(pending,s=>s.qty);
+  const dsum=allBy(plotRows,s=>s[metric]),pendingQty=allBy(pending,s=>s.qty);
   document.getElementById("intel-chart-stats").innerHTML=
    [['EULA VALID',N(good.length)],['Total '+(metric==="qty"?"Qty":"Amount"),metric==="qty"?N(dsum):money(dsum)],
    ['PENDING',N(pending.length)],['Model terjual',N(modelMap.size)]].map(([l,v])=>'<div class="intel-stat"><span>'+esc(l)+'</span><strong>'+esc(v)+'</strong></div>').join("");
   const base=[{data:day.map(x=>x[1]),label:metric==="qty"?"Qty":"Amount",borderColor:"#63e3fa",backgroundColor:"rgba(78,192,239,.20)",fill:true,tension:.32,pointRadius:2}];
   createChart(document.getElementById("intel-day-chart"),"line",day.map(x=>x[0].slice(5)),base);
-  const wow=weekRows.map((row,i)=>i>0&&weekRows[i-1][1]>0?Math.round(((row[1]-weekRows[i-1][1])/weekRows[i-1][1])*1000)/10:null);
+  const growthValues=new Map(completeWeeks.map((row,i)=>[
+   row[0],i>0&&completeWeeks[i-1][1]>0?
+    Math.round(((row[1]-completeWeeks[i-1][1])/completeWeeks[i-1][1])*1000)/10:null
+  ]));
+  const wow=weekRows.map(([key])=>growthValues.get(key)??null);
+  const completeWeeks=completedWeekTotals(good,metric,ctx.period);
+  const lastWeek=completeWeeks.at(-1),prevWeek=completeWeeks.at(-2);
+  const wowValue=lastWeek&&prevWeek&&prevWeek[1]>0?(lastWeek[1]-prevWeek[1])/prevWeek[1]*100:null;
+  const strongest=rank[0],strongStore=storeRank[0];
+  const insight=[
+    "<strong>Artificial Insight · ringkasan berbasis aturan</strong>",
+    "<p>"+(wowValue===null?"Growth WoW belum dapat dibandingkan secara valid; perlu dua minggu lengkap dengan basis lebih dari nol.":"Growth WoW terakhir: <strong>"+(wowValue>=0?"+":"")+N(wowValue)+"%</strong> dari "+esc(prevWeek[0])+" ke "+esc(lastWeek[0])+".")+"</p>",
+    "<p>Kontributor model tertinggi: <strong>"+esc(strongest?.[0]||"belum ada")+"</strong>"+(strongest?" ("+(metric==="amt"?money(strongest[1]):N(strongest[1]))+")":"")+". Toko tertinggi: <strong>"+esc(strongStore?(nameMap.get(strongStore[0])||strongStore[0]):"belum ada")+"</strong>.</p>",
+    "<p>Transaksi PENDING: "+N(pending.length)+". Angka grafik hanya bersumber dari data yang dapat diakses akun dan filter aktif.</p>"
+  ];
+  document.getElementById("intel-chart-insights").innerHTML=insight.join("");
   createChart(document.getElementById("intel-week-chart"),"bar",weekRows.map(x=>x[0]),[
     {type:"bar",label:metric==="qty"?"Qty per minggu":"Amount per minggu",data:weekRows.map(x=>x[1]),backgroundColor:"#4f92e7",borderRadius:5,yAxisID:"y"},
     {type:"line",label:"Growth WoW (%)",data:wow,borderColor:"#7be7c5",pointBackgroundColor:"#7be7c5",tension:.25,yAxisID:"y1"}
@@ -192,8 +228,8 @@ function renderCharts(ctx,mount){
   createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
   const allTargets=ctx.targets||[];
   const storeIds=new Set(stores.filter(s=>!f.store||s.site_id===f.store).map(s=>s.id));
-  const target=n(f.model?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
-  const a=analytics.compute({...ctx,sales:filtered,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
+  const target=n((f.model||f.eula==="pending")?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
+  const a=analytics.compute({...ctx,sales:good,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
   const pctTarget=target>0?pct(dsum,target):0;
   document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":N(target))+'</small></div>'+
     '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+
@@ -202,7 +238,7 @@ function renderCharts(ctx,mount){
  selects.forEach(el=>el.addEventListener("change",redraw));redraw();
  if(window.UserPrefs)window.UserPrefs.savedFilterControls({
   client:ctx.client,profile:ctx.profile,feature:"charts",mount:document.getElementById("intel-filter-bar"),
-  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];redraw();}
+  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]],["eula",selects[3]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];redraw();}
  });
 }
 function renderAlerts(ctx,mount){
@@ -263,5 +299,5 @@ function setupSearch(ctx){
  }
  if(input.value.length>=2)showSearch();
 }
-window.SalesIntelligence={renderDashboard,renderCharts,renderAlerts,analytics,weekKey,dateLocal,modelNorm,clearCharts};
+window.SalesIntelligence={renderDashboard,renderCharts,renderAlerts,analytics,weekKey,dateLocal,modelNorm,completedWeekTotals,clearCharts};
 })();

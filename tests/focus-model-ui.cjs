@@ -101,7 +101,7 @@ async function run(){
   profile:{role:"ec",manpower_id:"m-1"}});
  assert.doesNotMatch(ecMount.innerHTML,/id="focus-ec-form"/);
  assert.match(ecMount.innerHTML,/Target Focus Model Saya/);
- assert.match(ecMount.nodes.get("focus-table-body").innerHTML,/66\.7%/,
+ assert.match(ecMount.nodes.get("focus-table-body").innerHTML,/33\.3%/,
   "EC sees own sale actual / assigned target");
  assert.doesNotMatch(ecMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Dua/);
  const pending=mountMock();

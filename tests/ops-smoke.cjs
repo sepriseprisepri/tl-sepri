@@ -142,7 +142,9 @@ async function view(role,label){
  assert.ok(ownFocus.includes("123"),"EC must see individually assigned Focus Model target");
  assert.ok(!ownFocus.includes("456"),"EC must never see another EC focus allocation");
  const tlFocus=await view("tl","Focus Model");
- assert.ok(tlFocus.includes("579"),"TL must see aggregated EC model allocation targets");
+ assert.ok(tlFocus.includes("579"),"TL must see allocated EC Qty separately");
+ assert.ok(tlFocus.includes("Sisa alokasi Qty"),"TL must see remaining allocation");
+ assert.ok(tlFocus.includes("Total target model"),"TL must retain store-level full target description");
  assert.ok(tlFocus.includes("VALID Qty"),"TL focus should show actual achievement");
  assert.ok(tlFocus.includes("Bagikan Focus Model kepada EC"),
   "TL must see Focus Model allocation form after staging allocations exist");

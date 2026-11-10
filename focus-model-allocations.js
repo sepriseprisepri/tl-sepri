@@ -11,6 +11,9 @@ const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({
 const qty=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(num(x)));
 const targetQtyText=x=>window.SamsungMarketMetrics?.targetQtyFormat?.(x) ??
  new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(num(x)));
+// Remaining allocatable capacity is NOT a target: never round it up or overstate server quota.
+const remainingQtyText=x=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:6}).format(
+ Math.floor(Math.max(0,num(x))*1000000)/1000000);
 const money=x=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(num(x));
 const percentage=(a,b)=>b>0?(100*a/b).toFixed(1)+"%":"—";
 const key=s=>String(s??"").toUpperCase().normalize("NFKC").replace(/[^A-Z0-9]/g,"");
@@ -160,7 +163,7 @@ function setupUi(data){
    return '<tr><td>'+esc(storesById.get(t.store_id)?.site_name||"—")+'</td>'+
      '<td>'+esc(names.get(t.model_code)||t.model_code)+'</td>'+
      '<td>'+targetQtyText(t.target_qty)+'</td><td>'+targetQtyText(qAlloc)+'</td>'+
-     '<td>'+targetQtyText(Math.max(0,num(t.target_qty)-qAlloc))+'</td>'+
+     '<td>'+remainingQtyText(num(t.target_qty)-qAlloc)+'</td>'+
      '<td>'+qty(total(subset,"actual_qty"))+'</td>'+
      '<td>'+money(t.target_amt)+'</td><td>'+money(amtAlloc)+'</td>'+
      '<td>'+money(num(t.target_amt)-amtAlloc)+'</td></tr>';
@@ -240,7 +243,7 @@ function setupUi(data){
   const others=assigned.filter(a=>a.store_id===t.store_id&&a.model_code===t.model_code&&
    a.manpower_id!==person.value);
   capacity.textContent="Target toko: "+targetQtyText(t.target_qty)+" / "+money(t.target_amt)+
-   " · Sisa untuk EC terpilih: "+targetQtyText(Math.max(0,num(t.target_qty)-total(others,"target_qty")))+
+   " · Sisa untuk EC terpilih: "+remainingQtyText(num(t.target_qty)-total(others,"target_qty"))+
    " / "+money(num(t.target_amt)-total(others,"target_amt"));
  }
  function clear(){

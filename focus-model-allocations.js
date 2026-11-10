@@ -51,7 +51,7 @@ function setupUi(data){
  const people=new Map(manpower.map(m=>[m.id,m]));
  const names=new Map(settings.map(m=>[m.model_code,m.display_name]));
  const targetByTriple=new Map(targets.map(t=>[t.store_id+"|"+t.model_code,t]));
- const assigned=allocations.filter(a=>targetByTriple.has(a.store_id+"|"+a.model_code));
+ const assigned=personal?allocations:allocations.filter(a=>targetByTriple.has(a.store_id+"|"+a.model_code));
  const salesByTriple=new Map();
  for(const s of valid){
   const k=s.site_id+"|"+s.promoter_id+"|"+key(s.model);

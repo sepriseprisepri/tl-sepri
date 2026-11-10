@@ -166,8 +166,13 @@ function renderCharts(ctx,mount){
    '<label>Store<select id="intel-chart-store" class="field"><option value="">Seluruh scope</option>'+siteCodes.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("")+'</select></label>'+
    '<label>Model<select id="intel-chart-model" class="field"><option value="">Semua model</option>'+models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")+'</select></label>'+
    '<label>Metrik<select id="intel-chart-metric" class="field"><option value="qty">Qty</option><option value="amt">Amount</option></select></label>'+
+   '<label>Dari tanggal<input id="intel-chart-from" class="field" type="date" min="'+esc(ctx.period?.period_start||dateLocal())+'" max="'+esc(ctx.period?.period_end||dateLocal())+'" value="'+esc(ctx.period?.period_start||dateLocal())+'"></label>'+
+   '<label>Sampai tanggal<input id="intel-chart-to" class="field" type="date" min="'+esc(ctx.period?.period_start||dateLocal())+'" max="'+esc(ctx.period?.period_end||dateLocal())+'" value="'+esc(ctx.period?.period_end||dateLocal())+'"></label>'+
   '</div><div id="intel-filter-bar"></div>'+
   '<div id="intel-chart-stats" class="intel-stat-grid"></div>'+
+  panel("Artificial Insight · Filter Terpilih",
+    '<div id="intel-chart-insight" class="intel-promo-summary" aria-live="polite"></div>'+
+    '<p class="intel-caption">Growth dihitung dari dua minggu kalender lengkap. Minggu berjalan bukan pembanding setara.</p>')+
   '<div class="intel-chart-grid">'+
    panel("Tren Sellout Harian",'<div class="intel-chart-canvas"><canvas id="intel-day-chart" role="img" aria-label="Grafik sellout harian"></canvas></div>')+
    panel("Weekly Growth",'<div class="intel-chart-canvas"><canvas id="intel-week-chart" role="img" aria-label="Grafik sellout mingguan"></canvas></div>')+
@@ -176,12 +181,27 @@ function renderCharts(ctx,mount){
    panel("EULA VALID dan PENDING",'<div class="intel-chart-canvas"><canvas id="intel-status-chart" role="img" aria-label="Perbandingan status EULA"></canvas></div>')+
    panel("Pace terhadap Target",'<div id="intel-pace-panel" class="intel-pace-panel"></div><p class="intel-caption">Target penuh vs pencapaian sesuai data. Pace adalah asumsi linear menurut hari kalender.</p>')+
   '</div>';
- const selects=["store","model","metric"].map(k=>document.getElementById("intel-chart-"+k));
- const state=()=>({store:selects[0].value,model:selects[1].value,metric:selects[2].value});
+ const selects=["store","model","metric","from","to"].map(k=>document.getElementById("intel-chart-"+k));
+ const state=()=>({store:selects[0].value,model:selects[1].value,metric:selects[2].value,
+  from:selects[3].value,to:selects[4].value});
  const redraw=()=>{
   clearCharts();const f=state(),metric=f.metric;
-  const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model));
-  const good=filtered.filter(valid),pending=filtered.filter(s=>s.eula_status==="PENDING");
+  if(f.from>f.to){
+   document.getElementById("intel-chart-insight").textContent="Rentang tanggal tidak valid: tanggal mulai harus sebelum tanggal akhir.";
+   return;
+  }
+  const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model)&&
+    s.sold_at>=f.from&&s.sold_at<=f.to);
+  const good=filtered.filter(valid),pending=filtered.filter(s=>String(s.eula_status||"").toUpperCase()==="PENDING");
+  const weekMetrics=window.SamsungMarketMetrics?.summarize({
+   period:{period_start:f.from,period_end:f.to},sales:filtered,targets:[]
+  });
+  const comparison=f.metric==="qty"?weekMetrics?.wowQty:weekMetrics?.wowAmt;
+  const insightNode=document.getElementById("intel-chart-insight");
+  if(insightNode)insightNode.textContent=comparison===null||comparison===undefined?
+   "Belum tersedia dua minggu kalender lengkap dengan pembanding yang memiliki penjualan. Perlu data historis untuk WoW yang adil.":
+   "Pertumbuhan "+(metric==="qty"?"Qty":"Amount")+" WoW: "+(comparison>=0?"+":"")+comparison.toFixed(1)+"% antara dua minggu kalender lengkap. "+
+   "Data dihitung dari transaksi EULA VALID pada filter ini.";
   const day=byDay(good,metric),weeks=group(good,metric,s=>weekKey(s.sold_at)),modelMap=group(good,metric,s=>s.model||"Tidak diketahui");
   const nameMap=new Map(stores.map(s=>[s.site_id,s.site_name]));
   const storeMap=group(good,metric,s=>s.site_id),rank=[...modelMap.entries()].sort((a,b)=>b[1]-a[1]).slice(0,9);
@@ -207,7 +227,8 @@ function renderCharts(ctx,mount){
   createChart(document.getElementById("intel-status-chart"),"doughnut",["VALID","PENDING"],[{data:[allBy(good,s=>s.qty),pendingQty],backgroundColor:["#59e2bf","#f9bf6b"],borderWidth:0}]);
   const allTargets=ctx.targets||[];
   const storeIds=new Set(stores.filter(s=>!f.store||s.site_id===f.store).map(s=>s.id));
-  const target=n(f.model?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
+  const fullPeriod=f.from===(ctx.period?.period_start||"")&&f.to===(ctx.period?.period_end||"");
+  const target=n((f.model||!fullPeriod)?0:allTargets.filter(t=>storeIds.has(t.store_id)).reduce((n,t)=>n+Number(t[metric==="qty"?"target_qty":"target_amt"]||0),0));
   const a=analytics.compute({...ctx,sales:filtered,targets:allTargets.filter(t=>storeIds.has(t.store_id))});
   const pctTarget=target>0?pct(dsum,target):0;
   document.getElementById("intel-pace-panel").innerHTML='<div class="intel-personal-number">'+N(dsum)+' <small>/ '+(f.model?"target model belum dialokasikan":N(target))+'</small></div>'+

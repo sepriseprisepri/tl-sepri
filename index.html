@@ -186,6 +186,7 @@
     </section>
   </div>
 </main>
+<script src="/market-metrics.js"></script>
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
 <script src="/survey-affordability.js"></script>
@@ -434,7 +435,7 @@ function renderDashboard(d){
  }
  storeRows.sort((a,b)=>b.ach-a.ach);
  $("kpi-stores").textContent=fmtNum(currentProfile.role==="ec"?new Set(manpower.filter(m=>m.id===currentProfile.manpower_id).map(m=>m.site_id)).size:stores.length);
- $("kpi-target-qty").textContent=fmtNum(targetQty);$("kpi-actual-qty").textContent=fmtNum(actualQty);
+ $("kpi-target-qty").textContent=fmtNum(Math.round(targetQty));$("kpi-actual-qty").textContent=fmtNum(Math.round(actualQty));
  $("kpi-qty-progress").textContent="Achievement: "+fmtNum(pct(actualQty,targetQty))+"%";
  $("kpi-actual-amt").textContent=money(actualAmt);$("kpi-amt-progress").textContent="Achievement: "+fmtNum(pct(actualAmt,targetAmt))+"%";
  for(const [id,actual,target] of [["qty",actualQty,targetQty],["amt",actualAmt,targetAmt]]){
@@ -444,7 +445,7 @@ function renderDashboard(d){
   $(id+"-progress-track").setAttribute("aria-valuenow",safe.toFixed(0));
   $(id+"-progress-track").setAttribute("aria-valuetext",fmtNum(rate)+"% pencapaian");
  }
- $("small-target-amt").textContent=money(targetAmt);$("small-gap-qty").textContent=fmtNum(targetQty-actualQty);
+ $("small-target-amt").textContent=money(targetAmt);$("small-gap-qty").textContent=fmtNum(Math.round(targetQty-actualQty));
  $("small-gap-amt").textContent=money(targetAmt-actualAmt);$("small-pending").textContent=fmtNum(pending.length)+" transaksi";
  $("target-label").textContent=currentProfile.role==="ec"?"Target Qty Pribadi":"Target Qty";
  $("store-count-label").textContent=fmtNum(storeRows.length)+" toko bertarget";

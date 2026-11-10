@@ -94,6 +94,7 @@ DECLARE
   ceiling_amt numeric;
   allocated_qty numeric;
   allocated_amt numeric;
+  excluded_id uuid := NULL;
 BEGIN
   IF TG_OP = 'UPDATE' AND
     (NEW.period_id, NEW.manpower_id, NEW.store_id, NEW.model_code)
@@ -102,6 +103,8 @@ BEGIN
     RAISE EXCEPTION 'Identitas alokasi tidak boleh diubah'
       USING ERRCODE = '23514';
   END IF;
+
+  IF TG_OP = 'UPDATE' THEN excluded_id := OLD.id; END IF;
 
   -- Parent row acts as an exclusive mutex for each (period, store, model).
   SELECT ft.target_qty, ft.target_amt INTO ceiling_qty, ceiling_amt
@@ -121,7 +124,7 @@ BEGIN
   WHERE a.period_id=NEW.period_id
     AND a.store_id=NEW.store_id
     AND a.model_code=NEW.model_code
-    AND (TG_OP='INSERT' OR a.id<>OLD.id);
+    AND (excluded_id IS NULL OR a.id<>excluded_id);
 
   IF allocated_qty + NEW.target_qty > ceiling_qty OR
      allocated_amt + NEW.target_amt > ceiling_amt THEN

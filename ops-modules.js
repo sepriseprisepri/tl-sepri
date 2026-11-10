@@ -143,23 +143,23 @@
     const m=metrics?.summarize({period,targets,sales});
     const visibleSales=m?sales.filter(s=>m.elapsed>0 && s.sold_at<=m.effective):sales;
     const rows=groupingTargets(stores,targets,visibleSales);
-    const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt");
-    const actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
+    const qty=m?.targetQty??sum(rows,"target_qty"),amount=m?.targetAmt??sum(rows,"target_amt");
+    const actual=m?.actualQty??sum(rows,"actual_qty"),actualAmt=m?.actualAmt??sum(rows,"actual_amt");
     const q=v=>metrics?metrics.qtyFormat(v):nfmt(Math.round(v));
     const elapsed=m?.elapsed||0,duration=m?.duration||1,remaining=m?.remainingDays||0;
     mount.innerHTML=sectionHead(personal?"Target Saya":"Target Penjualan",
       personal?"Target dan pencapaian pribadi EC, berdasarkan alokasi personal dan EULA VALID.":
         "Target seluruh toko yang menjadi cakupan akun; seluruh angka mengikuti periode terpilih.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Target Qty",q(qty),"Target periode; dibulatkan hanya untuk tampilan"],
+      ["Target Qty",qty>0?q(qty):"—","Target periode; dibulatkan hanya untuk tampilan"],
       ["VALID Qty",q(actual),"Achievement: "+percent(actual,qty)],
-      ["Gap Qty",q(qty-actual),"Target penuh dikurangi VALID"],
-      ["Gap Amt",currency(amount-actualAmt),"Target amount dikurangi VALID"],
-      ["Target Qty MTD",q(qty*elapsed/duration),"Hari "+elapsed+" dari "+duration],
-      ["Target Amt MTD",currency(amount*elapsed/duration),"Pace kalender berjalan"],
-      ["Target Daily Qty",remaining>0?q(Math.ceil(Math.max(0,qty-actual)/remaining)):"—",
+      ["Gap Qty",qty>0?q(qty-actual):"—","Target penuh dikurangi VALID"],
+      ["Gap Amt",amount>0?currency(amount-actualAmt):"—","Target amount dikurangi VALID"],
+      ["Target Qty MTD",qty>0?q(qty*elapsed/duration):"—","Hari "+elapsed+" dari "+duration],
+      ["Target Amt MTD",amount>0?currency(amount*elapsed/duration):"—","Pace kalender berjalan"],
+      ["Target Daily Qty",qty>0&&remaining>0?q(Math.ceil(Math.max(0,qty-actual)/remaining)):"—",
         remaining>0?"Rata-rata "+remaining+" hari tersisa":"Periode sudah berakhir"],
-      ["Target Daily Amt",remaining>0?currency(Math.ceil(Math.max(0,amount-actualAmt)/remaining)):"—",
+      ["Target Daily Amt",amount>0&&remaining>0?currency(Math.ceil(Math.max(0,amount-actualAmt)/remaining)):"—",
         "Kebutuhan harian hingga target akhir"]
     ]));
     mount.insertAdjacentHTML("beforeend",alert(

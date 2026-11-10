@@ -101,8 +101,8 @@ function setupUi(data){
   '<div><p class="text-xs text-cyan-300 uppercase tracking-widest">Samsung Kalteng · '+esc(period.period_name)+'</p>'+
   '<h3 class="text-xl font-semibold text-white mt-2">'+storeLabel+'</h3>'+
   '<p class="text-sm text-slate-400 mt-2">'+(personal?
-    'Hanya target yang benar-benar dialokasikan TL untuk akun EC ini.':
-    'Target toko adalah batas resmi; TL membagikan alokasi individual EC sesuai coverage.')+
+    'Hanya target yang benar-benar dialokasikan TL untuk akun EC ini. Tampilan Target Qty selalu dibulatkan ke atas.':
+    'Target toko adalah batas resmi; TL membagikan alokasi individual EC sesuai coverage. Semua tampilan Target Qty dibulatkan ke atas.')+
    '</p></div><span class="pill text-cyan-200">EULA VALID · RLS</span></div>';
  const cards='<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">'+
   (personal?"":metric("Target Qty model toko",targetQtyText(targetQty),"Batas total store dalam scope"))+
@@ -131,7 +131,7 @@ function setupUi(data){
  const form=manager&&!migrationPending&&targets.length?
   '<section class="panel rounded-2xl p-5 mb-5" aria-labelledby="focus-form-title">'+
   '<h4 id="focus-form-title" class="font-semibold text-white">Atur alokasi Focus Model per EC</h4>'+
-  '<p class="text-xs text-slate-400 mt-2 mb-4">Pilih toko dan model yang sudah memiliki target resmi, lalu pilih EC aktif pada toko tersebut.</p>'+
+  '<p class="text-xs text-slate-400 mt-2 mb-4">Pilih toko dan model yang sudah memiliki target resmi, lalu pilih EC aktif pada toko tersebut. Tampilan target dibulatkan ke atas, nilai input edit tidak diubah otomatis.</p>'+
   '<form id="focus-ec-form" class="space-y-3">'+
    '<div class="grid sm:grid-cols-2 gap-3">'+
     control("Toko dan model","focus-parent",[{value:"",text:"Pilih target model toko"},...selections])+
@@ -300,7 +300,7 @@ function setupAdminStoreTargets(data){
  box.className="panel rounded-2xl p-5 mb-5";
  box.setAttribute("aria-labelledby","focus-admin-target-title");
  box.innerHTML='<h4 id="focus-admin-target-title" class="text-white font-semibold">Admin · Plafon Focus Model per Toko</h4>'+
-  '<p class="text-sm text-slate-400 mt-2">Tetapkan target induk Qty dan Amount per model dan toko sebelum TL membaginya ke EC. Angka ini bukan target pribadi EC.</p>'+
+  '<p class="text-sm text-slate-400 mt-2">Tetapkan target induk Qty dan Amount per model dan toko sebelum TL membaginya ke EC. Angka ini bukan target pribadi EC. Target Qty pada ringkasan dibulatkan ke atas; input edit tetap memuat nilai aslinya.</p>'+
   '<form id="focus-admin-parent-form" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mt-4">'+
   '<label class="grid gap-2 text-xs text-slate-300">Toko<select id="focus-admin-store" class="field rounded-lg p-3" required></select></label>'+
   '<label class="grid gap-2 text-xs text-slate-300">Model aktif<select id="focus-admin-model" class="field rounded-lg p-3" required></select></label>'+

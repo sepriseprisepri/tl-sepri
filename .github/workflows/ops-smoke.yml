@@ -5,6 +5,8 @@ on:
     paths:
       - 'index.html'
       - 'sales-intelligence.js'
+      - 'market-metrics.js'
+      - 'tests/market-metrics.cjs'
       - 'promo-center.js'
       - 'tests/promo-master-20261106.cjs'
       - 'docs/sql/20261106-promo-provenance.sql'
@@ -28,6 +30,8 @@ on:
     paths:
       - 'index.html'
       - 'sales-intelligence.js'
+      - 'market-metrics.js'
+      - 'tests/market-metrics.cjs'
       - 'promo-center.js'
       - 'tests/promo-master-20261106.cjs'
       - 'docs/sql/20261106-promo-provenance.sql'
@@ -63,6 +67,7 @@ jobs:
           node --check password-recovery.js
           node tests/password-recovery-smoke.cjs
           node tests/password-recovery-mock-integration.cjs
+          node tests/market-metrics.cjs
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs
           node tests/intelligence-smoke.cjs

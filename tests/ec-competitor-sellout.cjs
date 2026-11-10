@@ -17,6 +17,14 @@ assert.match(html,/ECCompetitorSellout\.render/);
 assert.match(html,/src="\/ec-competitor-sellout\.js"/);
 assert.doesNotMatch(html,/\["Input Sellout","＋"\]/);
 assert.match(ui,/from\("competitor_sellout"\)\.insert\(record\)/);
+assert.match(ui,/\.update\(record\)\.eq\("id",id\)\.select\("id"\)/,"Edit must confirm affected row");
+assert.match(ui,/\.delete\(\)\.eq\("id",id\)\.select\("id"\)/,"Delete must confirm affected row");
+assert.match(ui,/return=representation/,"REST mutations must return affected rows");
+assert.match(ui,/\(\{store_id,sold_at,\.\.\.mutable\}\)/,"Edit payload must exclude immutable store/date");
+const draft=fs.readFileSync("docs/sql/20261110-competitor-same-day-corrections-draft.sql","utf8");
+assert.match(draft,/GRANT UPDATE \(brand,model,variant,qty,unit_price,notes\),DELETE/);
+assert.doesNotMatch(draft,/GRANT UPDATE \(sold_at,/);
+
 assert.doesNotMatch(ui,/from\(["']raw_sellout["']\)\.(insert|upsert|update)/);
 assert.match(sql,/CREATE TABLE IF NOT EXISTS public\.competitor_sellout/);
 assert.match(sql,/ALTER TABLE public\.competitor_sellout ENABLE ROW LEVEL SECURITY/);

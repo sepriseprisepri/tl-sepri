@@ -1,6 +1,6 @@
 /* Samsung Kalteng — scoped operational pages.
  * Data is returned by Supabase RLS; all UI filtering is presentation-only.
- * This module never uses service_role keys or performs database writes.
+ * Focus Model changes use an authenticated, server-validated RPC; no service_role.
  */
 (function () {
   "use strict";
@@ -374,7 +374,16 @@
       else if(label==="RAW Sellout")rawPage(mount,period,sales,stores);
       else if(label==="Performa EC")performancePage(mount,period,manpower,allocations,sales,stores);
       else if(label==="Store Shadow")shadowPage(mount,period,stores,history,sales);
-      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores);
+      else if(label==="Focus Model"){
+        if(window.FocusModelAllocationUI){
+          const focusSales=await getSales(client,period);
+          if(token!==renderToken||!mount.isConnected)return true;
+          await window.FocusModelAllocationUI.render({
+            mount,client,profile,period,stores,settings,targets:focusTargets,
+            sales:focusSales,isCurrent:()=>token===renderToken&&mount.isConnected
+          });
+        }else focusPage(mount,period,settings,focusTargets,stores);
+      }
       else if(label==="Laporan"||label==="Laporan Saya")reportPage(mount,period,sales,stores,targets,personal);
     }catch(error){
       console.error("[SamsungOps]",error);

@@ -85,7 +85,7 @@ const data={
   {period_id:"p",store_id:"s1",manpower_id:"m2",model_code:"A07",target_qty:456,target_amt:90000000}
  ],
  focus_model_targets:[
-  {period_id:"p",store_id:"s1",model_code:"A07",target_qty:2,target_amt:4500000},
+  {period_id:"p",store_id:"s1",model_code:"A07",target_qty:600,target_amt:130000000},
   {period_id:"p",store_id:"s2",model_code:"A07",target_qty:10,target_amt:30000000}
  ]
 };

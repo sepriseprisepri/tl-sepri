@@ -42,8 +42,25 @@
 - PostgreSQL 16 lokal: cek TL hanya toko sendiri, Admin, EC self-select, anon ditolak, RPC tanpa hak ditolak, Qty/Amt cap, riwayat edit/hapus, rotasi password, pindah toko, model nonaktif, parent target tidak boleh turun, dan **dua transaksi bersamaan tidak melampaui plafon**.
 - UI Node.js: TL form memanggil RPC, EC tetap melihat target/realisasi pribadi meski parent focus model targets **tidak tersedia melalui RLS** (2 VALID dari 6 = 33,3%), status migrasi belum ada dapat ditangani.
 - Smoke test sebelumnya (dashboard, login, promo, monitoring) tetap lulus.
-- **Belum diuji di backend hosted staging** karena belum ada Supabase staging lengkap dan belum menerapkan migration; pengujian PostgreSQL 16 dengan fixture tidak identik seluruh constraint produksi.
+- **PASS PostgreSQL 17 terisolasi** (major version sama dengan produksi): concurrency, RLS, batas target, penempatan EC yang kedaluwarsa dan audit: https://github.com/sepriseprisepri/tl-sepri/actions/runs/42853193603.
+- **PASS Supabase CLI GoTrue/PostgREST lokal end-to-end**, akun dummy login JWT sungguhan, akses data melalui REST API, Admin mengisi plafon target, TL membagikan alokasi, EC tidak membaca target toko/EC lain, batas Qty/Amt, wajib rotasi password, penempatan kedaluwarsa, dan dua RPC bersamaan: https://github.com/sepriseprisepri/tl-sepri/actions/runs/42853194261.
+- **PASS UI/operasional** termasuk form Admin target induk, tampilan TL/EC/TSO dan saved filters dashboard: https://github.com/sepriseprisepri/tl-sepri/actions/runs/42853193666.
+- **Belum diuji pada hosted staging terpisah** karena koneksi Supabase hanya memiliki satu proyek produksi. Test local tidak mereproduksi seluruh constraints/tabel integrasi produksi.
 - **Belum tersedia preview Vercel dari commit terbaru** karena kuota deployment harian sebelumnya habis. Jangan memakai preview lama sebagai bukti UI final.
+
+## Kesiapan data bisnis (audit read-only produksi)
+
+- Total `focus_model_targets` = **0**: saat ini belum ada plafon target toko/model yang dapat dibagikan TL.
+- `focus_model_settings` aktif = **5**; `coverage_assignments` TL aktif = **129**; manpower EC aktif = **33**; akun EC aktif = **27**.
+- Periode target tersedia **1 draft**. RPC alokasi mengizinkan `active` atau `draft` (bukan `closed`).
+- Admin mendapat formulir **Plafon Focus Model per Toko** pada halaman Focus Model untuk memasukkan target model dan toko secara manual, melalui API dengan RLS `focus_targets_admin_manage`.
+- Tidak membuat target dummy/numerik otomatis pada produksi. **Admin perlu menentukan dan menyimpan plafon sebelum TL dapat mengalokasikan.**
+
+## Catatan pengamanan tambahan
+
+- RLS EC alokasi membutuhkan `manpower.site_id` cocok dengan toko **dan** `store_assignments` masih berlaku pada tanggal WIB. Pengujian memutus penempatan tanpa mengubah `manpower.site_id` dan memastikan SELECT EC langsung kosong.
+- TSO mendapatkan tampilan realisasi EC di wilayah baca RLS, tanpa editor alokasi dan tanpa akses audit.
+- Pengujian PostgreSQL 17 menggunakan fixture terisolasi; pengujian GoTrue/PostgREST menggunakan container lokal GitHub Actions. Keduanya **tidak** memerlukan proyek Supabase/cloud berbayar.
 
 ## Deploy dan rollback (memerlukan persetujuan)
 

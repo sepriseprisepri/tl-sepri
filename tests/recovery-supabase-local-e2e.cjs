@@ -152,6 +152,30 @@ async function run(){
  const noReissue=await edge("reissue",{request_id:found.id},adminJwt);
  expectResponse(noReissue,409,"completed request reissue blocked");
 
- console.log("PASS real local Supabase: GoTrue logins, Turnstile test, request/approval, stale-JWT RLS isolation, expiry, reissue, forced TL rotation, new login.");
+ // EC also completes the complete reset workflow, not just initial login.
+ const ecRequested=await edge("request",{employee_id:"432002",reason:"reset",captcha_token:"XXXX.DUMMY.TOKEN.XXXX"});
+ expectResponse(ecRequested,200,"EC reset request");
+ const ecQueue=await edge("list",{},adminJwt);
+ expectResponse(ecQueue,200,"Admin EC queue");
+ const ecRow=ecQueue.result?.requests?.find(x=>x.employee_id==="432002"&&x.status==="pending");
+ assert.ok(ecRow?.id,"EC request must be visible to Admin");
+ const ecApproved=await edge("approve",{request_id:ecRow.id},adminJwt);
+ expectResponse(ecApproved,200,"EC approved reset");
+ const ecOldData=await readBusiness(ecJwt);
+ expectResponse(ecOldData,200,"stale EC token request");
+ assert.equal(ecOldData.result.length,0,"stale EC token must lose market access");
+ const ecTemporaryJwt=await login("ec",ecApproved.result.temporary_password);
+ const ecTempData=await readBusiness(ecTemporaryJwt);
+ expectResponse(ecTempData,200,"temporary EC token request");
+ assert.equal(ecTempData.result.length,0,"EC must not read business data until rotation");
+ const ecRotated=await edge("rotate",{new_password:"OnlyLocalNewEC2026!A"},ecTemporaryJwt);
+ expectResponse(ecRotated,200,"mandatory EC rotate");
+ const ecNewJwt=await login("ec","OnlyLocalNewEC2026!A");
+ const ecRestored=await readBusiness(ecNewJwt);
+ expectResponse(ecRestored,200,"EC new password data access");
+ assert.equal(ecRestored.result.length,1);
+ assert.equal((await getProfile("ec")).must_change_password,false);
+ console.log("PASS real local Supabase: GoTrue TL+EC first-login, Admin approval, Turnstile, stale-JWT RLS, expiry/reissue, mandatory rotations.");
+
 }
 run().catch(err=>{console.error(err.message);process.exitCode=1;});

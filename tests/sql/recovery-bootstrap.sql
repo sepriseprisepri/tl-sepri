@@ -52,3 +52,17 @@ ALTER TABLE public.protected_market_data ENABLE ROW LEVEL SECURITY;
 CREATE POLICY protected_market_data_by_role ON public.protected_market_data
  FOR SELECT TO authenticated USING (public.current_app_role() IN ('admin','tl','ec'));
 GRANT SELECT ON public.protected_market_data TO authenticated;
+
+-- Deliberately permissive ownership-only SELECT, to prove restrictive gate works.
+CREATE TABLE public.manpower (
+ id uuid PRIMARY KEY,
+ profile_id uuid NOT NULL REFERENCES public.profiles(id),
+ label text NOT NULL
+);
+INSERT INTO public.manpower(id,profile_id,label) VALUES
+ ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','22222222-2222-2222-2222-222222222222','RECOVERY TL DUMMY'),
+ ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','33333333-3333-3333-3333-333333333333','ACTIVE EC DUMMY');
+ALTER TABLE public.manpower ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.manpower TO authenticated;
+CREATE POLICY manpower_ownership_without_rotation_check
+ ON public.manpower FOR SELECT TO authenticated USING (profile_id=auth.uid());

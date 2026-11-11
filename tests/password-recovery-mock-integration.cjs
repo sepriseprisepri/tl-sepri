@@ -9,7 +9,7 @@ const {webcrypto}=require("node:crypto");
 const source=fs.readFileSync("supabase/functions/password-recovery/index.ts","utf8")
   .replace(/^import \{ createClient \} from .+;\s*/m,"");
 const js=stripTypeScriptTypes(source,{mode:"strip"});
-let handler=null,siteVerifyMode="reject",failNextAuthUpdate=false,calls={rpc:0,insert:0,updatedPassword:0};
+let diagnostics=[],handler=null,siteVerifyMode="reject",failNextAuthUpdate=false,calls={rpc:0,insert:0,updatedPassword:0};
 let authUser=null,callerProfile=null,requestedProfile=null,targetProfile=null,recoveryRequest=null;
 const CALLER="11111111-1111-1111-1111-111111111111";
 const TARGET="22222222-2222-2222-2222-222222222222";
@@ -78,7 +78,11 @@ const Deno={
 const context={Deno,createClient:(url,key)=>key==="mock-server-only"?admin:auth,
   crypto:webcrypto,Response,Request,URL,URLSearchParams,AbortController,TextEncoder,
   Uint8Array,Date,Set,Math,Array,String,Number,RegExp,Error,JSON,setTimeout,clearTimeout,
-  fetch:async url=>({ok:true,json:async()=>({success:siteVerifyMode==="accept",hostname:"samsung-kalteng.vercel.app"})})};
+  console:{warn:(...args)=>diagnostics.push(args.join(" "))},
+  fetch:async url=>({ok:siteVerifyMode!=="upstream",json:async()=>({
+    success:["accept","bad-host"].includes(siteVerifyMode),hostname:siteVerifyMode==="bad-host"?"untrusted.invalid":"samsung-kalteng.vercel.app",
+    "error-codes":siteVerifyMode==="bad-secret"?["invalid-input-secret"]:siteVerifyMode==="expired"?["timeout-or-duplicate"]:["invalid-input-response"]
+  })})};
 vm.runInNewContext(js,context,{filename:"password-recovery.ts"});
 assert.equal(typeof handler,"function");
 async function call(payload,token){
@@ -97,6 +101,12 @@ async function call(payload,token){
  result=await call({action:"request",employee_id:"032914",reason:"forgot",captcha_token:"x".repeat(50)});
  assert.equal(result.status,400,"Invalid CAPTCHA must fail closed");
  assert.equal(calls.rpc,0);
+ for(const [mode,expected] of [["bad-secret","invalid-input-secret"],["expired","timeout-or-duplicate"],["upstream","upstream_http"],["bad-host","hostname_rejected"]]){
+  siteVerifyMode=mode;result=await call({action:"request",employee_id:"032914",reason:"forgot",captcha_token:"x".repeat(50)});
+  assert.equal(result.status,400);assert.equal(calls.rpc,0);
+  assert.ok(diagnostics.includes("recovery_turnstile:"+expected),"Expected fixed diagnostic "+expected);
+ }
+ assert.ok(diagnostics.every(x=>!x.includes("032914")&&!x.includes("mock-turnstile-secret")&&!x.includes("xxxxx")),"No credentials or tokens in diagnostics");
  siteVerifyMode="accept"; requestedProfile=null;callerProfile=null;
  result=await call({action:"request",employee_id:"032914",reason:"forgot",captcha_token:"x".repeat(50)});
  assert.equal(result.status,200);assert.equal(result.body.ok,true);

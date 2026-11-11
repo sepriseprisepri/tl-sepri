@@ -18,6 +18,7 @@ CREATE POLICY focus_targets_tl_insert ON public.focus_model_targets
  WITH CHECK (
   (SELECT public.current_app_role())='tl'
   AND public.can_access_store(store_id)
+  AND EXISTS (SELECT 1 FROM public.coverage_assignments ca WHERE ca.profile_id=(SELECT auth.uid()) AND ca.store_id=focus_model_targets.store_id AND ca.coverage_role='tl' AND (now() AT TIME ZONE 'Asia/Pontianak')::date BETWEEN ca.valid_from AND COALESCE(ca.valid_to,'infinity'::date))
   AND updated_by=(SELECT auth.uid())
   AND EXISTS (SELECT 1 FROM public.target_periods p WHERE p.id=period_id AND p.status IN ('draft','active'))
   AND EXISTS (SELECT 1 FROM public.focus_model_settings s WHERE s.model_code=focus_model_targets.model_code AND s.is_active)
@@ -25,8 +26,10 @@ CREATE POLICY focus_targets_tl_insert ON public.focus_model_targets
 CREATE POLICY focus_targets_tl_update ON public.focus_model_targets
  FOR UPDATE TO authenticated
  USING ((SELECT public.current_app_role())='tl' AND public.can_access_store(store_id)
+   AND EXISTS (SELECT 1 FROM public.coverage_assignments ca WHERE ca.profile_id=(SELECT auth.uid()) AND ca.store_id=focus_model_targets.store_id AND ca.coverage_role='tl' AND (now() AT TIME ZONE 'Asia/Pontianak')::date BETWEEN ca.valid_from AND COALESCE(ca.valid_to,'infinity'::date))
    AND EXISTS (SELECT 1 FROM public.target_periods p WHERE p.id=period_id AND p.status IN ('draft','active')))
  WITH CHECK ((SELECT public.current_app_role())='tl' AND public.can_access_store(store_id)
+   AND EXISTS (SELECT 1 FROM public.coverage_assignments ca WHERE ca.profile_id=(SELECT auth.uid()) AND ca.store_id=focus_model_targets.store_id AND ca.coverage_role='tl' AND (now() AT TIME ZONE 'Asia/Pontianak')::date BETWEEN ca.valid_from AND COALESCE(ca.valid_to,'infinity'::date))
    AND updated_by=(SELECT auth.uid())
    AND EXISTS (SELECT 1 FROM public.target_periods p WHERE p.id=period_id AND p.status IN ('draft','active'))
    AND EXISTS (SELECT 1 FROM public.focus_model_settings s WHERE s.model_code=focus_model_targets.model_code AND s.is_active));

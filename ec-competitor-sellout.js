@@ -6,6 +6,7 @@
  const enc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const currency=new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0});
  const localDate=()=>{const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());const value=Object.fromEntries(parts.map(p=>[p.type,p.value]));return `${value.year}-${value.month}-${value.day}`;};
+ const dayOf=value=>{const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Pontianak",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value));const v=Object.fromEntries(parts.map(p=>[p.type,p.value]));return `${v.year}-${v.month}-${v.day}`;};
  const forbiddenModel=model=>/(samsung|galaxy)/i.test(model);
  function validate(v,stores){
   if(!BRANDS.includes(v.brand))throw Error("Pilih brand kompetitor yang tersedia.");
@@ -34,7 +35,7 @@
     '<label class="block text-sm text-slate-300">Harga per unit (Rp)<input name="unit_price" type="number" min="0" max="1000000000" step="1" class="field block w-full rounded-xl p-3 mt-2" required placeholder="0"></label>'+
     '<div class="sm:col-span-2"><p class="text-sm text-slate-400">Total estimasi: <strong id="competitor-amount" class="text-white">Rp0</strong></p></div>'+
     '<label class="sm:col-span-2 block text-sm text-slate-300">Catatan (opsional)<textarea name="notes" maxlength="500" rows="2" class="field block w-full rounded-xl p-3 mt-2"></textarea></label>'+
-    '<div class="sm:col-span-2"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button></div>'+
+    '<div class="sm:col-span-2"><button type="submit" id="competitor-submit" class="rounded-xl px-5 py-3 bg-cyan-400 text-slate-950 font-semibold disabled:opacity-50">Simpan sellout kompetitor</button> <button type="button" id="competitor-cancel" hidden>Batalkan edit</button></div>'+
    '</form>'+
    '<section class="panel rounded-2xl p-4 sm:p-6 min-w-0"><h3 class="font-semibold text-white">Riwayat input saya</h3><p class="text-xs text-slate-400 mt-1">Hanya transaksi kompetitor yang dicatat melalui akun ini.</p><div id="competitor-history" class="mt-4 text-sm text-slate-400">Memuat…</div></section></div>';
   const status=mount.querySelector("#competitor-status"),form=mount.querySelector("#competitor-form"),history=mount.querySelector("#competitor-history");
@@ -49,7 +50,7 @@
     const response=await fetch(ctx.apiUrl+"/rest/v1/"+path,{
      method,signal:controller.signal,cache:"no-store",
      headers:{apikey:ctx.publishableKey,Authorization:"Bearer "+ctx.accessToken,
-       ...(method==="POST"?{"Content-Type":"application/json",Prefer:"return=minimal"}:{})},
+     ...(method!=="GET"?{"Content-Type":"application/json",Prefer:method==="POST"?"return=minimal":"return=representation"}:{})},
      ...(body?{body:JSON.stringify(body)}:{})
     });
     if(!response.ok){
@@ -58,7 +59,7 @@
      const details=await response.json().catch(()=>({}));
      throw Error(details.message||details.error||"Permintaan database gagal (HTTP "+response.status+").");
     }
-    return method==="GET"?{data:await response.json(),error:null}:{data:null,error:null};
+    return method==="GET"||method==="PATCH"||method==="DELETE"?{data:await response.json(),error:null}:{data:null,error:null};
    }catch(err){
     if(err.name==="AbortError")throw Error("Koneksi ke database tidak merespons. Periksa koneksi dan muat ulang menu.");
     throw err;
@@ -66,8 +67,8 @@
   }
   const storeQuery=()=>useRest?rest("stores?select=id,site_id,site_name&order=site_name.asc"):
     ctx.client.from("stores").select("id,site_id,site_name").order("site_name");
-  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,sold_at,brand,model,variant,qty,unit_price,amount,created_at&order=created_at.desc&limit=20"):
-    ctx.client.from("competitor_sellout").select("id,sold_at,brand,model,variant,qty,unit_price,amount,created_at").order("created_at",{ascending:false}).limit(20);
+  const historyQuery=()=>useRest?rest("competitor_sellout?select=id,store_id,sold_at,brand,model,variant,qty,unit_price,amount,notes,created_at&order=created_at.desc&limit=20"):
+    ctx.client.from("competitor_sellout").select("id,store_id,sold_at,brand,model,variant,qty,unit_price,amount,notes,created_at").order("created_at",{ascending:false}).limit(20);
   const insertQuery=record=>useRest?rest("competitor_sellout","POST",record):
     ctx.client.from("competitor_sellout").insert(record);
   let stores=[];
@@ -89,11 +90,35 @@
    const select=form.elements.namedItem("store_id");
    stores.forEach(s=>{const option=document.createElement("option");option.value=s.id;option.textContent=s.site_name+" · "+s.site_id;select.appendChild(option);});
    const date=form.elements.namedItem("sold_at");date.value=localDate();date.max=date.value;
+   let currentRows=[]; let editingId=null;
    const paintHistory=rows=>{
+    currentRows=rows;
     if(!rows.length){history.textContent="Belum ada transaksi kompetitor.";return;}
     history.innerHTML='<div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>Brand / Model</th><th>Qty</th><th>Total</th></tr></thead><tbody>'+
-     rows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td></tr>').join("")+'</tbody></table></div>';
+     rows.map(x=>'<tr><td>'+enc(x.sold_at)+'</td><td>'+enc(x.brand)+" · "+enc(x.model)+" "+enc(x.variant||"")+'</td><td>'+enc(x.qty)+'</td><td>'+enc(currency.format(Number(x.amount??(x.qty*x.unit_price))))+'</td><td>'+(dayOf(x.created_at)===localDate()?'<button type="button" data-correct="'+enc(x.id)+'">Edit</button> <button type="button" data-remove="'+enc(x.id)+'">Hapus</button>':'')+'</td></tr>').join("")+'</tbody></table></div>';
    };
+   history.addEventListener("click",async event=>{
+    const edit=event.target.closest("[data-correct]"),remove=event.target.closest("[data-remove]");
+    const row=currentRows.find(x=>x.id===(edit?.dataset.correct||remove?.dataset.remove));
+    if(!row)return;
+    if(edit){
+     if(!stores.some(s=>s.id===row.store_id)){say("Toko transaksi tidak tersedia dalam penugasan Anda.",true);return;}
+     editingId=row.id;
+     for(const name of ["store_id","sold_at","brand","model","variant","qty","unit_price","notes"])form.elements.namedItem(name).value=row[name]??"";
+     form.elements.namedItem("store_id").disabled=true;date.disabled=true;
+     mount.querySelector("#competitor-submit").textContent="Simpan perubahan";mount.querySelector("#competitor-cancel").hidden=false;updateAmount();
+     say("Mengedit input hari ini. Toko dan tanggal tidak dapat diubah.");form.scrollIntoView({behavior:"smooth"});return;
+    }
+    if(!confirm("Hapus transaksi kompetitor ini? Tindakan dicatat dalam riwayat koreksi."))return;
+    remove.disabled=true;
+    try{
+     const result=useRest?await rest("competitor_sellout?id=eq."+encodeURIComponent(row.id),"DELETE"):
+      await ctx.client.from("competitor_sellout").delete().eq("id",row.id).select("id");
+     if(result.error)throw result.error;
+     if(!result.data?.length)throw Error("Transaksi tidak dihapus. Periksa batas waktu dan penugasan Anda.");
+     const fresh=await historyQuery();if(fresh.error)throw fresh.error;paintHistory(fresh.data||[]);say("Transaksi berhasil dihapus dan koreksi dicatat.");
+    }catch(e){say(e.message||"Gagal menghapus transaksi. Periksa riwayat sebelum mencoba lagi.",true);}finally{remove.disabled=false;}
+   });
    form.classList.remove("hidden");form.hidden=false;
    say("Form siap. Pilih brand dan isi penjualan kompetitor pada toko penempatan Anda.");
    try{
@@ -104,17 +129,26 @@
     history.textContent="Riwayat sementara tidak dapat dimuat. Form tetap tersedia; periksa koneksi jika hendak memverifikasi transaksi.";
    }
    const updateAmount=()=>{const qty=Number(form.elements.namedItem("qty").value),price=Number(form.elements.namedItem("unit_price").value);mount.querySelector("#competitor-amount").textContent=currency.format(Math.max(0,(Number.isFinite(qty)?qty:0)*(Number.isFinite(price)?price:0)));};
+   mount.querySelector("#competitor-cancel").addEventListener("click",()=>{editingId=null;form.elements.namedItem("store_id").disabled=false;date.disabled=false;form.reset();date.value=localDate();mount.querySelector("#competitor-submit").textContent="Simpan sellout kompetitor";mount.querySelector("#competitor-cancel").hidden=true;updateAmount();say("Edit dibatalkan.");});
    form.addEventListener("input",updateAmount);
    form.addEventListener("submit",async event=>{
     event.preventDefault();
     const button=mount.querySelector("#competitor-submit");button.disabled=true;
     try{
      const values=Object.fromEntries(new FormData(form));
+     if(editingId){const old=currentRows.find(x=>x.id===editingId);if(!old)throw Error("Transaksi tidak ditemukan. Muat ulang riwayat.");values.store_id=old.store_id;values.sold_at=old.sold_at;}
      const payload=validate(values,stores);
      // Server verifies ec_profile_id, store assignment and date independently via RLS.
      const record={...payload,ec_profile_id:ctx.profile.id,entry_key:crypto.randomUUID()};
-     const {error}=await requestWithDeadline(insertQuery(record),"Penyimpanan transaksi");
+     let result;
+     if(editingId){
+      const {store_id,sold_at,...changes}=payload;
+      result=useRest?await rest("competitor_sellout?id=eq."+encodeURIComponent(editingId),"PATCH",changes):await ctx.client.from("competitor_sellout").update(changes).eq("id",editingId).select("id");
+      if(!result.error&&!result.data?.length)throw Error("Perubahan ditolak. Periksa batas waktu dan penugasan Anda.");
+     }else result=await requestWithDeadline(insertQuery(record),"Penyimpanan transaksi");
+     const {error}=result;
      if(error)throw error;
+     editingId=null;form.elements.namedItem("store_id").disabled=false;date.disabled=false;mount.querySelector("#competitor-submit").textContent="Simpan sellout kompetitor";mount.querySelector("#competitor-cancel").hidden=true;
      const selectedStore=form.elements.namedItem("store_id").value;
      form.reset();form.elements.namedItem("store_id").value=selectedStore;date.value=localDate();updateAmount();
      say("Sellout kompetitor berhasil disimpan. Data Samsung tidak berubah.");

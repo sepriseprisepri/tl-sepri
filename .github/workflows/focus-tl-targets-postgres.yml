@@ -1,0 +1,41 @@
+name: Focus TL targets isolated PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/focus-model-tl-targets-draft.sql'
+      - 'tests/sql/focus-tl-targets-assertions.sql'
+      - '.github/workflows/focus-tl-targets-postgres.yml'
+permissions:
+  contents: read
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testowner
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: focus_tests
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U testowner -d focus_tests"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: testowner
+      PGPASSWORD: local-ci-only
+      PGDATABASE: focus_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify policies and allocations on disposable database
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -c "ALTER TABLE public.focus_model_targets ADD COLUMN updated_by uuid; GRANT SELECT ON public.target_periods,public.focus_model_settings TO authenticated; GRANT INSERT,UPDATE ON public.focus_model_targets TO authenticated;"
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/focus-model-tl-targets-draft.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-tl-targets-assertions.sql
+      - name: Verify Focus Model interface
+        run: node tests/focus-model-ui.cjs

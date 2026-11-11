@@ -1,0 +1,39 @@
+name: Competitor corrections isolated PostgreSQL
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/competitor-corrections-draft.sql'
+      - 'tests/sql/competitor-corrections-assertions.sql'
+      - '.github/workflows/competitor-corrections-postgres.yml'
+permissions:
+  contents: read
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testowner
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: competitor_tests
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U testowner -d competitor_tests"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: testowner
+      PGPASSWORD: local-ci-only
+      PGDATABASE: competitor_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Apply fixture and draft on disposable database
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261108-ec-competitor-sellout-draft.sql
+          psql -v ON_ERROR_STOP=1 -c "CREATE POLICY password_recovery_mandatory_rotation_gate ON public.competitor_sellout AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT public.current_app_role()) IS NOT NULL) WITH CHECK ((SELECT public.current_app_role()) IS NOT NULL);"
+          psql -v ON_ERROR_STOP=1 -f docs/sql/competitor-corrections-draft.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/competitor-corrections-assertions.sql

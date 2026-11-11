@@ -1,0 +1,37 @@
+name: Store access WIB isolated tests
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/can-access-store-wib-draft.sql'
+      - 'tests/sql/can-access-store-wib-assertions.sql'
+      - '.github/workflows/store-access-wib.yml'
+permissions:
+  contents: read
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testowner
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: store_access_tests
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U testowner -d store_access_tests"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: testowner
+      PGPASSWORD: local-ci-only
+      PGDATABASE: store_access_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check access across WIB calendar boundary
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/can-access-store-wib-draft.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/can-access-store-wib-assertions.sql

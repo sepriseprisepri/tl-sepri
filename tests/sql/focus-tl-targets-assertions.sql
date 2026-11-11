@@ -9,7 +9,7 @@ DO $$ DECLARE n int; BEGIN
  INSERT INTO public.focus_model_targets(period_id,store_id,model_code,target_qty,target_amt,updated_by)
  VALUES ('cccccccc-cccc-cccc-cccc-cccccccccccc','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','INACTIVE MODEL',4,400,auth.uid());
  RAISE EXCEPTION 'inactive model allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- UPDATE public.focus_model_targets SET target_qty=12,target_amt=1200,updated_by=auth.uid() WHERE store_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1';
+ UPDATE public.focus_model_targets SET target_qty=12,target_amt=1200,updated_by=auth.uid() WHERE store_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1' AND model_code='GALAXY A55';
  GET DIAGNOSTICS n=ROW_COUNT; IF n<>1 THEN RAISE EXCEPTION 'TL own store update rejected'; END IF;
  BEGIN
  INSERT INTO public.focus_model_targets(period_id,store_id,model_code,target_qty,target_amt,updated_by)

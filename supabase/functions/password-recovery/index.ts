@@ -49,6 +49,13 @@ async function verifyHuman(token:unknown,secret:string,localBackend:boolean):Pro
     if(!response.ok){
       // HTTP status is non-sensitive and distinguishes configuration, rate limits and outages.
       console.warn("recovery_turnstile:upstream_http_"+response.status);
+      try {
+        const rejected=await response.json();
+        const known=["missing-input-secret","invalid-input-secret","missing-input-response","invalid-input-response","bad-request","timeout-or-duplicate","internal-error"];
+        const codes=Array.isArray(rejected?.["error-codes"])?rejected["error-codes"]:[];
+        const reason=known.find(code=>codes.includes(code));
+        if(reason)console.warn("recovery_turnstile:"+reason);
+      } catch { /* Keep rejecting if the upstream response is not JSON. */ }
       return false;
     }
     const result=await response.json();

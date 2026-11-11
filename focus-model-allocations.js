@@ -359,36 +359,18 @@ function setupAdminStoreTargets(data){
  });
 }
 async function render(data){
- const {client,period,profile,isCurrent,mount}=data;
- const canManage=profile.role==="tl"||profile.role==="admin";
- const canReadTeam=canManage||profile.role==="tso";
- let allocations=[],manpower=[],assignments=[],history=[],migrationPending=false;
- try{
-  allocations=await readAll(client,"focus_model_ec_allocations",
-   "id,period_id,store_id,model_code,manpower_id,target_qty,target_amt,updated_at",
-   q=>q.eq("period_id",period.id));
- }catch(error){
-  if(missingTable(error))migrationPending=true;
-  else throw new Error("Gagal mengambil alokasi Focus Model: "+error.message);
- }
- if(canManage){
-  if(!migrationPending)history=await readAll(client,"focus_model_allocation_history",
-   "period_id,store_id,model_code,manpower_id,action,old_qty,new_qty,old_amt,new_amt,changed_at",
-   q=>q.eq("period_id",period.id));
-  manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
-   q=>q.eq("fieldforce_position","EC").eq("is_active",true));
-  assignments=await readAll(client,"store_assignments","manpower_id,store_id,valid_from,valid_to");
- }else if(canReadTeam){
-  // TSO may inspect its RLS-scoped team, but cannot change allocations or see audit.
-  manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
-   q=>q.eq("fieldforce_position","EC").eq("is_active",true));
- }else if(profile.role==="ec"&&profile.manpower_id){
-  manpower=await readAll(client,"manpower","id,full_name,site_id,fieldforce_position,promoter_id,is_active",
-   q=>q.eq("id",profile.manpower_id));
- }
+ const {client,period,profile,isCurrent,mount,stores,settings}=data;
+ const {data:summary,error}=await client.rpc("focus_model_store_summary",{p_period_id:period.id});
+ if(error)throw new Error("Ringkasan Focus Model toko belum tersedia: "+error.message);
  if(!isCurrent())return;
- setupUi({...data,allocations,manpower,assignments,history,migrationPending});
- if(canManage&&isCurrent())setupAdminStoreTargets(data);
+ const rows=summary||[],names=new Map(settings.map(x=>[x.model_code,x.display_name]));
+ const storeNames=new Map(stores.map(x=>[x.id,x.site_name]));
+ const sum=(field)=>rows.reduce((a,r)=>a+num(r[field]),0);
+ const tq=sum("target_qty"),ta=sum("target_amt"),aq=sum("actual_qty"),aa=sum("actual_amt");
+ mount.innerHTML='<section class="panel rounded-2xl p-5 mb-5"><h3 class="text-xl font-semibold text-white">Focus Model Toko</h3><p class="text-sm text-slate-400 mt-2">Target dan pencapaian adalah total toko; seluruh EC pada toko yang sama melihat angka yang sama. Hanya transaksi EULA VALID dihitung.</p></section>'+
+ '<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">'+metric("Target Qty Toko",targetQtyText(tq),"Total model dalam cakupan")+metric("Sellout Qty VALID",qty(aq),"Total penjualan toko")+metric("Gap Qty",qty(tq-aq),"Target dikurangi sellout toko")+metric("Achievement Qty",percentage(aq,tq),"Dari target toko")+metric("Target Amount",money(ta),"Total target toko")+metric("Sellout Amount VALID",money(aa),"Total penjualan toko")+metric("Gap Amount",money(ta-aa),"Target dikurangi sellout toko")+'</div>'+
+ '<section class="panel rounded-2xl p-5"><h4 class="font-semibold text-white">Target dan Pencapaian per Toko</h4><div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Toko</th><th>Model</th><th>Target Qty</th><th>VALID Qty</th><th>Gap Qty</th><th>Achievement</th><th>Target Amount</th><th>VALID Amount</th><th>Gap Amount</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(storeNames.get(r.store_id)||"Toko")+'</td><td>'+esc(names.get(r.model_code)||r.model_code)+'</td><td>'+targetQtyText(r.target_qty)+'</td><td>'+qty(r.actual_qty)+'</td><td>'+qty(num(r.target_qty)-num(r.actual_qty))+'</td><td>'+percentage(num(r.actual_qty),num(r.target_qty))+'</td><td>'+money(r.target_amt)+'</td><td>'+money(r.actual_amt)+'</td><td>'+money(num(r.target_amt)-num(r.actual_amt))+'</td></tr>').join("")+(rows.length?"":'<tr><td colspan="9">Belum ada target Focus Model toko.</td></tr>')+'</tbody></table></div><p class="text-xs text-slate-400 mt-3">Model yang namanya tidak cocok atau ambigu tidak dihitung otomatis. Periksa pemetaan model pada RAW Sellout.</p></section>';
+ if((profile.role==="tl"||profile.role==="admin")&&isCurrent())setupAdminStoreTargets({...data,targets:rows});
 }
 window.FocusModelAllocationUI={render};
 })();

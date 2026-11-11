@@ -102,7 +102,7 @@ function renderDashboard(ctx){
     '<p class="intel-caption">Pace kalender: '+N(stats.timeGone*100)+'% · '+N(stats.elapsed)+' / '+N(stats.duration)+' hari.</p>'+
     '<button class="intel-link" id="intel-role-action">Lihat pekerjaan prioritas ↗</button></div>')+'</div>'+
    '<div class="intel-dashboard-bottom">'+
-   panel("AI Sales Insight <small>· Analisis otomatis berbasis aturan</small>",'<div id="intel-insight-items">'+insightsHtml(analytics.insights(ctx,ctx.profile.role))+'</div>'+
+   panel("AI Sales Insight · Analisis otomatis berbasis aturan",'<div id="intel-insight-items">'+insightsHtml(analytics.insights(ctx,ctx.profile.role))+'</div>'+
    '<div class="intel-panel-actions"><button id="intel-copy-insights" class="intel-link">Salin analisis</button><button id="intel-open-charts" class="intel-link">Grafik detail ↗</button></div><p class="intel-caption">Bukan model AI generatif atau prediksi. Seluruh kesimpulan berasal dari angka yang terlihat.</p>')+
    panel("Promo Samsung Terverifikasi",'<div id="intel-promo-summary" class="intel-promo-summary">Memeriksa promo aktif...</div>'+
      '<button id="intel-open-promos" class="intel-link">Lihat semua promo ↗</button><p class="intel-caption">Hanya penawaran dengan sumber resmi, tanggal dan status verifikasi yang ditampilkan.</p>')+'</div>';

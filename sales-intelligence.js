@@ -87,9 +87,14 @@ function renderDashboard(ctx){
  const metricBox=(label,value,hint)=>'<div class="intel-stat"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(hint)+'</small></div>';
  const q=window.SamsungMarketMetrics?.qtyFormat||N;
  const dailyInfo=market?'<div class="intel-stat-grid intel-market-pulse" aria-label="Ringkasan MTD dan pertumbuhan sellout">'+
-  metricBox("Target MTD Qty",market.targetQty>0?targetQtyText(market.mtdQty):"—","Pace kalender · "+market.elapsed+"/"+market.duration+" hari")+
+  metricBox("Time Gone",N(market.elapsed/market.duration*100)+"%",market.elapsed+" / "+market.duration+" hari kalender")+
+  metricBox("Target MTD Qty",market.targetQty>0?targetQtyText(market.mtdQty):"—","Target periode × time gone")+
+  metricBox("Target MTD Amt",market.targetAmt>0?money(market.mtdAmt):"—","Target periode × time gone")+
   metricBox("Gap MTD Qty",market.targetQty>0?q(market.mtdGapQty):"—","Positif berarti tertinggal dari pace")+
-  metricBox("Target Daily Qty",market.targetQty>0&&market.remainingDays?targetQtyText(market.dailyQty):"—","Kebutuhan/hari · "+market.remainingDays+" hari tersisa")+
+  metricBox("Pace Harian Qty",market.targetQty>0&&market.elapsed>0&&market.remainingDays?targetQtyText(market.targetQty/market.duration):"—","Pace kalender · target periode / "+market.duration+" hari")+
+  metricBox("Pace Harian Amt",market.targetAmt>0&&market.elapsed>0&&market.remainingDays?money(market.targetAmt/market.duration):"—","Pace kalender · target periode / "+market.duration+" hari")+
+  metricBox("Target Daily Qty",market.targetQty>0&&market.remainingDays?targetQtyText(market.dailyQty):"—","Sisa target / "+market.remainingDays+" hari tersisa")+
+  metricBox("Target Daily Amt",market.targetAmt>0&&market.remainingDays?money(Math.ceil(market.dailyAmt)):"—","Sisa target / "+market.remainingDays+" hari tersisa")+
   metricBox("Growth Sellout WoW",market.wowQty===null?"Belum cukup data":(market.wowQty>=0?"+":"")+market.wowQty.toFixed(1)+"%","Dua minggu kalender lengkap")+
   '</div>':"";
  const roleNames={admin:"Admin Command",tl:"Territory Leader",tso:"Area Supervisor",ec:"Experience Consultant"};

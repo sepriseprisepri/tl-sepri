@@ -19,6 +19,14 @@ DO $$ BEGIN IF NOT public.can_access_store('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1
 SELECT set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);
 DO $$ BEGIN IF NOT public.can_access_store('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2') THEN RAISE EXCEPTION 'Admin scope incorrect'; END IF; END $$;
 RESET ROLE;
+UPDATE public.profiles SET must_change_password=true WHERE id='44444444-4444-4444-4444-444444444444';
+UPDATE public.profiles SET is_active=false WHERE id='11111111-1111-1111-1111-111111111111';
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','44444444-4444-4444-4444-444444444444',false);
+DO $$ BEGIN IF public.can_access_store('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1') THEN RAISE EXCEPTION 'password recovery guard bypass'; END IF; END $$;
+SELECT set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);
+DO $$ BEGIN IF public.can_access_store('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1') THEN RAISE EXCEPTION 'inactive admin allowed'; END IF; END $$;
+RESET ROLE;
 UPDATE public.coverage_assignments SET valid_to=(now() at time zone 'Asia/Pontianak')::date-1 WHERE profile_id='22222222-2222-2222-2222-222222222222';
 UPDATE public.store_assignments SET valid_to=(now() at time zone 'Asia/Pontianak')::date-1 WHERE manpower_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1';
 SET ROLE authenticated;

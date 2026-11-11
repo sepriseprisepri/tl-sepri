@@ -105,7 +105,7 @@ function setupUi(data){
   '<h3 class="text-xl font-semibold text-white mt-2">'+storeLabel+'</h3>'+
   '<p class="text-sm text-slate-400 mt-2">'+(personal?
     'Hanya target yang benar-benar dialokasikan TL untuk akun EC ini. Tampilan Target Qty selalu dibulatkan ke atas.':
-    'Target toko adalah batas resmi; TL membagikan alokasi individual EC sesuai coverage. Semua tampilan Target Qty dibulatkan ke atas.')+
+    'TL menetapkan target toko dalam coverage dan membagikannya kepada EC. Semua tampilan Target Qty dibulatkan ke atas.')+
    '</p></div><span class="pill text-cyan-200">EULA VALID · RLS</span></div>';
  const cards='<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">'+
   (personal?"":metric("Target Qty model toko",targetQtyText(targetQty),"Batas total store dalam scope"))+
@@ -148,7 +148,7 @@ function setupUi(data){
    '<button type="button" id="focus-clear" class="rounded-lg border border-slate-600 px-4 py-3 text-slate-200">Bersihkan formulir</button></div>'+
    '<p id="focus-form-feedback" role="status" aria-live="polite" class="text-sm text-slate-300"></p>'+
   '</form></section>':
-  manager&&!migrationPending?'<p class="text-amber-200 mb-4">Belum ada target Focus Model toko. Admin perlu membuat target toko terlebih dahulu.</p>':"";
+  manager&&!migrationPending?'<p class="text-amber-200 mb-4">Belum ada target Focus Model toko. Tetapkan target toko terlebih dahulu.</p>':"";
  const storeOverview=manager?
   '<section class="panel rounded-2xl p-5 mb-5" aria-label="Ringkasan batas Focus Model per toko">'+
   '<h4 class="text-white font-semibold mb-3">Kontrol Target Model Toko</h4>'+
@@ -298,11 +298,11 @@ function setupUi(data){
 
 function setupAdminStoreTargets(data){
  const {mount,client,profile,period,stores,settings,targets,isCurrent}=data;
- if(profile.role!=="admin"||!isCurrent())return;
+ if(!["admin","tl"].includes(profile.role)||!isCurrent())return;
  const box=document.createElement("section");
  box.className="panel rounded-2xl p-5 mb-5";
  box.setAttribute("aria-labelledby","focus-admin-target-title");
- box.innerHTML='<h4 id="focus-admin-target-title" class="text-white font-semibold">Admin · Plafon Focus Model per Toko</h4>'+
+ box.innerHTML='<h4 id="focus-admin-target-title" class="text-white font-semibold">'+(profile.role==="tl"?"TL":"Admin")+' · Target Focus Model per Toko</h4>'+
   '<p class="text-sm text-slate-400 mt-2">Tetapkan target induk Qty dan Amount per model dan toko sebelum TL membaginya ke EC. Angka ini bukan target pribadi EC. Target Qty pada ringkasan dibulatkan ke atas; input edit tetap memuat nilai aslinya.</p>'+
   '<form id="focus-admin-parent-form" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mt-4">'+
   '<label class="grid gap-2 text-xs text-slate-300">Toko<select id="focus-admin-store" class="field rounded-lg p-3" required></select></label>'+
@@ -339,7 +339,7 @@ function setupAdminStoreTargets(data){
    status.textContent="Pilih toko, model aktif, dan Qty/Amount yang valid.";return;
   }
   if(period.status==="closed"){status.textContent="Periode sudah ditutup.";return;}
-  if(!profile.id){status.textContent="Identitas Admin belum tersedia.";return;}
+  if(!profile.id){status.textContent="Identitas pengguna belum tersedia.";return;}
   if(!window.confirm("Simpan target induk ini sebagai plafon untuk seluruh EC di toko dan model terpilih?"))return;
   const button=form.querySelector('button[type="submit"]');button.disabled=true;
   status.textContent="Menyimpan plafon target...";
@@ -388,7 +388,7 @@ async function render(data){
  }
  if(!isCurrent())return;
  setupUi({...data,allocations,manpower,assignments,history,migrationPending});
- if(profile.role==="admin"&&isCurrent())setupAdminStoreTargets(data);
+ if(canManage&&isCurrent())setupAdminStoreTargets(data);
 }
 window.FocusModelAllocationUI={render};
 })();

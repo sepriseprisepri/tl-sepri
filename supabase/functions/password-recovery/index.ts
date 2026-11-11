@@ -46,7 +46,11 @@ async function verifyHuman(token:unknown,secret:string,localBackend:boolean):Pro
     const response=await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",{
       method:"POST",body,signal:controller.signal
     });
-    if(!response.ok){console.warn("recovery_turnstile:upstream_http");return false;}
+    if(!response.ok){
+      // HTTP status is non-sensitive and distinguishes configuration, rate limits and outages.
+      console.warn("recovery_turnstile:upstream_http_"+response.status);
+      return false;
+    }
     const result=await response.json();
     if(result?.success!==true){
       const known=["missing-input-secret","invalid-input-secret","missing-input-response",
@@ -231,3 +235,4 @@ Deno.serve(async req=>{
   }
   return reply(req,{error:"Tindakan tidak dikenal"},400);
 });
+

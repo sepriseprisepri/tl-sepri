@@ -79,7 +79,7 @@ const context={Deno,createClient:(url,key)=>key==="mock-server-only"?admin:auth,
   crypto:webcrypto,Response,Request,URL,URLSearchParams,AbortController,TextEncoder,
   Uint8Array,Date,Set,Math,Array,String,Number,RegExp,Error,JSON,setTimeout,clearTimeout,
   console:{warn:(...args)=>diagnostics.push(args.join(" "))},
-  fetch:async url=>({ok:siteVerifyMode!=="upstream",json:async()=>({
+  fetch:async url=>({ok:siteVerifyMode!=="upstream",status:siteVerifyMode==="upstream"?503:200,json:async()=>({
     success:["accept","bad-host"].includes(siteVerifyMode),hostname:siteVerifyMode==="bad-host"?"untrusted.invalid":"samsung-kalteng.vercel.app",
     "error-codes":siteVerifyMode==="bad-secret"?["invalid-input-secret"]:siteVerifyMode==="expired"?["timeout-or-duplicate"]:["invalid-input-response"]
   })})};
@@ -101,7 +101,7 @@ async function call(payload,token){
  result=await call({action:"request",employee_id:"032914",reason:"forgot",captcha_token:"x".repeat(50)});
  assert.equal(result.status,400,"Invalid CAPTCHA must fail closed");
  assert.equal(calls.rpc,0);
- for(const [mode,expected] of [["bad-secret","invalid-input-secret"],["expired","timeout-or-duplicate"],["upstream","upstream_http"],["bad-host","hostname_rejected"]]){
+ for(const [mode,expected] of [["bad-secret","invalid-input-secret"],["expired","timeout-or-duplicate"],["upstream","upstream_http_503"],["bad-host","hostname_rejected"]]){
   siteVerifyMode=mode;result=await call({action:"request",employee_id:"032914",reason:"forgot",captcha_token:"x".repeat(50)});
   assert.equal(result.status,400);assert.equal(calls.rpc,0);
   assert.ok(diagnostics.includes("recovery_turnstile:"+expected),"Expected fixed diagnostic "+expected);
@@ -158,3 +158,4 @@ async function call(payload,token){
  assert.equal(calls.updatedPassword,3);
  console.log("Mocked API handler PASS: CAPTCHA, JWT, Admin review, TL reissue, 24h expiry, mandatory rotation; zero real account changes.");
 })().catch(err=>{console.error(err);process.exitCode=1;});
+

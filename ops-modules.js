@@ -378,7 +378,7 @@
       else if(label==="Store Shadow")shadowPage(mount,period,stores,history,sales);
       else if(label==="Focus Model"){
         if(window.FocusModelAllocationUI){
-          const focusSales=await getSales(client,period);
+          const focusSales=[]; // Store-level aggregate is provided by a scoped server RPC.
           if(token!==renderToken||!mount.isConnected)return true;
           await window.FocusModelAllocationUI.render({
             mount,client,profile,period,stores,settings,targets:focusTargets,

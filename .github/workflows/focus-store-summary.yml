@@ -1,0 +1,40 @@
+name: Focus store summary isolated tests
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/focus-store-summary-draft.sql'
+      - 'tests/sql/focus-store-summary-assertions.sql'
+      - '.github/workflows/focus-store-summary.yml'
+permissions:
+  contents: read
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testowner
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: focus_tests
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U testowner -d focus_tests"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: testowner
+      PGPASSWORD: local-ci-only
+      PGDATABASE: focus_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify store summary and row isolation
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/can-access-store-wib-draft.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-store-summary-assertions.sql
+      - name: Verify store view
+        run: node tests/focus-model-ui.cjs

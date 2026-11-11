@@ -20,6 +20,15 @@ DO $$ DECLARE n int; BEGIN
  RAISE EXCEPTION 'target identity mutation allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $$;
 RESET ROLE;
+UPDATE public.coverage_assignments SET valid_to=(now() AT TIME ZONE 'Asia/Pontianak')::date-1 WHERE profile_id='22222222-2222-2222-2222-222222222222';
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
+DO $$ DECLARE n int; BEGIN
+ UPDATE public.focus_model_targets SET target_qty=15,updated_by=auth.uid() WHERE store_id='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1';
+ GET DIAGNOSTICS n=ROW_COUNT; IF n<>0 THEN RAISE EXCEPTION 'expired coverage update allowed'; END IF;
+END $$;
+RESET ROLE;
+UPDATE public.coverage_assignments SET valid_to=NULL WHERE profile_id='22222222-2222-2222-2222-222222222222';
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333331',false);
 DO $$ BEGIN

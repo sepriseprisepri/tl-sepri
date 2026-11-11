@@ -33,7 +33,7 @@ jobs:
       - name: Verify policies and allocations on disposable database
         run: |
           psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
-          psql -v ON_ERROR_STOP=1 -c "ALTER TABLE public.focus_model_targets ADD COLUMN updated_by uuid; GRANT SELECT ON public.target_periods,public.focus_model_settings TO authenticated; GRANT INSERT,UPDATE ON public.focus_model_targets TO authenticated;"
+          psql -v ON_ERROR_STOP=1 -c "ALTER TABLE public.focus_model_targets ADD COLUMN updated_by uuid; GRANT SELECT ON public.target_periods,public.focus_model_settings,public.coverage_assignments TO authenticated; GRANT INSERT,UPDATE ON public.focus_model_targets TO authenticated;"
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/focus-model-tl-targets-draft.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/focus-tl-targets-assertions.sql

@@ -176,7 +176,7 @@
             <div class="panel rounded-2xl p-5 sm:p-6"><div class="flex justify-between items-center gap-3"><div><h3 class="font-semibold">Komposisi segment</h3><p class="text-xs text-slate-500 mt-1">Qty VALID berdasarkan Segment by Target</p></div><span class="pill text-slate-400">Qty</span></div><div class="h-64 mt-4"><canvas id="segment-chart"></canvas></div></div>
           </div>
           <div class="grid xl:grid-cols-[1.35fr_1fr] gap-5 mt-5">
-            <div class="panel rounded-2xl p-5 sm:p-6"><div class="flex items-center justify-between gap-3 mb-4"><div><h3 class="font-semibold" id="performance-title">Performa toko</h3><p class="text-xs text-slate-500 mt-1">Target, realisasi, dan achievement per toko</p></div><span id="store-count-label" class="pill text-slate-400">0 toko</span></div><div class="table-wrap"><table class="w-full text-sm"><thead><tr><th class="text-left">Toko</th><th class="text-right">Target Qty</th><th class="text-right">Actual Qty</th><th class="text-right">Ach.</th></tr></thead><tbody id="store-table"><tr><td colspan="4" class="text-center text-slate-500 py-8">Memuat data…</td></tr></tbody></table></div></div>
+            <div class="panel min-w-0 rounded-2xl p-5 sm:p-6"><div class="flex items-center justify-between gap-3 mb-4"><div><h3 class="font-semibold" id="performance-title">Performa toko</h3><p class="text-xs text-slate-500 mt-1">Target, realisasi, dan achievement per toko</p></div><span id="store-count-label" class="pill text-slate-400">0 toko</span></div><div class="table-wrap"><table class="w-full text-sm"><thead><tr><th class="text-left">Toko</th><th class="text-right">Target Qty</th><th class="text-right">Actual Qty</th><th class="text-right">Ach.</th></tr></thead><tbody id="store-table"><tr><td colspan="4" class="text-center text-slate-500 py-8">Memuat data…</td></tr></tbody></table></div></div>
             <div class="panel rounded-2xl p-5 sm:p-6"><h3 class="font-semibold">Ringkasan akun</h3><div class="mt-4 space-y-4 text-sm"><div class="flex justify-between gap-3"><span class="text-slate-500">Role</span><span id="access-role" class="text-white"></span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Employee ID</span><span id="access-id" class="text-white"></span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Manpower aktif</span><span id="access-manpower" class="text-white"></span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Transaksi VALID</span><span id="access-valid-count" class="text-white"></span></div></div><div class="mt-6 pt-5 border-t border-slate-800"><p class="text-xs text-slate-500">Catatan perhitungan</p><p class="text-xs text-slate-400 mt-2 leading-6">Achievement resmi hanya menghitung transaksi EULA VALID. PENDING ditampilkan terpisah dan belum masuk realisasi.</p></div></div>
           </div>
           <p class="text-xs text-slate-600 mt-8">Samsung Kalteng · Internal use only · Data dibatasi oleh Row Level Security Supabase</p>
@@ -186,6 +186,8 @@
     </section>
   </div>
 </main>
+<script src="/market-metrics.js"></script>
+<script src="/focus-model-allocations.js"></script>
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
 <script src="/survey-affordability.js"></script>
@@ -213,6 +215,9 @@ const menus={
 };
 let currentProfile=null,periods=[],charts={},lastSalesData=null,activeSection="Dashboard";
 const fmtNum=v=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(Number(v||0));
+// Target Qty display uses ceiling; stored values remain unchanged.
+const fmtTargetQty=v=>window.SamsungMarketMetrics?.targetQtyFormat?.(v) ??
+ new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(Number(v||0)));
 const money=v=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const pct=(a,b)=>b>0?(a/b*100):0;
 const dateFmt=s=>new Date(s+"T00:00:00").toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
@@ -416,9 +421,11 @@ function renderDashboard(d){
  const targetByStore=new Map();
  let targetQty=0,targetAmt=0;
  targets.forEach(t=>{targetQty+=Number(t.target_qty||0);targetAmt+=Number(t.target_amt||0);const x=targetByStore.get(t.store_id)||{qty:0,amt:0};x.qty+=Number(t.target_qty||0);x.amt+=Number(t.target_amt||0);targetByStore.set(t.store_id,x)});
- const valid=sales.filter(s=>(s.eula_status||"").toUpperCase()==="VALID");
- const pending=sales.filter(s=>(s.eula_status||"").toUpperCase()==="PENDING");
- const actualQty=valid.reduce((n,s)=>n+Number(s.qty||0),0),actualAmt=valid.reduce((n,s)=>n+Number(s.amt||0),0);
+ const marketSummary=window.SamsungMarketMetrics?.summarize({period,targets,sales});
+ const valid=marketSummary?.valid||sales.filter(s=>(s.eula_status||"").toUpperCase()==="VALID");
+ const pending=marketSummary?.pending||sales.filter(s=>(s.eula_status||"").toUpperCase()==="PENDING");
+ const actualQty=marketSummary?.actualQty??valid.reduce((n,s)=>n+Number(s.qty||0),0);
+ const actualAmt=marketSummary?.actualAmt??valid.reduce((n,s)=>n+Number(s.amt||0),0);
  const storeActual=new Map(),daily=new Map(),segments=new Map();
  valid.forEach(s=>{
   const key=s.site_id||"unknown",a=storeActual.get(key)||{qty:0,amt:0};a.qty+=Number(s.qty||0);a.amt+=Number(s.amt||0);storeActual.set(key,a);
@@ -434,7 +441,7 @@ function renderDashboard(d){
  }
  storeRows.sort((a,b)=>b.ach-a.ach);
  $("kpi-stores").textContent=fmtNum(currentProfile.role==="ec"?new Set(manpower.filter(m=>m.id===currentProfile.manpower_id).map(m=>m.site_id)).size:stores.length);
- $("kpi-target-qty").textContent=fmtNum(targetQty);$("kpi-actual-qty").textContent=fmtNum(actualQty);
+ $("kpi-target-qty").textContent=fmtTargetQty(targetQty);$("kpi-actual-qty").textContent=fmtNum(Math.round(actualQty));
  $("kpi-qty-progress").textContent="Achievement: "+fmtNum(pct(actualQty,targetQty))+"%";
  $("kpi-actual-amt").textContent=money(actualAmt);$("kpi-amt-progress").textContent="Achievement: "+fmtNum(pct(actualAmt,targetAmt))+"%";
  for(const [id,actual,target] of [["qty",actualQty,targetQty],["amt",actualAmt,targetAmt]]){
@@ -444,7 +451,7 @@ function renderDashboard(d){
   $(id+"-progress-track").setAttribute("aria-valuenow",safe.toFixed(0));
   $(id+"-progress-track").setAttribute("aria-valuetext",fmtNum(rate)+"% pencapaian");
  }
- $("small-target-amt").textContent=money(targetAmt);$("small-gap-qty").textContent=fmtNum(targetQty-actualQty);
+ $("small-target-amt").textContent=money(targetAmt);$("small-gap-qty").textContent=fmtNum(Math.round(targetQty-actualQty));
  $("small-gap-amt").textContent=money(targetAmt-actualAmt);$("small-pending").textContent=fmtNum(pending.length)+" transaksi";
  $("target-label").textContent=currentProfile.role==="ec"?"Target Qty Pribadi":"Target Qty";
  $("store-count-label").textContent=fmtNum(storeRows.length)+" toko bertarget";
@@ -454,7 +461,7 @@ function renderDashboard(d){
  $("welcome-subtitle").textContent=period.period_name+" · "+dateFmt(period.period_start)+" - "+dateFmt(period.period_end)+" · Data sesuai cakupan akun";
  const tbody=$("store-table");tbody.innerHTML="";
  if(!storeRows.length){tbody.innerHTML='<tr><td colspan="4" class="text-center text-slate-500 py-8">Belum ada data target toko untuk periode ini.</td></tr>'}
- else storeRows.slice(0,15).forEach(r=>{const tr=document.createElement("tr");tr.innerHTML='<td><div class="font-medium text-slate-200">'+escapeHtml(r.name)+'</div><div class="text-xs text-slate-500 mt-1">'+escapeHtml(r.site)+'</div></td><td class="text-right">'+fmtNum(r.target)+'</td><td class="text-right">'+fmtNum(r.actual)+'</td><td class="text-right"><span class="pill '+(r.ach>=100?'text-emerald-300':r.ach>=70?'text-amber-200':'text-slate-300')+'">'+fmtNum(r.ach)+'%</span></td>';tbody.appendChild(tr)});
+ else storeRows.slice(0,15).forEach(r=>{const tr=document.createElement("tr");tr.innerHTML='<td><div class="font-medium text-slate-200">'+escapeHtml(r.name)+'</div><div class="text-xs text-slate-500 mt-1">'+escapeHtml(r.site)+'</div></td><td class="text-right">'+fmtTargetQty(r.target)+'</td><td class="text-right">'+fmtNum(r.actual)+'</td><td class="text-right"><span class="pill '+(r.ach>=100?'text-emerald-300':r.ach>=70?'text-amber-200':'text-slate-300')+'">'+fmtNum(r.ach)+'%</span></td>';tbody.appendChild(tr)});
  if(sales.length===0){$("data-notice").textContent="Belum ada data RAW Sellout pada database untuk periode ini. Target sudah tersedia, tetapi realisasi dan achievement akan mulai terisi setelah RAW Sellout diimpor."; $("data-notice").classList.remove("hidden")}
  else if(pending.length){$("data-notice").textContent=fmtNum(pending.length)+" transaksi berstatus PENDING dipisahkan dan tidak dihitung ke achievement resmi."; $("data-notice").classList.remove("hidden")}
  drawCharts(daily,segments,period);

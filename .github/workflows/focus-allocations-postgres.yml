@@ -1,0 +1,115 @@
+name: Focus Model TL EC Isolated PostgreSQL Integration
+
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/20261110-focus-ec-allocations-staging.sql'
+      - 'tests/sql/focus-allocations-bootstrap.sql'
+      - 'tests/sql/focus-allocations-assertions.sql'
+      - 'tests/sql/focus-supabase-local-fixture.sql'
+      - 'tests/focus-supabase-local-e2e.cjs'
+      - '.github/workflows/focus-allocations-postgres.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focus-allocations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: testowner
+          POSTGRES_PASSWORD: local-ci-only
+          POSTGRES_DB: focus_tests
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U testowner -d focus_tests"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: testowner
+      PGPASSWORD: local-ci-only
+      PGDATABASE: focus_tests
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client if missing
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Check SQL allocation and RLS against disposable PostgreSQL 17
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-assertions.sql
+      - name: Concurrency — two TL allocations cannot oversubscribe one store target
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c "UPDATE public.manpower SET site_id='S-01' WHERE id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1'; UPDATE public.focus_model_settings SET is_active=true WHERE model_code='GALAXY A55';"
+          mkdir -p /tmp/focus-race
+          psql -v ON_ERROR_STOP=1 -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false); SELECT public.set_focus_model_ec_allocation('cccccccc-cccc-cccc-cccc-cccccccccccc','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','GALAXY A55','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',6,600);" > /tmp/focus-race/one.log 2>&1 &
+          first=$!
+          psql -v ON_ERROR_STOP=1 -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false); SELECT public.set_focus_model_ec_allocation('cccccccc-cccc-cccc-cccc-cccccccccccc','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','GALAXY A55','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',6,600);" > /tmp/focus-race/two.log 2>&1 &
+          second=$!
+          if wait "$first"; then a=1; else a=0; fi
+          if wait "$second"; then b=1; else b=0; fi
+          test "$((a+b))" -eq 1 || {
+            echo "Expected exactly one concurrent allocation to succeed"; exit 1;
+          }
+          psql -v ON_ERROR_STOP=1 -tAc "SELECT CASE WHEN COALESCE(SUM(target_qty),0)=6 AND COALESCE(SUM(target_amt),0)=600 THEN 'PASS' ELSE 'FAIL' END FROM public.focus_model_ec_allocations;" | grep -q PASS
+          echo "PASS: two racing TL allocations are serialized under the store target cap"
+
+  real-local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Setup pinned Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.81.3
+      - name: Start disposable GoTrue/PostgREST/PostgreSQL locally
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase init --force
+          supabase start -x studio,imgproxy,realtime,storage-api,postgres-meta,logflare,vector,supavisor,mailpit
+      - name: Install PostgreSQL client
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Apply local-only app schema and proposed migration
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGDATABASE=postgres
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-supabase-local-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
+          psql -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+          sleep 3
+      - name: Verify GoTrue JWT, PostgREST RLS and atomic RPC over HTTP
+        run: |
+          node --check tests/focus-supabase-local-e2e.cjs
+          node tests/focus-supabase-local-e2e.cjs
+      - name: Cleanup ephemeral Supabase
+        if: always()
+        run: |
+          supabase stop --no-backup || true

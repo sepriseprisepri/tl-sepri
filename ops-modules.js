@@ -1,6 +1,6 @@
 /* Samsung Kalteng — scoped operational pages.
  * Data is returned by Supabase RLS; all UI filtering is presentation-only.
- * This module never uses service_role keys or performs database writes.
+ * Focus Model changes use an authenticated, server-validated RPC; no service_role.
  */
 (function () {
   "use strict";
@@ -15,6 +15,8 @@
   }[ch]));
   const num = value => Number(value||0);
   const nfmt = value => formatter.format(num(value));
+  const targetQtyText = value => window.SamsungMarketMetrics?.targetQtyFormat?.(value) ??
+    new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.ceil(num(value)));
   const currency = value => rupiah.format(num(value));
   const share = (actual,target) => target>0 ? (100*actual/target) : 0;
   const percent = (actual,target) => (target>0 ? share(actual,target).toFixed(1)+"%" : "—");
@@ -139,23 +141,51 @@
     }).filter(Boolean).sort((a,b)=>b.ar-a.ar);
   }
   function targetPage(mount,period,stores,targets,sales,personal) {
-    const rows=groupingTargets(stores,targets,sales);
-    const qty=sum(rows,"target_qty"),amount=sum(rows,"target_amt"),actual=sum(rows,"actual_qty"),actualAmt=sum(rows,"actual_amt");
+    const metrics=window.SamsungMarketMetrics;
+    const m=metrics?.summarize({period,targets,sales});
+    const visibleSales=m?sales.filter(s=>m.elapsed>0 && s.sold_at<=m.effective):sales;
+    const rows=groupingTargets(stores,targets,visibleSales);
+    const qty=m?.targetQty??sum(rows,"target_qty"),amount=m?.targetAmt??sum(rows,"target_amt");
+    const actual=m?.actualQty??sum(rows,"actual_qty"),actualAmt=m?.actualAmt??sum(rows,"actual_amt");
+    const q=v=>metrics?metrics.qtyFormat(v):nfmt(Math.round(v));
+    const elapsed=m?.elapsed||0,duration=m?.duration||1,remaining=m?.remainingDays||0;
     mount.innerHTML=sectionHead(personal?"Target Saya":"Target Penjualan",
-      personal?"Alokasi personal EC dari database, bukan total target toko.":"Target November per toko sesuai cakupan akun.",period);
+      personal?"Target dan pencapaian pribadi EC, berdasarkan alokasi personal dan EULA VALID.":
+        "Target seluruh toko yang menjadi cakupan akun; seluruh angka mengikuti periode terpilih.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Toko bertarget",nfmt(rows.length),"Periode "+period.period_name],
-      ["Target Qty",nfmt(qty),"Alokasi sesuai hak akses"],
-      ["VALID Qty",nfmt(actual),"EULA PENDING dikecualikan"],
-      ["AR% Qty",percent(actual,qty),"Gap Qty: "+nfmt(qty-actual)]
+      ["Target Qty",qty>0?targetQtyText(qty):"—","Target periode; selalu dibulatkan ke atas pada tampilan"],
+      ["VALID Qty",q(actual),"Achievement: "+percent(actual,qty)],
+      ["Gap Qty",qty>0?q(qty-actual):"—","Target penuh dikurangi VALID"],
+      ["Gap Amt",amount>0?currency(amount-actualAmt):"—","Target amount dikurangi VALID"],
+      ["Target Qty MTD",qty>0?targetQtyText(qty*elapsed/duration):"—","Hari "+elapsed+" dari "+duration],
+      ["Target Amt MTD",amount>0?currency(amount*elapsed/duration):"—","Pace kalender berjalan"],
+      ["Target Daily Qty",qty>0&&remaining>0?targetQtyText(Math.max(0,qty-actual)/remaining):"—",
+        remaining>0?"Rata-rata "+remaining+" hari tersisa":"Periode sudah berakhir"],
+      ["Target Daily Amt",amount>0&&remaining>0?currency(Math.ceil(Math.max(0,amount-actualAmt)/remaining)):"—",
+        "Kebutuhan harian hingga target akhir"]
     ]));
-    mount.insertAdjacentHTML("beforeend",alert("Target Qty dapat berupa nilai desimal sesuai file resmi. PENDING tidak dihitung sebagai pencapaian."));
-    makeTable(mount,{title:personal?"Rincian target EC":"Rincian target per toko",
-      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty","Target Amt","VALID Amt","AR Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.category,nfmt(r.target_qty),nfmt(r.actual_qty),
-        nfmt(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),currency(r.target_amt),
-        currency(r.actual_amt),percent(r.actual_amt,r.target_amt)],
-      filename:personal?"target-ec.csv":"target-toko.csv"});
+    mount.insertAdjacentHTML("beforeend",alert(
+      "Target Qty selalu dibulatkan ke atas (ceil) pada tampilan; nilai tersimpan dan persentase pencapaian tetap presisi. "+
+      "Daily Target adalah kebutuhan rata-rata per hari kalender tersisa (termasuk hari ini); "+
+      "MTD mengikuti jumlah hari yang telah berjalan. Transaksi PENDING tidak dihitung."
+    ));
+    const info=m?metrics.insights(m,personal?"ec":"tl"):[];
+    if(info.length)mount.insertAdjacentHTML("beforeend",
+      '<section class="panel rounded-2xl p-5 mt-4" aria-label="Artificial Insight Target"><h3 class="font-semibold mb-3">Artificial Insight · Target</h3>'+
+      info.map(i=>'<p class="text-sm text-slate-300 mb-2"><strong>'+esc(i.title)+'</strong> — '+esc(i.body)+'</p>').join("")+
+      '<p class="text-xs text-slate-500">Analisis otomatis berbasis aturan; bukan prediksi AI generatif.</p></section>');
+    makeTable(mount,{title:personal?"Rincian target pribadi EC":"Rincian target per toko",
+      headers:["Site ID","Toko","Kategori","Target Qty","VALID Qty","Gap Qty","AR Qty",
+        "Target MTD Qty","Daily Qty","Target Amt","VALID Amt","Gap Amt","AR Amt"],
+      rows,cells:r=>[
+        r.site_id,r.site_name,r.category,targetQtyText(r.target_qty),q(r.actual_qty),
+        q(r.target_qty-r.actual_qty),percent(r.actual_qty,r.target_qty),
+        targetQtyText(r.target_qty*elapsed/duration),
+        remaining>0?targetQtyText(Math.max(0,r.target_qty-r.actual_qty)/remaining):"—",
+        currency(r.target_amt),currency(r.actual_amt),
+        currency(r.target_amt-r.actual_amt),percent(r.actual_amt,r.target_amt)
+      ],
+      filename:personal?"target-ec-mtd.csv":"target-toko-mtd.csv"});
   }
   function coveragePage(mount,period,stores,targets,sales) {
     const rows=groupingTargets(stores,targets,sales);
@@ -178,7 +208,7 @@
       headers:["Site ID","Toko","Kategori","Target Qty","Qty VALID","PENDING","AR Qty"],
       rows:combined,cells:r=>[
         r.site_id,r.site_name,r.channel_category||"—",
-        bySite.has(r.site_id)?nfmt(r.target_qty):"Belum ada",
+        bySite.has(r.site_id)?targetQtyText(r.target_qty):"Belum ada",
         nfmt(r.actual_qty),nfmt(r.pending),
         bySite.has(r.site_id)?percent(r.actual_qty,r.target_qty):"—"
       ],filename:"coverage-toko.csv"});
@@ -219,14 +249,14 @@
       "Achievement dihitung berdasarkan Promoter ID dan penempatan store. Hanya EC yang terlihat melalui RLS.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
       ["EC terlihat",nfmt(rows.length),"Manpower aktif dalam scope"],
-      ["Target EC Qty",nfmt(sum(rows,"target_qty")),"Alokasi personal"],
+      ["Target EC Qty",targetQtyText(sum(rows,"target_qty")),"Alokasi personal"],
       ["VALID Qty",nfmt(sum(rows,"qty")),"Transaksi promoter yang cocok"],
       ["AR Qty",percent(sum(rows,"qty"),sum(rows,"target_qty")),"Tidak mencakup promotor Shadow"]
     ]));
     makeTable(mount,{title:"Produktivitas EC",
       headers:["Employee ID","Nama EC","Promoter ID","Store","Target Qty","VALID Qty","AR Qty","VALID Amt"],
       rows,cells:r=>[r.employee_id,r.full_name,r.promoter_id,r.site_name,
-        nfmt(r.target_qty),nfmt(r.qty),percent(r.qty,r.target_qty),currency(r.amt)],
+        targetQtyText(r.target_qty),nfmt(r.qty),percent(r.qty,r.target_qty),currency(r.amt)],
       filename:"performa-ec.csv"});
   }
   function shadowRate(model) {
@@ -281,13 +311,13 @@
     mount.insertAdjacentHTML("beforeend",kpiPanel([
       ["Model aktif",nfmt(settings.filter(s=>s.is_active).length),"Daftar model pengaturan"],
       ["Target focus tersimpan",nfmt(rows.length),"Kombinasi model dan toko"],
-      ["Total target Qty",nfmt(sum(rows,"target_qty")),"Untuk scope akun"],
+      ["Total target Qty",targetQtyText(sum(rows,"target_qty")),"Untuk scope akun"],
       ["Total target Amt",currency(sum(rows,"target_amt")),"Untuk scope akun"]
     ]));
     mount.insertAdjacentHTML("beforeend",alert("Pengeditan focus model belum dibuka untuk TL karena kebijakan database saat ini hanya mengizinkan Admin mengubah focus_model_targets. Halaman ini hanya menampilkan data yang sudah disimpan."));
     makeTable(mount,{title:"Target Focus Model",
       headers:["Site ID","Toko","Model","Target Qty","Target Amt"],
-      rows,cells:r=>[r.site_id,r.site_name,r.model_name,nfmt(r.target_qty),currency(r.target_amt)],
+      rows,cells:r=>[r.site_id,r.site_name,r.model_name,targetQtyText(r.target_qty),currency(r.target_amt)],
       filename:"focus-model.csv"});
     makeTable(mount,{title:"Daftar model tersedia",headers:["Kode Model","Nama","Status"],
       rows:settings,cells:r=>[r.model_code,r.display_name,r.is_active?"Aktif":"Nonaktif"],
@@ -305,7 +335,7 @@
     mount.innerHTML=sectionHead(personal?"Laporan Saya":"Laporan Performa",
       personal?"Ringkasan EC yang dibatasi Promoter ID oleh RLS.":"Ringkasan pencapaian EULA VALID berdasarkan model untuk scope akun.",period);
     mount.insertAdjacentHTML("beforeend",kpiPanel([
-      ["Target Qty",nfmt(targetQty),"Periode saat ini"],
+      ["Target Qty",targetQtyText(targetQty),"Periode saat ini"],
       ["Qty VALID",nfmt(sum(valid,"qty")),"Tidak termasuk PENDING"],
       ["AR Qty",percent(sum(valid,"qty"),targetQty),"Achievement Qty"],
       ["AR Amt",percent(sum(valid,"amt"),targetAmt),"Achievement Amt"]
@@ -346,7 +376,16 @@
       else if(label==="RAW Sellout")rawPage(mount,period,sales,stores);
       else if(label==="Performa EC")performancePage(mount,period,manpower,allocations,sales,stores);
       else if(label==="Store Shadow")shadowPage(mount,period,stores,history,sales);
-      else if(label==="Focus Model")focusPage(mount,period,settings,focusTargets,stores);
+      else if(label==="Focus Model"){
+        if(window.FocusModelAllocationUI){
+          const focusSales=await getSales(client,period);
+          if(token!==renderToken||!mount.isConnected)return true;
+          await window.FocusModelAllocationUI.render({
+            mount,client,profile,period,stores,settings,targets:focusTargets,
+            sales:focusSales,isCurrent:()=>token===renderToken&&mount.isConnected
+          });
+        }else focusPage(mount,period,settings,focusTargets,stores);
+      }
       else if(label==="Laporan"||label==="Laporan Saya")reportPage(mount,period,sales,stores,targets,personal);
     }catch(error){
       console.error("[SamsungOps]",error);

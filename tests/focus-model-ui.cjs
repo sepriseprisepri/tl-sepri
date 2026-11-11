@@ -88,8 +88,10 @@ async function run(){
  const focus=context.window.FocusModelAllocationUI;
  const tlMount=mountMock(),tlClient=fakeClient("tl");
  const args={mount:tlMount,client:tlClient,period,stores,settings,targets,sales,
-  profile:{role:"tl",manpower_id:null},isCurrent:()=>true};
+  profile:{id:"22222222-2222-2222-2222-222222222222",role:"tl",manpower_id:null},isCurrent:()=>true};
  await focus.render(args);
+ assert.ok(tlMount.parentBox,"TL can set the store target");
+ assert.match(tlMount.parentBox.innerHTML,/TL · Target Focus Model per Toko/);
  assert.match(tlMount.innerHTML,/Atur alokasi Focus Model per EC/);
  assert.match(tlMount.innerHTML,/Total Qty dialokasikan/);
  assert.match(tlMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Satu/);
@@ -107,6 +109,14 @@ async function run(){
  assert.equal(tlClient.calls[0].name,"set_focus_model_ec_allocation");
  assert.equal(tlClient.calls[0].args.p_manpower_id,"m-1");
  assert.equal(tlClient.calls[0].args.p_target_qty,5);
+ const tlBox=tlMount.parentBox;
+ tlBox.querySelector("#focus-admin-store").value="st-1";
+ tlBox.querySelector("#focus-admin-model").value="GALAXY A55";
+ tlBox.querySelector("#focus-admin-qty").value="12";
+ tlBox.querySelector("#focus-admin-amt").value="1200";
+ await tlBox.querySelector("#focus-admin-parent-form").events.submit({preventDefault(){}});
+ assert.equal(tlClient.calls[1].table,"focus_model_targets");
+ assert.equal(tlClient.calls[1].payload.updated_by,args.profile.id);
  const ecMount=mountMock();
  await focus.render({...args,mount:ecMount,client:fakeClient("ec"),
   targets:[], // EC is intentionally denied parent store targets by RLS
@@ -121,6 +131,7 @@ async function run(){
   profile:{role:"tso",manpower_id:null}});
  assert.doesNotMatch(tsoMount.innerHTML,/id="focus-ec-form"/,
   "TSO must not receive TL editor");
+ assert.equal(tsoMount.parentBox,null,"TSO cannot create store targets");
  assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/Dummy EC Satu/);
  assert.match(tsoMount.nodes.get("focus-table-body").innerHTML,/33\.3%/,
   "TSO should see scoped EC real achievement, not zero from unloaded manpower");

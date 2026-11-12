@@ -116,7 +116,8 @@
       await ctx.client.from("competitor_sellout").delete().eq("id",row.id).select("id");
      if(result.error)throw result.error;
      if(!result.data?.length)throw Error("Transaksi tidak dihapus. Periksa batas waktu dan penugasan Anda.");
-     const fresh=await historyQuery();if(fresh.error)throw fresh.error;paintHistory(fresh.data||[]);say("Transaksi berhasil dihapus dan koreksi dicatat.");
+     try{const fresh=await historyQuery();if(fresh.error)throw fresh.error;paintHistory(fresh.data||[]);say("Transaksi berhasil dihapus dan koreksi dicatat.");}
+     catch(refreshError){say("Transaksi berhasil dihapus, tetapi riwayat belum dapat dimuat. Perbarui halaman untuk memeriksanya.",true);}
     }catch(e){say(e.message||"Gagal menghapus transaksi. Periksa riwayat sebelum mencoba lagi.",true);}finally{remove.disabled=false;}
    });
    form.classList.remove("hidden");form.hidden=false;

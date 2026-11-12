@@ -303,7 +303,7 @@ function setupAdminStoreTargets(data){
  box.className="panel rounded-2xl p-5 mb-5";
  box.setAttribute("aria-labelledby","focus-admin-target-title");
  box.innerHTML='<h4 id="focus-admin-target-title" class="text-white font-semibold">'+(profile.role==="tl"?"TL":"Admin")+' · Target Focus Model per Toko</h4>'+
-  '<p class="text-sm text-slate-400 mt-2">Tetapkan target induk Qty dan Amount per model dan toko sebelum TL membaginya ke EC. Angka ini bukan target pribadi EC. Target Qty pada ringkasan dibulatkan ke atas; input edit tetap memuat nilai aslinya.</p>'+
+  '<p class="text-sm text-slate-400 mt-2">Tetapkan target Qty dan Amount untuk setiap model di toko. Seluruh EC pada toko yang sama melihat target dan pencapaian toko. Target Qty pada ringkasan dibulatkan ke atas; input edit tetap memuat nilai aslinya.</p>'+
   '<form id="focus-admin-parent-form" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 mt-4">'+
   '<label class="grid gap-2 text-xs text-slate-300">Toko<select id="focus-admin-store" class="field rounded-lg p-3" required></select></label>'+
   '<label class="grid gap-2 text-xs text-slate-300">Model aktif<select id="focus-admin-model" class="field rounded-lg p-3" required></select></label>'+
@@ -312,7 +312,7 @@ function setupAdminStoreTargets(data){
   '<div class="sm:col-span-2 xl:col-span-4 flex items-center gap-3 flex-wrap">'+
   '<button type="submit" class="bg-cyan-500 text-slate-950 font-semibold rounded-lg px-5 py-3 hover:bg-cyan-400">Simpan Target Induk</button>'+
   '<span id="focus-admin-parent-status" role="status" aria-live="polite" class="text-sm text-cyan-200"></span></div></form>'+
-  '<p class="text-xs text-amber-200 mt-3">Target yang sudah dialokasikan kepada EC tidak dapat diturunkan di bawah total alokasi. Untuk perubahan tersebut, ubah alokasi EC terlebih dahulu.</p>';
+  '<p class="text-xs text-slate-400 mt-3">Target ini merupakan target bersama toko, bukan target individu.</p>';
  mount.prepend(box);
  const form=box.querySelector("#focus-admin-parent-form");
  const store=box.querySelector("#focus-admin-store"),model=box.querySelector("#focus-admin-model");
@@ -340,7 +340,7 @@ function setupAdminStoreTargets(data){
   }
   if(period.status==="closed"){status.textContent="Periode sudah ditutup.";return;}
   if(!profile.id){status.textContent="Identitas pengguna belum tersedia.";return;}
-  if(!window.confirm("Simpan target induk ini sebagai plafon untuk seluruh EC di toko dan model terpilih?"))return;
+  if(!window.confirm("Simpan target bersama untuk toko dan model terpilih?"))return;
   const button=form.querySelector('button[type="submit"]');button.disabled=true;
   status.textContent="Menyimpan plafon target...";
   try{

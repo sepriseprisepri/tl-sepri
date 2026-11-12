@@ -38,7 +38,7 @@ async function run(){
  r=await call("/rest/v1/competitor_correction_history?select=action","GET",undefined,headers(ANON,a.token));ok(r,"audit");assert.deepEqual(r.data.map(x=>x.action).sort(),["delete","update"]);
  const seed=await call("/rest/v1/competitor_sellout","POST",[
   {...data,entry_key:"55555555-5555-5555-5555-555555555552",created_at:new Date(Date.now()-172800000).toISOString()},
-  {...data,entry_key:"55555555-5555-5555-5555-555555555553"}
+  {...data,entry_key:"55555555-5555-5555-5555-555555555553",created_at:new Date().toISOString()}
  ],headers(ADMIN,ADMIN,"return=representation"));ok(seed,"seed old and current entries");
  const old="?id=eq."+seed.data[0].id,current="?id=eq."+seed.data[1].id;
  r=await write(a.token,"PATCH",old,{qty:3});ok(r,"old entry patch");assert.equal(r.data.length,0);

@@ -6,7 +6,7 @@ BEGIN;
 CREATE TABLE public.competitor_correction_history (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  competitor_id uuid NOT NULL,
- actor_id uuid NOT NULL REFERENCES public.profiles(id),
+ actor_id uuid REFERENCES public.profiles(id),
  store_id uuid NOT NULL REFERENCES public.stores(id),
  action text NOT NULL CHECK (action IN ('update','delete')),
  before_data jsonb NOT NULL,
@@ -33,7 +33,7 @@ CREATE FUNCTION public.audit_competitor_correction() RETURNS trigger
 BEGIN
  INSERT INTO public.competitor_correction_history
    (competitor_id,actor_id,store_id,action,before_data,after_data)
- VALUES (OLD.id, auth.uid(), OLD.store_id, lower(TG_OP), to_jsonb(OLD),
+ VALUES (OLD.id, (SELECT p.id FROM public.profiles p WHERE p.id=auth.uid()), OLD.store_id, lower(TG_OP), to_jsonb(OLD),
          CASE WHEN TG_OP='UPDATE' THEN to_jsonb(NEW) ELSE NULL END);
  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
  RETURN NEW;

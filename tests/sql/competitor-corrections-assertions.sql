@@ -7,6 +7,13 @@ VALUES
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333331',false);
 DO $$ DECLARE n int; BEGIN
+ BEGIN
+  INSERT INTO public.competitor_sellout(entry_key,ec_profile_id,store_id,sold_at,brand,model,qty,unit_price,created_at)
+  VALUES ('55555555-5555-5555-5555-555555555554',auth.uid(),'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',current_date,'Apple','iPhone',1,100,now()+interval '1 day');
+  RAISE EXCEPTION 'client-controlled created_at allowed';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ INSERT INTO public.competitor_sellout(entry_key,ec_profile_id,store_id,sold_at,brand,model,qty,unit_price)
+ VALUES ('55555555-5555-5555-5555-555555555555',auth.uid(),'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',current_date,'Apple','iPhone',1,100);
  UPDATE public.competitor_sellout SET qty=2 WHERE id='44444444-4444-4444-4444-444444444441'; GET DIAGNOSTICS n=ROW_COUNT; IF n<>1 THEN RAISE EXCEPTION 'own update failed'; END IF;
  UPDATE public.competitor_sellout SET qty=2 WHERE id='44444444-4444-4444-4444-444444444442'; GET DIAGNOSTICS n=ROW_COUNT; IF n<>0 THEN RAISE EXCEPTION 'other EC update allowed'; END IF;
  DELETE FROM public.competitor_sellout WHERE id='44444444-4444-4444-4444-444444444443'; GET DIAGNOSTICS n=ROW_COUNT; IF n<>0 THEN RAISE EXCEPTION 'old delete allowed'; END IF;

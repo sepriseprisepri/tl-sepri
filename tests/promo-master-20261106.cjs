@@ -132,5 +132,6 @@ require("./ec-mobile-workspace.cjs");
 require("./ec-period-refresh.cjs");
 require("./affordability-survey.cjs");
 require("./account-settings.cjs");
+require("./settings-empty-json-response.cjs");
 require("./release-integration.cjs");
 console.log("Promo master integrity passed: 61 SKUs, 6 review-only entries, channel exceptions, cashback and source labeling.");

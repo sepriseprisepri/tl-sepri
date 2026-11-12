@@ -36,7 +36,12 @@ async function rest(ctx,path,{method="GET",payload}={}){
    if(r.status===401)throw Error("Sesi sudah kedaluwarsa. Silakan login ulang.");
    throw Error("Pengaturan belum dapat diperbarui (HTTP "+r.status+").");
   }
-  return r.status===204?null:await r.json();
+  // PostgREST with Prefer:return=minimal returns HTTP 201 or 204 with no JSON body.
+  // A successful empty write response must not be interpreted as a failed save.
+  if(method==="POST"||r.status===204||r.status===205)return null;
+  const body=await r.text();
+  if(!body.trim())throw Error("Server mengembalikan respons kosong saat membaca pengaturan.");
+  try{return JSON.parse(body);}catch{throw Error("Respons data pengaturan tidak valid. Muat ulang lalu coba lagi.");}
  }catch(e){
   if(e.name==="AbortError")throw Error("Server tidak merespons. Coba lagi setelah memeriksa jaringan.");
   throw e;

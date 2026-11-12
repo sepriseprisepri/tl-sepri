@@ -23,6 +23,18 @@ DO $$ DECLARE n int; BEGIN
  IF (SELECT count(*) FROM public.competitor_correction_history)<>2 THEN RAISE EXCEPTION 'missing audit'; END IF;
 END $$;
 RESET ROLE;
+-- Service / maintenance sessions may have no corresponding auth profile.
+SELECT set_config('request.jwt.claim.sub','',false);
+SET ROLE service_role;
+UPDATE public.competitor_sellout SET qty=3 WHERE id='44444444-4444-4444-4444-444444444442';
+RESET ROLE;
+DO $$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM public.competitor_correction_history
+  WHERE competitor_id='44444444-4444-4444-4444-444444444442'
+    AND action='update' AND actor_id IS NULL) THEN
+  RAISE EXCEPTION 'missing service correction audit';
+ END IF;
+END $$;
 UPDATE public.profiles SET must_change_password=true WHERE id='33333333-3333-3333-3333-333333333332';
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333332',false);

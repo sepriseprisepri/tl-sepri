@@ -41,6 +41,15 @@ async function readAll(client,table,columns,configure){
  }
  throw Error("Terlalu banyak baris pada "+table+"; hubungi Admin");
 }
+async function readStoreSummary(client,periodId){
+ const output=[],size=650;
+ for(let offset=0;offset<30000;offset+=size){
+  const {data,error}=await client.rpc('focus_model_store_summary',{p_period_id:periodId}).order('store_id').order('model_code').range(offset,offset+size-1);
+  if(error)throw new Error('Ringkasan Focus Model toko belum tersedia: '+error.message);
+  output.push(...data||[]);if(!data||data.length<size)return output;
+ }
+ throw new Error('Terlalu banyak target Focus Model; hubungi Admin.');
+}
 const missingTable=e=>/PGRST205|PGRST116|does not exist|could not find the table|relation .* does not exist|schema cache/i.test(
  String(e?.code||"")+" "+String(e?.message||""));
 function setupUi(data){
@@ -360,8 +369,7 @@ function setupAdminStoreTargets(data){
 }
 async function render(data){
  const {client,period,profile,isCurrent,mount,stores,settings}=data;
- const {data:summary,error}=await client.rpc("focus_model_store_summary",{p_period_id:period.id});
- if(error)throw new Error("Ringkasan Focus Model toko belum tersedia: "+error.message);
+ const summary=await readStoreSummary(client,period.id);
  if(!isCurrent())return;
  const rows=summary||[],names=new Map(settings.map(x=>[x.model_code,x.display_name]));
  const storeNames=new Map(stores.map(x=>[x.id,x.site_name]));

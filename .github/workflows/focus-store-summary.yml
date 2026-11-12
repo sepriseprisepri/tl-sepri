@@ -38,3 +38,37 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/focus-store-summary-assertions.sql
       - name: Verify store view
         run: node tests/focus-model-ui.cjs
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.81.3
+      - name: Start isolated Supabase
+        run: |
+          supabase init --force
+          supabase start -x studio,imgproxy,realtime,storage-api,postgres-meta,logflare,vector,supavisor,mailpit
+      - name: Set up synthetic data
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGDATABASE=postgres
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-supabase-local-fixture.sql
+          psql -v ON_ERROR_STOP=1 -c "ALTER TABLE public.target_periods ADD COLUMN period_start date DEFAULT current_date-30, ADD COLUMN period_end date DEFAULT current_date+30; CREATE TABLE public.raw_sellout(site_id text,model text,eula_status text,sold_at date,qty numeric,amt numeric); ALTER TABLE public.raw_sellout ENABLE ROW LEVEL SECURITY; REVOKE ALL ON public.raw_sellout FROM PUBLIC,anon,authenticated; GRANT ALL ON public.raw_sellout TO service_role;"
+          psql -v ON_ERROR_STOP=1 -f docs/sql/can-access-store-wib-draft.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261110-focus-ec-allocations-staging.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/focus-store-summary-draft.sql
+          psql -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+      - name: Verify store summary through real Auth and PostgREST
+        run: node tests/focus-store-e2e.cjs
+      - name: Stop test environment
+        if: always()
+        run: supabase stop --no-backup || true

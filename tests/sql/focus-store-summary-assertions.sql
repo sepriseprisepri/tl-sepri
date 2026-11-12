@@ -21,6 +21,11 @@ DO $$ BEGIN IF EXISTS (SELECT 1 FROM public.focus_model_store_summary('cccccccc-
 SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
 DO $$ DECLARE n numeric; BEGIN SELECT actual_qty INTO n FROM public.focus_model_store_summary('cccccccc-cccc-cccc-cccc-cccccccccccc'); IF n<>5 THEN RAISE EXCEPTION 'TL total incorrect'; END IF; END $$;
 RESET ROLE;
+INSERT INTO public.focus_model_settings(model_code,is_active,display_name) VALUES ('OTHER MODEL',true,'Galaxy A55');
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
+DO $$ DECLARE n numeric; BEGIN SELECT actual_qty INTO n FROM public.focus_model_store_summary('cccccccc-cccc-cccc-cccc-cccccccccccc'); IF n<>0 THEN RAISE EXCEPTION 'ambiguous model was counted'; END IF; END $$;
+RESET ROLE;
 UPDATE public.profiles SET must_change_password=true WHERE id='33333333-3333-3333-3333-333333333331';
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','33333333-3333-3333-3333-333333333331',false);

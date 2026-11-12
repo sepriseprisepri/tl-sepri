@@ -36,6 +36,19 @@ async function run(){
  r=await write(b.token,"DELETE",filter);ok(r,"other user delete");assert.equal(r.data.length,0);
  r=await write(a.token,"DELETE",filter);ok(r,"own delete");assert.equal(r.data.length,1);
  r=await call("/rest/v1/competitor_correction_history?select=action","GET",undefined,headers(ANON,a.token));ok(r,"audit");assert.deepEqual(r.data.map(x=>x.action).sort(),["delete","update"]);
+ const seed=await call("/rest/v1/competitor_sellout","POST",[
+  {...data,entry_key:"55555555-5555-5555-5555-555555555552",created_at:new Date(Date.now()-172800000).toISOString()},
+  {...data,entry_key:"55555555-5555-5555-5555-555555555553"}
+ ],headers(ADMIN,ADMIN,"return=representation"));ok(seed,"seed old and current entries");
+ const old="?id=eq."+seed.data[0].id,current="?id=eq."+seed.data[1].id;
+ r=await write(a.token,"PATCH",old,{qty:3});ok(r,"old entry patch");assert.equal(r.data.length,0);
+ r=await write(a.token,"DELETE",old);ok(r,"old entry delete");assert.equal(r.data.length,0);
+ r=await call("/rest/v1/profiles?id=eq."+a.id,"PATCH",{must_change_password:true},headers(ADMIN,ADMIN,"return=minimal"));ok(r,"require password rotation");
+ r=await write(a.token,"DELETE",current);ok(r,"rotation gated delete");assert.equal(r.data.length,0);
+ r=await call("/rest/v1/profiles?id=eq."+a.id,"PATCH",{must_change_password:false},headers(ADMIN,ADMIN,"return=minimal"));ok(r,"clear rotation gate");
+ r=await call("/rest/v1/store_assignments?manpower_id=eq."+ec1,"PATCH",{valid_to:"2020-01-02"},headers(ADMIN,ADMIN,"return=minimal"));ok(r,"expire assignment");
+ r=await write(a.token,"PATCH",current,{qty:3});ok(r,"expired assignment patch");assert.equal(r.data.length,0);
+ r=await write(a.token,"DELETE",current);ok(r,"expired assignment delete");assert.equal(r.data.length,0);
  console.log("PASS competitor correction with local Auth and PostgREST");
 }
 run().catch(e=>{console.error(e.message);process.exitCode=1;});

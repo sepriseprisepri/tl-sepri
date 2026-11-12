@@ -3,6 +3,8 @@ name: Samsung Kalteng Operational Smoke
 on:
   pull_request:
     paths:
+      - 'account-settings.js'
+      - 'tests/settings-response-behavior.cjs'
       - 'index.html'
       - 'sales-intelligence.js'
       - 'market-metrics.js'
@@ -31,6 +33,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'account-settings.js'
+      - 'tests/settings-response-behavior.cjs'
       - 'index.html'
       - 'sales-intelligence.js'
       - 'market-metrics.js'
@@ -70,6 +74,7 @@ jobs:
       - name: Verify JavaScript and scoped operational views
         run: |
           node --version
+          node tests/settings-response-behavior.cjs
           node --check password-recovery.js
           node tests/password-recovery-smoke.cjs
           node tests/password-recovery-mock-integration.cjs

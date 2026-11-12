@@ -4,6 +4,7 @@ on:
     paths:
       - 'docs/sql/competitor-corrections-draft.sql'
       - 'tests/sql/competitor-corrections-assertions.sql'
+      - 'tests/competitor-corrections-e2e.cjs'
       - '.github/workflows/competitor-corrections-postgres.yml'
 permissions:
   contents: read
@@ -37,3 +38,37 @@ jobs:
           psql -v ON_ERROR_STOP=1 -c "CREATE POLICY password_recovery_mandatory_rotation_gate ON public.competitor_sellout AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT public.current_app_role()) IS NOT NULL) WITH CHECK ((SELECT public.current_app_role()) IS NOT NULL);"
           psql -v ON_ERROR_STOP=1 -f docs/sql/competitor-corrections-draft.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/competitor-corrections-assertions.sql
+
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.81.3
+      - name: Start isolated Supabase
+        run: |
+          supabase init --force
+          supabase start -x studio,imgproxy,realtime,storage-api,postgres-meta,logflare,vector,supavisor,mailpit
+      - name: Set up synthetic data and policies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGDATABASE=postgres
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-supabase-local-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261108-ec-competitor-sellout-draft.sql
+          psql -v ON_ERROR_STOP=1 -c "CREATE POLICY password_recovery_mandatory_rotation_gate ON public.competitor_sellout AS RESTRICTIVE FOR ALL TO authenticated USING ((SELECT public.current_app_role()) IS NOT NULL) WITH CHECK ((SELECT public.current_app_role()) IS NOT NULL);"
+          psql -v ON_ERROR_STOP=1 -f docs/sql/competitor-corrections-draft.sql
+          psql -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+      - name: Verify Auth and PostgREST corrections
+        run: node tests/competitor-corrections-e2e.cjs
+      - name: Stop isolated environment
+        if: always()
+        run: supabase stop --no-backup || true

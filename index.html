@@ -198,6 +198,7 @@
 <script src="/focus-model-allocations.js"></script>
 <script src="/ops-modules.js"></script>
 <script src="/ec-competitor-sellout.js"></script>
+<script src="/tl-competitor-comparison.js"></script>
 <script src="/survey-affordability.js"></script>
 <script src="/ec-account-provision.js"></script>
 <script src="/ec-password-reset.js"></script>
@@ -217,7 +218,7 @@ const $=id=>document.getElementById(id);
 const roleLabels={admin:"Administrator",tl:"Team Leader",tso:"TSO",ec:"Experience Consultant"};
 const menus={
  admin:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Aktivasi Akun EC","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
- tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
+ tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Samsung vs Competitor","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
  tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
  ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Competitor","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
 };
@@ -297,6 +298,12 @@ function openSection(label){
    $("section-description").textContent="Promo Samsung terverifikasi, lengkap dengan tanggal, cakupan dan sumber resmi.";
    const data=lastSalesData||{period:periods[0],stores:[],manpower:[],targets:[],sales:[]};
    if(window.PromoCenter)window.PromoCenter.render({...data,client,profile:currentProfile,openSection},$("import-hub-container"));
+  }else if(label==="Samsung vs Competitor"&&currentProfile?.role==="tl"){
+   $("section-description").textContent="Perbandingan Qty Samsung dan kompetitor sesuai coverage dan periode terpilih.";
+   const mount=$("import-hub-container");
+   if(!lastSalesData)mount.textContent="Data dashboard belum siap. Perbarui data terlebih dahulu.";
+   else if(window.TLCompetitorComparison)window.TLCompetitorComparison.render({...lastSalesData,profile:currentProfile,fetchAll,isActive:()=>activeSection===label},mount);
+   else mount.textContent="Modul perbandingan belum tersedia. Muat ulang halaman.";
   }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
    $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";
    if(window.ECCompetitorSellout)window.ECCompetitorSellout.render({client,profile:currentProfile,accessToken:activeAuthAccessToken,apiUrl:SUPABASE_URL,publishableKey:SUPABASE_PUBLISHABLE_KEY},$("import-hub-container"));

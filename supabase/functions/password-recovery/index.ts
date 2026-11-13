@@ -38,7 +38,7 @@ async function recoverySubjectDigest(employeeId:string,salt:string){
   return Array.from(new Uint8Array(signature)).map(x=>x.toString(16).padStart(2,"0")).join("");
 }
 async function verifyHuman(token:unknown,secret:string,localBackend:boolean):Promise<boolean>{
-  if(typeof token!=="string"||token.length<20||token.length>2048)return false;
+  if(typeof token!=="string"||token.length<20||token.length>2048){console.warn("recovery_turnstile:token_shape");return false;}
   const body=new URLSearchParams({secret,response:token});
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),8000);
@@ -46,12 +46,32 @@ async function verifyHuman(token:unknown,secret:string,localBackend:boolean):Pro
     const response=await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify",{
       method:"POST",body,signal:controller.signal
     });
-    if(!response.ok)return false;
+    if(!response.ok){
+      // HTTP status is non-sensitive and distinguishes configuration, rate limits and outages.
+      console.warn("recovery_turnstile:upstream_http_"+response.status);
+      try {
+        const rejected=await response.json();
+        const known=["missing-input-secret","invalid-input-secret","missing-input-response","invalid-input-response","bad-request","timeout-or-duplicate","internal-error"];
+        const codes=Array.isArray(rejected?.["error-codes"])?rejected["error-codes"]:[];
+        const reason=known.find(code=>codes.includes(code));
+        if(reason)console.warn("recovery_turnstile:"+reason);
+      } catch { /* Keep rejecting if the upstream response is not JSON. */ }
+      return false;
+    }
     const result=await response.json();
-    return result?.success===true && typeof result.hostname==="string" &&
+    if(result?.success!==true){
+      const known=["missing-input-secret","invalid-input-secret","missing-input-response",
+        "invalid-input-response","bad-request","timeout-or-duplicate","internal-error"];
+      const codes=Array.isArray(result?.["error-codes"])?result["error-codes"]:[];
+      const reason=known.find(code=>codes.includes(code))||"verification_failed";
+      console.warn("recovery_turnstile:"+reason);return false;
+    }
+    const allowed=typeof result.hostname==="string" &&
       (["samsung-kalteng.vercel.app","localhost"].includes(result.hostname) ||
         (localBackend && secret==="1x0000000000000000000000000000000AA" && result.hostname==="example.com"));
-  }catch{return false;}finally{clearTimeout(timer);}
+    if(!allowed)console.warn("recovery_turnstile:hostname_rejected");
+    return allowed;
+  }catch{console.warn("recovery_turnstile:upstream_error");return false;}finally{clearTimeout(timer);}
 }
 function accountIdFromToken(req:Request){
   const token=req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -222,3 +242,4 @@ Deno.serve(async req=>{
   }
   return reply(req,{error:"Tindakan tidak dikenal"},400);
 });
+

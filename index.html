@@ -45,6 +45,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/futuristic-ui.css">
   <link rel="stylesheet" href="/sales-intelligence.css">
+  <link rel="stylesheet" href="/login-redesign.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body class="min-h-screen">
 <main id="login-view" class="login-stage min-h-screen">
@@ -52,13 +54,19 @@
   <div class="login-orbit login-orbit--two" aria-hidden="true"></div>
   <div class="login-shell">
     <header class="login-head">
-      <span class="brand-mark" aria-hidden="true">S</span>
-      <p class="login-eyebrow">Sales intelligence · Central Kalimantan</p>
-      <h1 class="login-title">SAMSUNG KALTENG</h1>
-      <p class="login-subtitle">Command center untuk monitoring penjualan, performa tim, target, dan coverage dalam satu ruang kerja.</p>
+      <div class="login-brandline">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <div class="login-brandcopy"><strong class="login-brand-name">SAMSUNG KALTENG</strong><span class="login-brand-region">Sales Intelligence · Kalimantan Tengah</span></div>
+      </div>
+      <p class="login-eyebrow">Satu ruang untuk setiap pencapaian</p>
+      <h1 class="login-title">Pantau penjualan.<span>Majukan bersama.</span></h1>
+      <p class="login-subtitle">Akses target, sellout, dan perkembangan tim dalam satu dashboard yang mudah dipahami.</p>
+      <ul class="login-features" aria-label="Fitur dashboard"><li>Monitoring sellout</li><li>Target & pencapaian</li><li>Performa tim</li></ul>
     </header>
     <form id="login-form" class="login-glass" aria-labelledby="login-card-title">
-      <h2 id="login-card-title" class="login-card-label">Akses personel terotorisasi</h2>
+      <p class="login-card-label">Ruang kerja internal</p>
+      <h2 id="login-card-title" class="login-card-title">Selamat datang kembali</h2>
+      <p class="login-card-subtitle">Masuk menggunakan akun yang telah didaftarkan oleh Admin.</p>
       <div class="login-fields">
         <div>
           <label for="employee-id">ID Karyawan / Kode TL</label>
@@ -74,11 +82,11 @@
       </div>
       <div id="login-error" class="hidden text-sm text-rose-300 bg-rose-950/40 border border-rose-900 rounded-xl p-3 mt-4" role="alert" aria-live="polite"></div>
       <button id="login-button" class="login-primary" type="submit">
-        <span>Masuk ke Dashboard</span><span aria-hidden="true">↗</span>
+        <span>Masuk ke Dashboard</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg>
       </button>
       <p class="login-hint">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        Akun TL_BMU_KAL_02 diaktifkan secara khusus oleh Admin.
+        Akses khusus untuk personel yang terdaftar.
       </p>
     </form>
     <footer class="login-footer"><strong>Samsung Kalteng</strong> · Internal workspace · 2026</footer>

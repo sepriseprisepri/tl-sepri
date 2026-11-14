@@ -1,0 +1,48 @@
+name: TL AI local Supabase authentication integration
+on:
+  pull_request:
+    paths:
+      - 'api/tl-ai-insight.js'
+      - 'tl-competitor-comparison.js'
+      - 'tests/tl-ai-supabase-local-e2e.cjs'
+      - 'tests/sql/tl-ai-supabase-local-fixture.sql'
+      - 'tests/sql/focus-supabase-local-fixture.sql'
+      - 'docs/sql/20261114-tl-ai-insight-quota-DRAFT.sql'
+      - '.github/workflows/tl-ai-local-supabase.yml'
+permissions:
+  contents: read
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.81.3
+      - name: Start disposable local Supabase
+        run: |
+          set -euo pipefail
+          supabase init --force
+          supabase start -x studio,imgproxy,realtime,storage-api,postgres-meta,logflare,vector,supavisor,mailpit
+      - name: Prepare synthetic schema and quota
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=54322 PGUSER=postgres PGDATABASE=postgres
+          psql -v ON_ERROR_STOP=1 -f tests/sql/focus-supabase-local-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f tests/sql/tl-ai-supabase-local-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/20261114-tl-ai-insight-quota-DRAFT.sql
+          psql -v ON_ERROR_STOP=1 -c "NOTIFY pgrst, 'reload schema';"
+          supabase status -o env | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|API_URL)=' | sed -E 's/^([^=]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+          sleep 3
+      - name: Verify real Auth, PostgREST and quota with synthetic data
+        run: node tests/tl-ai-supabase-local-e2e.cjs
+      - name: Cleanup ephemeral Supabase
+        if: always()
+        run: supabase stop --no-backup || true

@@ -302,7 +302,7 @@ function openSection(label){
    $("section-description").textContent="Perbandingan Qty Samsung dan kompetitor sesuai coverage dan periode terpilih.";
    const mount=$("import-hub-container");
    if(!lastSalesData)mount.textContent="Data dashboard belum siap. Perbarui data terlebih dahulu.";
-   else if(window.TLCompetitorComparison)window.TLCompetitorComparison.render({...lastSalesData,profile:currentProfile,fetchAll,isActive:()=>activeSection===label},mount);
+   else if(window.TLCompetitorComparison)window.TLCompetitorComparison.render({...lastSalesData,profile:currentProfile,client,fetchAll,isActive:()=>activeSection===label},mount);
    else mount.textContent="Modul perbandingan belum tersedia. Muat ulang halaman.";
   }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
    $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";

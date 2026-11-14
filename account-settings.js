@@ -36,7 +36,7 @@ async function rest(ctx,path,{method="GET",payload}={}){
    if(r.status===401)throw Error("Sesi sudah kedaluwarsa. Silakan login ulang.");
    throw Error("Pengaturan belum dapat diperbarui (HTTP "+r.status+").");
   }
-  return r.status===204?null:await r.json();
+  return method==="POST"||r.status===204?null:await r.json();
  }catch(e){
   if(e.name==="AbortError")throw Error("Server tidak merespons. Coba lagi setelah memeriksa jaringan.");
   throw e;
@@ -169,3 +169,4 @@ async function render(ctx,mount){
 function reset(){document.body.classList.remove("settings-light");}
 window.SamsungSettings={render,reset,passwordValid,changePassword,saveDensity,restoreTheme,applyTheme};
 })();
+

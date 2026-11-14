@@ -5,6 +5,7 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const week=/^\d{4}-W\d{2}$/;
 const FREE_MODEL='@cf/zai-org/glm-4.7-flash';
 const fail=(status,error)=>({status,body:{error}});
+function isSafeAnalysis(text,rows){const days=w=>(Date.parse(w.end+'T12:00:00Z')-Date.parse(w.start+'T12:00:00Z'))/86400000;return !/pangsa|market\s*share|penguasaan\s+pasar/i.test(text)&&!(days(rows[0])!==days(rows[1])&&/%|persen/i.test(text));}
 async function handle(req,{env=process.env,fetcher=fetch,today}={}){
  if(req.method!=='POST')return fail(405,'Metode tidak diizinkan.');
  if(env.AI_INSIGHT_ENABLED!=='true'||env.AI_WORKERS_FREE_CONFIRMED!=='true'||!env.SUPABASE_URL||!env.SUPABASE_ANON_KEY||!env.CLOUDFLARE_AI_TOKEN||!/^[a-f0-9]{32}$/i.test(env.CLOUDFLARE_ACCOUNT_ID||''))return fail(503,'Analisis AI belum diaktifkan.');
@@ -28,8 +29,9 @@ async function handle(req,{env=process.env,fetcher=fetch,today}={}){
   const summary=rows.map(({key,start,end,partial,samsung,competitor})=>({week:key,start,end,partial,samsung,competitor}));
   const allowed=await request('/rest/v1/rpc/claim_tl_ai_insight_quota',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(allowed!==true)return fail(429,'Batas analisis AI harian telah tercapai.');
   const r=await fetcher('https://api.cloudflare.com/client/v4/accounts/'+env.CLOUDFLARE_ACCOUNT_ID+'/ai/run/'+FREE_MODEL,{method:'POST',headers:{Authorization:'Bearer '+env.CLOUDFLARE_AI_TOKEN,'Content-Type':'application/json'},signal:AbortSignal.timeout(20000),body:JSON.stringify({temperature:0.2,max_completion_tokens:350,store:false,chat_template_kwargs:{enable_thinking:false},messages:[{role:'system',content:'Anda analis penjualan. Jawab dalam Bahasa Indonesia maksimal 3 kalimat singkat. Hanya gunakan angka yang tersedia. Bedakan fakta dan saran, jangan mengarang penyebab atau pangsa pasar. Jika minggu parsial atau durasi berbeda, jangan simpulkan pertumbuhan adil. Data kompetitor hanya dari input EC. Jangan mengutip data pribadi.'},{role:'user',content:JSON.stringify({weeks:summary,scope:'coverage TL atau toko terpilih',competitor_data:'input EC; tidak mewakili seluruh pasar'})}]})});
-  if(!r.ok)return fail(503,'Analisis AI sementara tidak tersedia.');const result=await r.json();const analysis=result?.success===true?(result?.result?.response||result?.result?.choices?.[0]?.message?.content):null;if(typeof analysis!=='string'||!analysis.trim()||analysis.length>4000)return fail(503,'Jawaban AI tidak tersedia.');return {status:200,body:{analysis:analysis.trim(),weeks:summary}};
+  if(!r.ok)return fail(503,'Analisis AI sementara tidak tersedia.');const result=await r.json();const analysis=result?.success===true?(result?.result?.response||result?.result?.choices?.[0]?.message?.content):null;if(typeof analysis!=='string'||!analysis.trim()||analysis.length>4000||!isSafeAnalysis(analysis,summary))return fail(503,'Jawaban AI tidak tersedia.');return {status:200,body:{analysis:analysis.trim(),weeks:summary}};
  }catch(e){return fail(503,'Analisis AI sementara tidak tersedia.');}
 }
 module.exports=async function(req,res){res.setHeader('Cache-Control','no-store');const result=await handle(req);res.status(result.status).json(result.body);};
 module.exports.handle=handle;
+module.exports.isSafeAnalysis=isSafeAnalysis;

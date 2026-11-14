@@ -14,3 +14,7 @@ assert.equal(m.growth(0,4),null);
 assert.match(m.insight(result),/5.*8/);
 assert.notEqual(m.insight(result),m.insight([result[1],result[0]]));
 console.log('TL competitor comparison: coverage, ISO weeks, partial dates and filter analysis passed');
+const partial=[{key:'2026-W44',start:'2026-11-01',end:'2026-11-01',partial:true,samsung:8,competitor:1},{key:'2026-W45',start:'2026-11-02',end:'2026-11-08',partial:false,samsung:73,competitor:2}];
+assert.doesNotMatch(m.insight(partial),/812,5%|100%/);
+assert.match(m.insight(partial),/jumlah hari berbeda/i);
+assert.match(m.insight(result),/60%/);

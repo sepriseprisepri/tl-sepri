@@ -47,3 +47,18 @@ jobs:
           for pid in "${pids[@]}"; do wait "$pid"; done
           count=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT requests FROM ai_insights_private.daily_quota WHERE profile_id='22222222-2222-2222-2222-222222222222';")
           test "$count" = 20
+      - name: Exercise API through real PostgREST and RLS fixture
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c "DELETE FROM ai_insights_private.daily_quota;"
+          psql -v ON_ERROR_STOP=1 -f tests/sql/tl-ai-postgrest-fixture.sql
+          docker run -d --name tl-ai-postgrest --network host \
+            -e PGRST_DB_URI='postgres://web_authenticator:integration-test-only@127.0.0.1:5432/quota_tests' \
+            -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET='integration-only-secret-32-chars-long-12345' \
+            postgrest/postgrest:v12.2.3
+          for i in $(seq 1 20); do
+            if curl -s -o /dev/null http://127.0.0.1:3000/; then break; fi
+            sleep 2
+          done
+          POSTGREST_URL=http://127.0.0.1:3000 node tests/tl-ai-postgrest-integration.cjs

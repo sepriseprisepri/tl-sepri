@@ -5,6 +5,8 @@ on:
     paths:
       - 'index.html'
       - 'sales-intelligence.js'
+      - 'tl-competitor-comparison.js'
+      - 'tests/tl-competitor-comparison.cjs'
       - 'market-metrics.js'
       - 'tests/market-metrics.cjs'
       - 'tests/market-chart-interactions.cjs'
@@ -33,6 +35,8 @@ on:
     paths:
       - 'index.html'
       - 'sales-intelligence.js'
+      - 'tl-competitor-comparison.js'
+      - 'tests/tl-competitor-comparison.cjs'
       - 'market-metrics.js'
       - 'tests/market-metrics.cjs'
       - 'tests/market-chart-interactions.cjs'
@@ -76,6 +80,7 @@ jobs:
           node --check focus-model-allocations.js
           node tests/focus-model-ui.cjs
           node tests/market-metrics.cjs
+          node tests/tl-competitor-comparison.cjs
           node tests/market-chart-interactions.cjs
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs

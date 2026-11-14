@@ -6,6 +6,9 @@ on:
       - 'index.html'
       - 'sales-intelligence.js'
       - 'tl-competitor-comparison.js'
+      - 'api/tl-ai-insight.js'
+      - 'tests/tl-ai-insight.cjs'
+      - 'docs/sql/20261114-tl-ai-insight-quota-DRAFT.sql'
       - 'tests/tl-competitor-comparison.cjs'
       - 'market-metrics.js'
       - 'tests/market-metrics.cjs'
@@ -36,6 +39,9 @@ on:
       - 'index.html'
       - 'sales-intelligence.js'
       - 'tl-competitor-comparison.js'
+      - 'api/tl-ai-insight.js'
+      - 'tests/tl-ai-insight.cjs'
+      - 'docs/sql/20261114-tl-ai-insight-quota-DRAFT.sql'
       - 'tests/tl-competitor-comparison.cjs'
       - 'market-metrics.js'
       - 'tests/market-metrics.cjs'
@@ -81,6 +87,7 @@ jobs:
           node tests/focus-model-ui.cjs
           node tests/market-metrics.cjs
           node tests/tl-competitor-comparison.cjs
+          node tests/tl-ai-insight.cjs
           node tests/market-chart-interactions.cjs
           node tests/ops-smoke.cjs
           node tests/ui-regression.cjs

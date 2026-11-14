@@ -35,3 +35,15 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f tests/sql/focus-allocations-bootstrap.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/20261114-tl-ai-insight-quota-DRAFT.sql
           psql -v ON_ERROR_STOP=1 -f tests/sql/tl-ai-quota-assertions.sql
+      - name: Verify simultaneous requests cannot exceed the limit
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c "DELETE FROM ai_insights_private.daily_quota WHERE profile_id='22222222-2222-2222-2222-222222222222';"
+          pids=()
+          for i in $(seq 1 30); do
+            psql -v ON_ERROR_STOP=1 -q -c "SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false); SELECT public.claim_tl_ai_insight_quota();" >/dev/null &
+            pids+=("$!")
+          done
+          for pid in "${pids[@]}"; do wait "$pid"; done
+          count=$(psql -v ON_ERROR_STOP=1 -At -c "SELECT requests FROM ai_insights_private.daily_quota WHERE profile_id='22222222-2222-2222-2222-222222222222';")
+          test "$count" = 20

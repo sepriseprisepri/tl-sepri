@@ -221,10 +221,11 @@ const roleLabels={admin:"Administrator",tl:"Team Leader",tso:"TSO",ec:"Experienc
 const menus={
  admin:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Data & Import","⇧"],["Target","◎"],["RAW Sellout","▤"],["Manpower","♙"],["Aktivasi Akun EC","♙"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
  tl:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Samsung vs Competitor","◈"],["Promo","✧"],["Coverage & Toko","⌖"],["Performa EC","♙"],["RAW Sellout","▤"],["Store Shadow","◷"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
- tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Survey","☷"],["Laporan","▥"],["Pengaturan","⚙"]],
+ tso:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Coverage","⌖"],["RAW Sellout","▤"],["Focus Model","✦"],["Laporan","▥"],["Pengaturan","⚙"]],
  ec:[["Dashboard","⌂"],["Smart Alerts","!"],["Grafik Sellout","◈"],["Promo","✧"],["Target Saya","◎"],["Input Competitor","＋"],["Focus Model","✦"],["Survey","☷"],["Laporan Saya","▥"],["Pengaturan","⚙"]]
 };
 let currentProfile=null,periods=[],charts={},lastSalesData=null,activeSection="Dashboard";
+const allowedRoleSections=role=>new Set((menus[role]||[]).map(([label])=>label));
 const fmtNum=v=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(Number(v||0));
 // Target Qty display uses ceiling; stored values remain unchanged.
 const fmtTargetQty=v=>window.SamsungMarketMetrics?.targetQtyFormat?.(v) ??
@@ -308,6 +309,12 @@ function renderNav(role){
  });
 }
 function openSection(label){
+ const allowed=allowedRoleSections(currentProfile?.role);
+ if(!allowed.has(label)){
+  const feedback=$("workspace-feedback");
+  if(feedback)feedback.textContent="Modul "+label+" tidak tersedia untuk hak akses akun ini.";
+  return false;
+ }
  activeSection=label;
  if(label!=="Grafik Sellout")window.SalesIntelligence?.clearCharts();
  const home=label==="Dashboard";$("page-title").textContent=label;$("page-kicker").textContent=home?"Overview":"Workspace";
@@ -317,7 +324,7 @@ function openSection(label){
   if(label==="Grafik Sellout"||label==="Smart Alerts"){
    $("section-description").textContent="Grafik dan alert dari transaksi resmi sesuai periode dan cakupan akun.";
    const data=lastSalesData||{period:periods[0],stores:[],manpower:[],targets:[],sales:[]};
-   const context={...data,client,profile:currentProfile,openSection};
+   const context={...data,client,profile:currentProfile,allowedSections:[...allowedRoleSections(currentProfile?.role)],openSection};
    if(window.SalesIntelligence){
     if(label==="Grafik Sellout")window.SalesIntelligence.renderCharts(context,$("import-hub-container"));
     else window.SalesIntelligence.renderAlerts(context,$("import-hub-container"));
@@ -526,7 +533,7 @@ function renderDashboard(d){
  if(sales.length===0){$("data-notice").textContent="Belum ada data RAW Sellout pada database untuk periode ini. Target sudah tersedia, tetapi realisasi dan achievement akan mulai terisi setelah RAW Sellout diimpor."; $("data-notice").classList.remove("hidden")}
  else if(pending.length){$("data-notice").textContent=fmtNum(pending.length)+" transaksi berstatus PENDING dipisahkan dan tidak dihitung ke achievement resmi."; $("data-notice").classList.remove("hidden")}
  drawCharts(daily,segments,period);
- if(window.SalesIntelligence)window.SalesIntelligence.renderDashboard({...d,client,profile:currentProfile,openSection});
+ if(window.SalesIntelligence)window.SalesIntelligence.renderDashboard({...d,client,profile:currentProfile,allowedSections:[...allowedRoleSections(currentProfile?.role)],openSection});
 }
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function drawCharts(daily,segments,period){

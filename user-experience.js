@@ -50,6 +50,8 @@ async function savedFilterControls({client:db,profile:person,feature,mount,getSt
  const select=mount.querySelector("#intel-saved-select"),name=mount.querySelector("#intel-saved-name");
  const message=mount.querySelector("#intel-saved-message");
  const save=mount.querySelector("#intel-saved-save"),del=mount.querySelector("#intel-saved-delete");
+ const displayName=x=>scope&&x.filter_state?.__scope===scope&&x.filter_name.startsWith(scope+"::")
+  ?x.filter_name.slice(scope.length+2):x.filter_name;
  let saved=[];
  const refresh=async(preferName="")=>{
   const {data,error}=await db.from("user_saved_filters").select("id,feature,filter_name,filter_state,updated_at")
@@ -60,7 +62,7 @@ async function savedFilterControls({client:db,profile:person,feature,mount,getSt
   saved=(data||[]).filter(x=>!scope||!x.filter_state?.__scope||x.filter_state.__scope===scope);
   const previous=select.value;
   select.innerHTML='<option value="">Pilih filter</option>'+
-   saved.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.filter_name)+'</option>').join("");
+    saved.map(x=>'<option value="'+esc(x.id)+'">'+esc(displayName(x))+'</option>').join("");
   const preferred=saved.find(x=>x.filter_name===preferName);
   if(preferred)select.value=preferred.id;
   else if(saved.some(x=>x.id===previous))select.value=previous;
@@ -68,13 +70,15 @@ async function savedFilterControls({client:db,profile:person,feature,mount,getSt
  select.addEventListener("change",()=>{
   const item=saved.find(x=>x.id===select.value);
   if(!item)return;
-  name.value=item.filter_name;
+  name.value=displayName(item);
   try{applyState(item.filter_state||{});setStatus(message,"Filter diterapkan.");}
   catch{setStatus(message,"Filter tidak kompatibel.",true);}
  });
  save.addEventListener("click",async()=>{
   const filterName=name.value.trim();
   if(filterName.length<2){setStatus(message,"Nama filter minimal 2 karakter.",true);return;}
+  const storedName=scope?scope+"::"+filterName:filterName;
+  if(storedName.length>60){setStatus(message,"Nama filter terlalu panjang untuk halaman ini (maksimal "+(60-(scope?scope.length+2:0))+" karakter).",true);return;}
   let state;
   try{const value=getState();state={...(value&&typeof value==="object"&&!Array.isArray(value)?value:{}),...(scope?{__scope:scope}:{})};}
   catch{setStatus(message,"Gagal membaca filter saat ini.",true);return;}
@@ -82,10 +86,10 @@ async function savedFilterControls({client:db,profile:person,feature,mount,getSt
   save.disabled=true;
   try{
    const {error}=await db.from("user_saved_filters").upsert({
-    user_id:person.id,feature,filter_name:filterName,filter_state:state,updated_at:new Date().toISOString()
+    user_id:person.id,feature,filter_name:storedName,filter_state:state,updated_at:new Date().toISOString()
    },{onConflict:"user_id,feature,filter_name"});
    if(error){setStatus(message,"Tidak dapat menyimpan: "+error.message,true);return;}
-   await refresh(filterName);setStatus(message,"Filter tersimpan di akun ini.");
+   await refresh(storedName);setStatus(message,"Filter tersimpan di akun ini.");
   }catch(error){setStatus(message,"Gagal menyimpan: "+(error.message||"Koneksi tidak tersedia."),true);}
   finally{save.disabled=false;}
  });

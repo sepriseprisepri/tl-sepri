@@ -323,7 +323,7 @@ function openSection(label){
     else window.SalesIntelligence.renderAlerts(context,$("import-hub-container"));
    }
   }else if(label==="Promo"){
-   $("section-description").textContent="Promo Samsung terverifikasi, lengkap dengan tanggal, cakupan dan sumber resmi.";
+   $("section-description").textContent="Katalog promo November 2026 berdasarkan bulletin internal, lengkap dengan periode, varian, channel dan syarat.";
    const data=lastSalesData||{period:periods[0],stores:[],manpower:[],targets:[],sales:[]};
    if(window.PromoCenter)window.PromoCenter.render({...data,client,profile:currentProfile,openSection},$("import-hub-container"));
   }else if(label==="Samsung vs Competitor"&&currentProfile?.role==="tl"){

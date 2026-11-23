@@ -1,0 +1,313 @@
+/* Samsung Kalteng — UI/UX V2 (presentation-only, zero changes to data/auth). */
+#app-view{
+  --ux-ink:#edf5ff;
+  --ux-muted:#b8c8dc;
+  --ux-subtle:#9fb1c8;
+  --ux-border:rgba(148,185,218,.22);
+  --ux-surface:#111f32;
+  --ux-primary:#55c6f4;
+  color:var(--ux-ink);
+  font-family:"Space Grotesk",Inter,system-ui,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  background:radial-gradient(ellipse at 95% 2%,rgba(35,88,157,.12),transparent 38%),#08111f;
+}
+#app-view .app-frame{grid-template-columns:252px minmax(0,1fr)}
+#app-view .app-sidebar{
+  padding:21px 13px;
+  background:linear-gradient(175deg,#0d1b2d,#081222);
+  border-right:1px solid var(--ux-border);
+}
+#app-view .app-brand{padding:5px 11px 19px}
+#app-view .app-brand-text{font-size:21px;letter-spacing:0}
+#app-view .app-brand-sub{font-size:10px;letter-spacing:.07em;color:#a7bdd4}
+#app-view .sidebar-group-label{display:none}
+#app-view #nav-list{gap:0}
+#app-view .nav-group{padding:0 0 9px;margin-bottom:8px;border-bottom:1px solid rgba(146,184,214,.10)}
+#app-view .nav-group:last-child{border-bottom:0;margin-bottom:0}
+#app-view .nav-group-title{
+  padding:12px 13px 6px;
+  color:#9cacc2;
+  text-transform:uppercase;
+  letter-spacing:.095em;
+  font-size:11px;
+  line-height:1.35;
+  font-weight:700;
+}
+#app-view .nav-group .nav-item{margin:2px 0}
+#app-view .nav-item{
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:13.5px;
+  min-height:45px;
+  padding:10px 12px;
+  border-radius:11px;
+  color:#bdcadb;
+  gap:11px;
+  font-weight:500;
+}
+#app-view .nav-item>span:first-child{width:24px;height:24px}
+#app-view .nav-item.active{
+  border-color:rgba(82,190,239,.35);
+  background:linear-gradient(90deg,rgba(43,131,209,.26),rgba(46,92,158,.09));
+  box-shadow:inset 3px 0 0 #59d3ff;
+  color:#fff;
+  font-weight:600;
+}
+#app-view .sidebar-note{
+  padding:13px 14px;
+  margin:15px 7px;
+  background:rgba(35,67,99,.24);
+}
+#app-view .sidebar-note-label{font-size:11px;color:#a3bad0;letter-spacing:.05em}
+#app-view .sidebar-note-value{font-size:12px;color:#c6d8e9}
+#app-view .app-head{
+  min-height:83px;
+  padding:18px clamp(18px,2.3vw,36px);
+  gap:14px;
+  background:rgba(8,17,31,.94);
+  border-bottom:1px solid var(--ux-border);
+}
+#app-view #page-title{
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:clamp(24px,2.25vw,30px);
+  font-weight:700;
+  letter-spacing:-.04em;
+  line-height:1.14;
+  margin-top:4px;
+}
+#app-view .head-kicker{font-size:11px;letter-spacing:.07em;color:#90dafa}
+#app-view #global-search-wrapper{flex:1 1 230px;max-width:360px;min-width:180px}
+#app-view #global-search{
+  font-size:13px;
+  min-height:44px;
+  color:#eef6ff;
+  border-color:var(--ux-border);
+  background:#0d1c2f;
+}
+#app-view #user-name{font-size:13px}
+#app-view #user-role{font-size:11px;color:#b0c0d4}
+#app-view .head-logout,#app-view #density-toggle{font-size:12px;min-height:44px}
+#app-view .app-main{padding:clamp(18px,2.4vw,34px);max-width:1540px}
+#app-view #workspace-controls{
+  justify-content:flex-start;
+  background:#102036;
+  border-color:var(--ux-border);
+  padding:12px 15px;
+  border-radius:14px;
+  margin-bottom:20px;
+  gap:10px;
+}
+#app-view #workspace-controls label{font-size:13px;color:#d3e2f2;font-weight:600}
+#app-view #period-select{
+  font-size:13px;
+  min-height:44px;
+  border-color:rgba(149,191,221,.38);
+  min-width:175px;
+  background:#0a1728;
+}
+#app-view #refresh-button{
+  min-height:44px;
+  font-size:13px;
+  background:rgba(43,112,181,.24);
+  border-color:rgba(89,198,243,.36);
+}
+#app-view #workspace-feedback{font-size:12px;color:#bbcbdd;flex-basis:100%}
+#app-view .dashboard-intro{
+  padding:clamp(22px,2.9vw,34px);
+  border-radius:20px;
+  background:linear-gradient(114deg,#132d49 0%,#12243d 54%,#121d35 100%);
+  border-color:rgba(96,164,218,.28);
+  box-shadow:none;
+}
+#app-view .dashboard-intro:before{opacity:.34}
+#app-view .dashboard-overline{font-size:11px;letter-spacing:.09em;color:#9ee7ff}
+#app-view #welcome-title{
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:clamp(25px,3vw,34px);
+  font-weight:700;
+  letter-spacing:-.045em;
+}
+#app-view #welcome-subtitle{font-size:14px;color:#c5d5e6;line-height:1.6}
+#app-view .sync-caption{font-size:12px;color:#b3cde0}
+#app-view .quick-actions{gap:10px}
+#app-view .quick-action{
+  min-height:44px;
+  padding:11px 15px;
+  font-size:13px;
+  font-weight:600;
+  border-radius:11px;
+  border-color:rgba(134,186,222,.30);
+}
+#app-view #kpi-grid{gap:14px}
+#app-view #kpi-grid .metric{
+  min-height:170px;
+  padding:22px;
+  background:linear-gradient(143deg,#172c45,#101e33);
+  border-color:var(--ux-border);
+  border-radius:16px;
+  box-shadow:none;
+}
+#app-view #kpi-grid .metric:before{opacity:.50}
+#app-view #kpi-grid .metric:after{opacity:.38}
+#app-view #kpi-grid .metric p:first-child{
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:0;
+  color:#c3d5e8;
+}
+#app-view #kpi-grid .metric p:nth-child(2){
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:clamp(26px,2.7vw,35px);
+  font-weight:700;
+  letter-spacing:-.035em;
+  overflow-wrap:anywhere;
+}
+#app-view #kpi-grid .metric p.text-xs,
+#app-view #kpi-grid .metric p[id$="-progress"]{font-size:12px;color:#acbfd3}
+#app-view .kpi-progress-track{height:7px;background:rgba(151,192,221,.20)}
+#app-view .panel{
+  border-color:var(--ux-border);
+  background:linear-gradient(145deg,#14253b,#101e31);
+  border-radius:16px;
+  box-shadow:none;
+}
+#app-view .app-main > #dashboard-content > .grid:not(#kpi-grid) .panel{min-width:0}
+#app-view #kpi-grid + .grid .panel{padding:17px 20px}
+#app-view #kpi-grid + .grid .panel > p:first-child{font-size:12px;color:#becfe2}
+#app-view #kpi-grid + .grid .panel > p:nth-child(2){font-size:21px}
+#app-view .panel h3,#app-view .panel h4{
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:clamp(16px,1.6vw,19px);
+  font-weight:650;
+  letter-spacing:-.02em;
+}
+#app-view .panel .text-xs,#app-view .intel-caption{font-size:12px;line-height:1.6;color:#b0c1d5}
+#app-view .panel .text-slate-500{color:#a6bad1}
+#app-view .intel-card .intel-overline,#app-view .intel-page-head .intel-overline{font-size:11px}
+#app-view .intel-filters label,#app-view .intel-filter-select-label{font-size:12px;color:#c5d4e4}
+#app-view .intel-filters select,#app-view .intel-filters input,#app-view .intel-filters button{min-height:44px;font-size:13px}
+#app-view .intel-stat span,#app-view .intel-promo-benefit,#app-view .intel-insight p{font-size:12px}
+#app-view .table-wrap{
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  border-radius:12px;
+  border:1px solid rgba(146,180,214,.15);
+}
+#app-view table{width:100%}
+#app-view th{
+  padding:13px 14px;
+  font-size:12px;
+  color:#c0d3e8;
+  letter-spacing:.035em;
+  background:rgba(62,112,160,.18);
+}
+#app-view td{
+  padding:14px;
+  font-size:13px;
+  color:#d3e1f0;
+  line-height:1.5;
+}
+#app-view tr:hover td{background:rgba(87,145,197,.10)}
+#app-view .field,#app-view select,#app-view input[type="search"]{accent-color:#56c7f3}
+#app-view button:focus-visible,
+#app-view a:focus-visible,
+#app-view select:focus-visible,
+#app-view input:focus-visible,
+#app-view textarea:focus-visible{outline:2px solid #8ee5ff;outline-offset:3px}
+#app-view button:disabled{opacity:.65;cursor:not-allowed}
+#app-view .skip-to-workspace{
+  position:fixed;left:15px;top:-100px;z-index:100;
+  color:#071629;background:#9feeff;padding:12px 16px;border-radius:10px;
+  font-size:14px;font-weight:700;
+}
+#app-view .skip-to-workspace:focus{top:12px}
+#app-view #section-heading{font-family:"Space Grotesk",system-ui,sans-serif;letter-spacing:-.03em}
+#app-view #section-description{font-size:14px;color:#b4c6d9;line-height:1.7}
+#app-view #import-hub-container label{line-height:1.45}
+body.settings-light #app-view{
+  --ux-ink:#182d44;
+  --ux-muted:#37536e;
+  --ux-subtle:#47647f;
+  --ux-border:#c8d9e8;
+  color:var(--ux-ink);
+  background:#f4f8fc;
+}
+body.settings-light #app-view .dashboard-intro{background:#e9f2fc;border-color:#c7dced}
+body.settings-light #app-view #welcome-title,
+body.settings-light #app-view .dashboard-overline{color:#193753}
+body.settings-light #app-view #welcome-subtitle,
+body.settings-light #app-view .sync-caption{color:#365570}
+body.settings-light #app-view #kpi-grid .metric,
+body.settings-light #app-view .panel{background:#fff;border-color:#cedce8}
+body.settings-light #app-view #kpi-grid .metric p:first-child,
+body.settings-light #app-view .panel .text-xs{color:#395773}
+body.settings-light #app-view #kpi-grid .metric p:nth-child(2),
+body.settings-light #app-view .panel h3,
+body.settings-light #app-view .panel h4{color:#18324d}
+body.settings-light #app-view #workspace-controls{background:#eaf2fa}
+body.settings-light #app-view #workspace-controls label{color:#203b55}
+body.settings-light #app-view .app-head{background:rgba(245,249,253,.95)}
+body.settings-light #app-view #page-title{color:#18324d}
+body.settings-light #app-view .table-wrap{border-color:#cedce8}
+body.settings-light #app-view th{background:#ebf2f9;color:#36516a}
+body.settings-light #app-view td{color:#28415c}
+@media (min-width:1280px){
+  #app-view #kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (max-width:1279px) and (min-width:640px){
+  #app-view #kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:1023px){
+  #app-view .app-frame{display:block}
+  #app-view .app-sidebar{padding:12px 16px;max-height:85svh}
+  #app-view .app-brand{padding:0}
+  #app-view #nav-wrap:not(.hidden){padding:12px 0}
+  #app-view .nav-group{padding-bottom:10px}
+  #app-view .app-head{top:66px;min-height:76px}
+  #app-view #workspace-controls{justify-content:flex-start}
+}
+@media (max-width:767px){
+  #app-view .app-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"heading user" "search search";
+    gap:12px;
+    align-items:center;
+    padding:14px 16px;
+    top:66px;
+  }
+  #app-view .app-head > :first-child{grid-area:heading;min-width:0}
+  #app-view .app-head > #global-search-wrapper{grid-area:search;width:100%;max-width:none;min-width:0}
+  #app-view .app-head > :last-child{grid-area:user;justify-content:end;gap:8px;min-width:0}
+  #app-view .app-main{padding:18px 14px 36px}
+  #app-view #page-title{font-size:24px;overflow-wrap:anywhere}
+  #app-view #user-name,#app-view #user-role{display:none}
+  #app-view .head-user{border:0;padding:0}
+  #app-view .head-logout{min-height:44px;padding:10px}
+  #app-view #workspace-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+  #app-view #workspace-controls label,#app-view #workspace-feedback{grid-column:1/-1}
+  #app-view #period-select{min-width:0;width:100%}
+  #app-view #refresh-button{min-width:106px}
+  #app-view .quick-action{font-size:12px;padding:10px 12px}
+  #app-view #kpi-grid .metric{min-height:150px;padding:19px}
+  #app-view .panel{padding:18px}
+  #app-view .table-wrap{margin-inline:-1px}
+}
+@media (max-width:639px){
+  #app-view #kpi-grid{grid-template-columns:1fr}
+  #app-view #kpi-grid + .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app-view #kpi-grid + .grid .panel{min-width:0;padding:15px}
+  #app-view #kpi-grid + .grid .panel > p:nth-child(2){font-size:18px;overflow-wrap:anywhere}
+  #app-view .intel-filters label{font-size:13px}
+  #app-view .intel-filters select,#app-view .intel-filters input{font-size:16px}
+}
+@media (max-width:380px){
+  #app-view #kpi-grid + .grid{grid-template-columns:1fr}
+  #app-view .app-head > :last-child .head-avatar{display:none}
+  #app-view #workspace-controls{grid-template-columns:1fr}
+  #app-view #workspace-controls label,#app-view #workspace-feedback{grid-column:1}
+  #app-view #refresh-button{width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  #app-view .nav-item,#app-view .metric,#app-view .quick-action{transition:none!important;transform:none!important}
+}

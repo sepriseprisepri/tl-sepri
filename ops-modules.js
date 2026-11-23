@@ -55,29 +55,58 @@
       if(!data||data.length<pageSize) return result;
     }
   }
+  // Filtering is restricted to the rows supplied by the existing RLS-protected request.
+  function filterTableRows(entries,query="",facets={}){
+    const text=String(query||"").trim().toLocaleLowerCase("id-ID");
+    return entries.filter(entry=>{
+      if(text&&!entry.columns.some(value=>String(value??"").toLocaleLowerCase("id-ID").includes(text)))return false;
+      return Object.entries(facets).every(([index,value])=>!value||String(entry.columns[Number(index)]??"")===String(value));
+    });
+  }
   function makeTable(mount,{title,subtitle="",headers,rows,cells,filename}) {
     const box=document.createElement("div");box.className="panel rounded-2xl overflow-hidden";
+    const entries=rows.map(row=>({row,columns:cells(row)}));
+    const facetSpecs=[];
+    for(const label of ["Toko","Store","Model","Status","Kategori","Promoter ID","Site ID"]){
+      if(facetSpecs.length>=3)break;
+      const index=headers.indexOf(label);
+      if(index<0)continue;
+      const choices=[...new Set(entries.map(e=>String(e.columns[index]??"").trim()).filter(v=>v&&v!=="—"))]
+       .sort((x,y)=>x.localeCompare(y,"id",{numeric:true}));
+      if(choices.length<2||choices.length>200)continue;
+      facetSpecs.push({index,label,choices});
+    }
+    const filters=facetSpecs.map(f=>
+      '<label class="flex flex-col gap-1 text-xs text-slate-300 min-w-0 flex-1 sm:flex-none sm:min-w-40">'+esc(f.label)+
+       '<select data-filter-col="'+f.index+'" class="field rounded-lg p-3 min-h-11 w-full" aria-label="Filter '+esc(f.label)+'">'+
+       '<option value="">Semua '+esc(f.label)+'</option>'+
+       f.choices.map(value=>'<option value="'+esc(value)+'">'+esc(value)+'</option>').join("")+
+       '</select></label>').join("");
     box.innerHTML='<div class="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-slate-800">'+
       '<div><h4 class="font-semibold text-white">'+esc(title)+'</h4>'+
       (subtitle?'<p class="text-xs text-slate-400 mt-1">'+esc(subtitle)+'</p>':"")+'</div>'+
       '<div class="flex gap-2 flex-wrap"><input data-search class="field px-3 py-2 rounded-lg text-sm min-w-0 w-40 sm:w-56" placeholder="Cari data…" aria-label="Cari baris tabel">'+
-      '<button data-export class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-cyan-300 hover:bg-slate-800">Unduh CSV</button></div></div>'+
+      '<button data-export type="button" class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-cyan-300 hover:bg-slate-800">Unduh CSV</button></div></div>'+
+      (filters?'<div class="flex flex-wrap gap-3 px-5 py-4 border-b border-slate-800" data-table-facets role="group" aria-label="Filter rincian '+esc(title)+'">'+filters+'</div>':"")+
       '<div class="table-wrap"><table class="w-full text-sm"><thead><tr>'+
       headers.map(h=>'<th scope="col" class="text-left">'+esc(h)+'</th>').join("")+
-      '</tr></thead><tbody data-body></tbody></table></div><p data-count class="text-xs text-slate-500 px-5 py-3"></p>';
+      '</tr></thead><tbody data-body></tbody></table></div><p data-count role="status" aria-live="polite" class="text-xs text-slate-500 px-5 py-3"></p>';
     mount.append(box);
     const tbody=box.querySelector("[data-body]"),counter=box.querySelector("[data-count]");
     const search=box.querySelector("[data-search]"),exportBtn=box.querySelector("[data-export]");
-    let filtered=rows;
+    const facetInputs=[...box.querySelectorAll("[data-filter-col]")];
+    let filtered=entries;
     function paint(){
-      const term=search.value.toLocaleLowerCase("id-ID").trim();
-      filtered=term?rows.filter(row=>cells(row).some(v=>String(v??"").toLocaleLowerCase("id-ID").includes(term))):rows;
-      tbody.innerHTML=filtered.slice(0,150).map(row=>
-        '<tr>'+cells(row).map(x=>'<td>'+esc(x)+'</td>').join("")+'</tr>'
-      ).join("")||'<tr><td colspan="'+headers.length+'" class="text-center text-slate-500 py-8">Tidak ada data pada pencarian ini.</td></tr>';
-      counter.textContent=formatter.format(filtered.length)+" baris"+(filtered.length>150?" · 150 baris pertama ditampilkan (CSV memuat semua)":"");
+      const selected=Object.fromEntries(facetInputs.map(input=>[input.dataset.filterCol,input.value]));
+      filtered=filterTableRows(entries,search.value,selected);
+      tbody.innerHTML=filtered.slice(0,150).map(entry=>
+        '<tr>'+entry.columns.map(x=>'<td>'+esc(x)+'</td>').join("")+'</tr>'
+      ).join("")||'<tr><td colspan="'+headers.length+'" class="text-center text-slate-500 py-8">Tidak ada data pada filter ini.</td></tr>';
+      counter.textContent=formatter.format(filtered.length)+" dari "+formatter.format(rows.length)+" baris"+
+        (filtered.length>150?" · 150 baris pertama ditampilkan (CSV memuat semua hasil filter)":"");
     }
     search.addEventListener("input",paint);
+    facetInputs.forEach(input=>input.addEventListener("change",paint));
     exportBtn.addEventListener("click",()=>{
       const clean=v=>{
         let s=String(v??"");
@@ -85,7 +114,7 @@
         if(/^[\s]*[=+\-@\t\r]/.test(s)) s="'"+s;
         return '"'+s.replace(/"/g,'""')+'"';
       };
-      const csv=[headers,...filtered.map(row=>cells(row))].map(cols=>cols.map(clean).join(",")).join("\r\n");
+      const csv=[headers,...filtered.map(entry=>entry.columns)].map(cols=>cols.map(clean).join(",")).join("\r\n");
       const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
       const url=URL.createObjectURL(blob);
       const a=document.createElement("a");a.href=url;a.download=filename||"samsung-kalteng.csv";
@@ -395,5 +424,5 @@
     }
     return true;
   }
-  window.SamsungOps={render,supports:label=>SECTIONS.has(label)};
+  window.SamsungOps={render,supports:label=>SECTIONS.has(label),filterTableRows};
 })();

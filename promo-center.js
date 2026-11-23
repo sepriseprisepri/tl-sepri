@@ -69,7 +69,7 @@ async function render(ctx,mount){
    '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Promo nasional dapat dilihat semua peran; manfaat tiap model tetap mengikuti varian, channel, dan syarat. Tidak ada data promo = jangan menjanjikan cashback.</p><div id="promo-model-list" class="intel-model-chips"></div></div>';
   const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model"),
    channel=mount.querySelector("#promo-channel"),category=mount.querySelector("#promo-category");
-  if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;window.UserPrefs.pendingSearch="";}
+  if(window.UserPrefs?.pendingSearch){query.value=window.UserPrefs.pendingSearch;status.value="all";window.UserPrefs.pendingSearch="";}
   const current=()=>({query:query.value,status:status.value,model:model.value,channel:channel.value,category:category.value});
   let visibleLimit=18;
   const display=()=>{

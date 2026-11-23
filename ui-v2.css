@@ -172,9 +172,9 @@
   box-shadow:none;
 }
 #app-view .app-main > #dashboard-content > .grid:not(#kpi-grid) .panel{min-width:0}
-#app-view #dashboard-content > .grid:nth-of-type(2) .panel{padding:17px 20px}
-#app-view #dashboard-content > .grid:nth-of-type(2) .panel > p:first-child{font-size:12px;color:#becfe2}
-#app-view #dashboard-content > .grid:nth-of-type(2) .panel > p:nth-child(2){font-size:21px}
+#app-view #kpi-grid + .grid .panel{padding:17px 20px}
+#app-view #kpi-grid + .grid .panel > p:first-child{font-size:12px;color:#becfe2}
+#app-view #kpi-grid + .grid .panel > p:nth-child(2){font-size:21px}
 #app-view .panel h3,#app-view .panel h4{
   font-family:"Space Grotesk",system-ui,sans-serif;
   font-size:clamp(16px,1.6vw,19px);
@@ -295,14 +295,14 @@ body.settings-light #app-view td{color:#28415c}
 }
 @media (max-width:639px){
   #app-view #kpi-grid{grid-template-columns:1fr}
-  #app-view #dashboard-content > .grid:nth-of-type(2){grid-template-columns:repeat(2,minmax(0,1fr))}
-  #app-view #dashboard-content > .grid:nth-of-type(2) .panel{min-width:0;padding:15px}
-  #app-view #dashboard-content > .grid:nth-of-type(2) .panel > p:nth-child(2){font-size:18px;overflow-wrap:anywhere}
+  #app-view #kpi-grid + .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app-view #kpi-grid + .grid .panel{min-width:0;padding:15px}
+  #app-view #kpi-grid + .grid .panel > p:nth-child(2){font-size:18px;overflow-wrap:anywhere}
   #app-view .intel-filters label{font-size:13px}
   #app-view .intel-filters select,#app-view .intel-filters input{font-size:16px}
 }
 @media (max-width:380px){
-  #app-view #dashboard-content > .grid:nth-of-type(2){grid-template-columns:1fr}
+  #app-view #kpi-grid + .grid{grid-template-columns:1fr}
   #app-view .app-head > :last-child .head-avatar{display:none}
   #app-view #workspace-controls{grid-template-columns:1fr}
   #app-view #workspace-controls label,#app-view #workspace-feedback{grid-column:1}

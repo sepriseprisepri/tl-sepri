@@ -1,0 +1,1631 @@
+{
+  "schema": "samsung-kalteng-promo-bulletin-v1",
+  "bulletin_title": "Program Update Oct'26",
+  "provided_at": "2026-11-23",
+  "input_source": "user_message",
+  "published_authority": "user-submitted internal bulletin, not public Samsung verification",
+  "records": [
+    {
+      "title": "Galaxy Z Fold 8 Ultra · PRM",
+      "model_code": "ZFOLD8ULTRA",
+      "model_name": "Galaxy Z Fold 8 Ultra",
+      "benefit": "Cashback Rp1.500.000; PWP Rp750.000; Cashback Trade-in Rp1.250.000",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.500.000"
+        },
+        {
+          "name": "PWP Rp750.000"
+        },
+        {
+          "name": "Cashback Trade-in Rp1.250.000"
+        },
+        {
+          "name": "Samsung Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        },
+        {
+          "name": "Gratis Google AI Pro 6 bulan"
+        },
+        {
+          "name": "Diskon 50% Telkomsel Halo Optima Galaxy"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-001"
+    },
+    {
+      "title": "Galaxy Z Fold 8 · PRM",
+      "model_code": "ZFOLD8",
+      "model_name": "Galaxy Z Fold 8",
+      "benefit": "Cashback Rp1.000.000; PWP Rp750.000; Cashback Trade-in Rp1.250.000",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.000.000"
+        },
+        {
+          "name": "PWP Rp750.000"
+        },
+        {
+          "name": "Cashback Trade-in Rp1.250.000"
+        },
+        {
+          "name": "Samsung Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        },
+        {
+          "name": "Gratis Google AI Pro 6 bulan"
+        },
+        {
+          "name": "Diskon 50% Telkomsel Halo Optima Galaxy"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-002"
+    },
+    {
+      "title": "Galaxy Z Flip 8 · PRM",
+      "model_code": "ZFLIP8",
+      "model_name": "Galaxy Z Flip 8",
+      "benefit": "Cashback Rp500.000; PWP Rp500.000; Cashback Trade-in Rp1.000.000",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp500.000"
+        },
+        {
+          "name": "PWP Rp500.000"
+        },
+        {
+          "name": "Cashback Trade-in Rp1.000.000"
+        },
+        {
+          "name": "Samsung Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        },
+        {
+          "name": "Gratis Google AI Pro 6 bulan"
+        },
+        {
+          "name": "Diskon 50% Telkomsel Halo Optima Galaxy"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-003"
+    },
+    {
+      "title": "Galaxy S26 Ultra · PRM",
+      "model_code": "S26ULTRA",
+      "model_name": "Galaxy S26 Ultra",
+      "benefit": "Cashback Rp2.000.000 (kecuali varian 1TB); Cashback Trade-in Rp2.000.000 (kecuali varian 1TB); Finance+ Double Zero: bunga 0%, DP 0%",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel. Pengecualian 1TB berlaku untuk cashback langsung dan trade-in.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp2.000.000 (kecuali varian 1TB)"
+        },
+        {
+          "name": "Cashback Trade-in Rp2.000.000 (kecuali varian 1TB)"
+        },
+        {
+          "name": "Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-004"
+    },
+    {
+      "title": "Galaxy S26+ · PRM",
+      "model_code": "S26PLUS",
+      "model_name": "Galaxy S26+",
+      "benefit": "Cashback Rp1.500.000; Cashback Trade-in Rp1.500.000; Finance+ Double Zero: bunga 0%, DP 0%",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.500.000"
+        },
+        {
+          "name": "Cashback Trade-in Rp1.500.000"
+        },
+        {
+          "name": "Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-005"
+    },
+    {
+      "title": "Galaxy S26 · PRM",
+      "model_code": "S26",
+      "model_name": "Galaxy S26",
+      "benefit": "Cashback Rp1.000.000; Cashback Trade-in Rp1.000.000; Finance+ Double Zero: bunga 0%, DP 0%",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.000.000"
+        },
+        {
+          "name": "Cashback Trade-in Rp1.000.000"
+        },
+        {
+          "name": "Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-006"
+    },
+    {
+      "title": "Galaxy Z Flip 7 · PRM",
+      "model_code": "ZFLIP7",
+      "model_name": "Galaxy Z Flip 7",
+      "benefit": "EOL: semua varian Direct Cashback Rp2.000.000 (Special Price Rp1.500.000 + Support Partner Rp500.000); Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. EOL (End of Life). TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "EOL: semua varian Direct Cashback Rp2.000.000 (Special Price Rp1.500.000 + Support Partner Rp500.000)"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-007"
+    },
+    {
+      "title": "Galaxy Z Fold 7 · PRM",
+      "model_code": "ZFOLD7-256",
+      "model_name": "Galaxy Z Fold 7",
+      "benefit": "EOL: Direct Cashback Rp2.500.000 (Special Price Rp1.500.000 + Partner Support Rp1.000.000); Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. EOL (End of Life). TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "256GB",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "EOL: Direct Cashback Rp2.500.000 (Special Price Rp1.500.000 + Partner Support Rp1.000.000)"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-008"
+    },
+    {
+      "title": "Galaxy Z Fold 7 · PRM",
+      "model_code": "ZFOLD7-512",
+      "model_name": "Galaxy Z Fold 7",
+      "benefit": "EOL: Direct Cashback Rp3.500.000 (Special Price Rp2.500.000 + Partner Support Rp1.000.000); Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. EOL (End of Life). TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "512GB",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "EOL: Direct Cashback Rp3.500.000 (Special Price Rp2.500.000 + Partner Support Rp1.000.000)"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-009"
+    },
+    {
+      "title": "Galaxy S25 Ultra · PRM",
+      "model_code": "S25ULTRA",
+      "model_name": "Galaxy S25 Ultra",
+      "benefit": "Cashback Rp1.500.000 by Cores (semua channel); Finance+ Double Zero: bunga 0%, DP 0%; Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.500.000 by Cores (semua channel)"
+        },
+        {
+          "name": "Finance+ Double Zero: bunga 0%, DP 0%"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-010"
+    },
+    {
+      "title": "Galaxy S25+ · PRM",
+      "model_code": "S25PLUS",
+      "model_name": "Galaxy S25+",
+      "benefit": "EOL: Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. EOL (End of Life). TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "EOL: Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-011"
+    },
+    {
+      "title": "Galaxy S25 · PRM",
+      "model_code": "S25",
+      "model_name": "Galaxy S25",
+      "benefit": "Cashback Rp1.500.000 by Cores (semua channel); Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.500.000 by Cores (semua channel)"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-012"
+    },
+    {
+      "title": "Galaxy S25 Edge · PRM",
+      "model_code": "S25EDGE",
+      "model_name": "Galaxy S25 Edge",
+      "benefit": "EOL: Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. EOL (End of Life). TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "EOL: Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-013"
+    },
+    {
+      "title": "Galaxy S25 FE · PRM",
+      "model_code": "S25FE",
+      "model_name": "Galaxy S25 FE",
+      "benefit": "EOL: Samsung Care+ harga spesial 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT PRM. EOL (End of Life). TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "EOL: Samsung Care+ harga spesial 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-014"
+    },
+    {
+      "title": "Galaxy S26 FE · PRM",
+      "model_code": "S26FE",
+      "model_name": "Galaxy S26 FE",
+      "benefit": "Cashback Rp1.000.000 (semua varian); Finance+ Triple Zero; Multifinance Double Zero",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel. Triple Zero mengikuti mekanisme penyedia pembiayaan yang tidak dirinci dalam bulletin.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.000.000 (semua varian)"
+        },
+        {
+          "name": "Finance+ Triple Zero"
+        },
+        {
+          "name": "Multifinance Double Zero"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        },
+        {
+          "name": "Gratis Travel Adaptor 45W (varian 512GB)"
+        },
+        {
+          "name": "Gratis eSIM XL 1TB selama 12 bulan (gratis Vidio/Viu/WeTV/Canva Pro 1 bulan)"
+        },
+        {
+          "name": "Gratis Google AI Pro 6 bulan"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-015"
+    },
+    {
+      "title": "TnC Trade-in · SEGMENT PRM",
+      "model_code": "*",
+      "model_name": "Ketentuan Trade-in Flagship",
+      "benefit": "Minimum satu HP trade-in Rp2.000.000 untuk Fold/Flip 8 dan S26 Series; Rp1.000.000 untuk S26 FE; Tidak berlaku untuk Galaxy A0x dan A1x Series; Maksimal 3 unit trade-in",
+      "terms": "Segmen: SEGMENT PRM. TnC Trade-in Flagship: di luar Flagship Model termasuk FE Series, minimum 1 HP senilai Rp2 juta untuk Fold/Flip 8 dan S26 Series; minimum Rp1 juta untuk S26 FE. Tidak untuk A0x dan A1x Series. Maksimal 3 unit trade-in. Promo berlaku semua channel.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-18",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "information",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Minimum satu HP trade-in Rp2.000.000 untuk Fold/Flip 8 dan S26 Series; Rp1.000.000 untuk S26 FE"
+        },
+        {
+          "name": "Tidak berlaku untuk Galaxy A0x dan A1x Series"
+        },
+        {
+          "name": "Maksimal 3 unit trade-in"
+        },
+        {
+          "name": "Promo berlaku semua channel"
+        }
+      ],
+      "record_kind": "information",
+      "import_key": "sk-promo-nov23-016"
+    },
+    {
+      "title": "Galaxy A57 5G · A SERIES (MMH)",
+      "model_code": "A57-5G",
+      "model_name": "Galaxy A57 5G",
+      "benefit": "Direct Cashback Rp500.000 (128GB), Rp700.000 (256GB), Rp1.000.000 (12/256GB), on top; Cashback PWP Rp300.000 (semua toko), on top; MBO Diskon Buds3 FE Rp399.900",
+      "terms": "Segmen: SEGMENT A SERIES (MMH). Direct Cashback serta PWP dinyatakan 'on top' dalam bulletin.",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "128GB / 256GB / 12/256GB",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Direct Cashback Rp500.000 (128GB), Rp700.000 (256GB), Rp1.000.000 (12/256GB), on top"
+        },
+        {
+          "name": "Cashback PWP Rp300.000 (semua toko), on top"
+        },
+        {
+          "name": "MBO Diskon Buds3 FE Rp399.900"
+        },
+        {
+          "name": "MBO Diskon 10% Buds Core Rp79.900"
+        },
+        {
+          "name": "Finance+ Double Zero (gratis biaya admin dan biaya layanan)"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-017"
+    },
+    {
+      "title": "Galaxy A37 5G · A SERIES (MMH)",
+      "model_code": "A37-5G",
+      "model_name": "Galaxy A37 5G",
+      "benefit": "Direct Cashback Rp300.000 (semua toko); MBO Diskon 10% Buds Core Rp79.900; Finance+ Double Zero (gratis biaya admin dan biaya layanan)",
+      "terms": "Segmen: SEGMENT A SERIES (MMH).",
+      "channel_label": "Semua channel",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "all",
+      "offer_items": [
+        {
+          "name": "Direct Cashback Rp300.000 (semua toko)"
+        },
+        {
+          "name": "MBO Diskon 10% Buds Core Rp79.900"
+        },
+        {
+          "name": "Finance+ Double Zero (gratis biaya admin dan biaya layanan)"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-018"
+    },
+    {
+      "title": "Galaxy A27 5G · A SERIES (MMH)",
+      "model_code": "A27-5G",
+      "model_name": "Galaxy A27 5G",
+      "benefit": "PWP Cashback Rp300.000 semua varian by Cores; MBO Diskon 10% Buds Core Rp79.900; Samsung Care+ Special Price ADLD 1 atau 2 tahun",
+      "terms": "Segmen: SEGMENT A SERIES (MMH). Periode khusus A27 5G: 1–30 November 2026.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP Cashback Rp300.000 semua varian by Cores"
+        },
+        {
+          "name": "MBO Diskon 10% Buds Core Rp79.900"
+        },
+        {
+          "name": "Samsung Care+ Special Price ADLD 1 atau 2 tahun"
+        },
+        {
+          "name": "Finance+ bunga 0% dan DP mulai 0%"
+        },
+        {
+          "name": "Multifinance bunga 0% dan DP mulai 0%"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-019"
+    },
+    {
+      "title": "Galaxy A17 5G · A SERIES (ENTRY & ULC)",
+      "model_code": "A17-5G",
+      "model_name": "Galaxy A17 5G",
+      "benefit": "Tidak ada bundling; MBO Diskon 10% Buds Core Rp79.900; Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT A SERIES (ENTRY & ULC). Periode mengikuti bagian SEGMENT A SERIES pada bulletin.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Tidak ada bundling"
+        },
+        {
+          "name": "MBO Diskon 10% Buds Core Rp79.900"
+        },
+        {
+          "name": "Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-020"
+    },
+    {
+      "title": "Galaxy A17 LTE · A SERIES (ENTRY & ULC)",
+      "model_code": "A17-LTE",
+      "model_name": "Galaxy A17 LTE",
+      "benefit": "Varian 4/128GB tidak mendapatkan gratis bundling Travel Adaptor 25W; MBO Diskon 10% Buds Core Rp79.900; Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun",
+      "terms": "Segmen: SEGMENT A SERIES (ENTRY & ULC). Periode mengikuti bagian SEGMENT A SERIES pada bulletin.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "4/128GB, 8/128GB, 256GB",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Varian 4/128GB tidak mendapatkan gratis bundling Travel Adaptor 25W"
+        },
+        {
+          "name": "MBO Diskon 10% Buds Core Rp79.900"
+        },
+        {
+          "name": "Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun"
+        },
+        {
+          "name": "Gratis Travel Adaptor 25W hanya 8/128GB dan varian 256GB"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-021"
+    },
+    {
+      "title": "Galaxy A07 LTE · A SERIES (ENTRY & ULC)",
+      "model_code": "A07-LTE",
+      "model_name": "Galaxy A07 LTE",
+      "benefit": "Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun; MBO Diskon 10% Buds Core Rp79.900; Gratis Travel Adaptor 25W",
+      "terms": "Segmen: SEGMENT A SERIES (ENTRY & ULC). Periode mengikuti bagian SEGMENT A SERIES pada bulletin.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun"
+        },
+        {
+          "name": "MBO Diskon 10% Buds Core Rp79.900"
+        },
+        {
+          "name": "Gratis Travel Adaptor 25W"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-022"
+    },
+    {
+      "title": "Galaxy A08 LTE · A SERIES (ENTRY & ULC)",
+      "model_code": "A08-LTE",
+      "model_name": "Galaxy A08 LTE",
+      "benefit": "Harga tercantum 3.599 (4/128) dan 2.999 (4/64) — satuan mengikuti materi asli; Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun; Gratis Travel Adaptor dan kabel 25W",
+      "terms": "Segmen: SEGMENT A SERIES (ENTRY & ULC). Angka harga 3.599 dan 2.999 dipertahankan dari materi asli tanpa menafsirkan satuan. Periode mengikuti header bagian A Series.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "4/128GB dan 4/64GB",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Harga tercantum 3.599 (4/128) dan 2.999 (4/64) — satuan mengikuti materi asli"
+        },
+        {
+          "name": "Samsung Care+ Special Price ADLD/Crack Screen 1 dan 2 tahun"
+        },
+        {
+          "name": "Gratis Travel Adaptor dan kabel 25W"
+        },
+        {
+          "name": "Affordability Finance+ dan Multifinance Double Zero"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-023"
+    },
+    {
+      "title": "Galaxy A08 LTE · A SERIES (ENTRY & ULC)",
+      "model_code": "A08-LTE-BUNDLE",
+      "model_name": "Galaxy A08 LTE",
+      "benefit": "Limited QTY: full package bundling Travel Adaptor + Kabel 25W, Earphone Cable, dan Clear Case (total value Rp977.000); Bundling operator Axis Rp300.000, bonus kuota hingga 300GB selama 1 tahun",
+      "terms": "Segmen: SEGMENT A SERIES (ENTRY & ULC). Periode khusus 1–30 November 2026; jumlah bundling terbatas. Tidak dijanjikan ketersediaan unit.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "Full Package Bundling (stok terbatas)",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Limited QTY: full package bundling Travel Adaptor + Kabel 25W, Earphone Cable, dan Clear Case (total value Rp977.000)"
+        },
+        {
+          "name": "Bundling operator Axis Rp300.000, bonus kuota hingga 300GB selama 1 tahun"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-024"
+    },
+    {
+      "title": "Galaxy A18 · A SERIES (ENTRY & ULC)",
+      "model_code": "A18",
+      "model_name": "Galaxy A18",
+      "benefit": "Pilihan warna: Silver, Black, Light Blue; Harga 4/128GB Rp4.299 ribu; 8/128GB Rp5.299 ribu (sebagaimana materi); Benefit hingga Rp927 ribu: Travel Adaptor 25W, Clear Case, Earphone Cable, operator Axis",
+      "terms": "Segmen: SEGMENT A SERIES (ENTRY & ULC). Periode mengikuti header bagian A Series. Penulisan harga mengikuti satuan 'rb' dari sumber.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-17",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "smartphone",
+      "sku_variant": "4/128GB dan 8/128GB",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Pilihan warna: Silver, Black, Light Blue"
+        },
+        {
+          "name": "Harga 4/128GB Rp4.299 ribu; 8/128GB Rp5.299 ribu (sebagaimana materi)"
+        },
+        {
+          "name": "Benefit hingga Rp927 ribu: Travel Adaptor 25W, Clear Case, Earphone Cable, operator Axis"
+        },
+        {
+          "name": "Samsung Care+ harga spesial 1 dan 2 tahun"
+        },
+        {
+          "name": "Double Zero DP 0 dan bunga 0 (Finance+ & Multifinance)"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-025"
+    },
+    {
+      "title": "Galaxy Tab S12 Series · TWA · TABLET",
+      "model_code": "TABS12",
+      "model_name": "Galaxy Tab S12 Series",
+      "benefit": "Cashback PWP Rp500.000 Tab S11 5G/WiFi (by Cores), sebagaimana tertulis di materi Tab S12; Trade-in Cashback Rp1.000.000 (tercantum juga WiFi Rp1.000.000); MS Office 365 oleh SGI selama 3 bulan senilai Rp499.000 (stok terbatas)",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series). Catatan: cashback PWP pada bagian Tab S12 menyebut 'Tab S11 5G/Wifi'; dipertahankan dari bulletin, perlu konfirmasi model sebelum ditawarkan.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "tablet",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Cashback PWP Rp500.000 Tab S11 5G/WiFi (by Cores), sebagaimana tertulis di materi Tab S12"
+        },
+        {
+          "name": "Trade-in Cashback Rp1.000.000 (tercantum juga WiFi Rp1.000.000)"
+        },
+        {
+          "name": "MS Office 365 oleh SGI selama 3 bulan senilai Rp499.000 (stok terbatas)"
+        },
+        {
+          "name": "Termasuk Keyboard Cover semua varian"
+        },
+        {
+          "name": "Finance+ DP mulai 0% dan bunga 0%"
+        },
+        {
+          "name": "Vidio Platinum dan Premier League 6 bulan"
+        },
+        {
+          "name": "Google AI Pro 6 bulan dengan storage 5TB"
+        },
+        {
+          "name": "Microsoft 365 3 bulan"
+        },
+        {
+          "name": "Adobe Photoshop 4 bulan hingga Rp565.884"
+        },
+        {
+          "name": "XL eSIM gratis kuota hingga 1000GB + 60GB"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-026"
+    },
+    {
+      "title": "Galaxy Tab S11 Series · TWA · TABLET",
+      "model_code": "TABS11",
+      "model_name": "Galaxy Tab S11 Series",
+      "benefit": "Keyboard Cover senilai Rp2.999 ribu (Ultra), Rp1.999 ribu (basic cellular dan WiFi); Double Zero: bunga 0%, biaya admin 0%; MS Office 365 SGI 3 bulan senilai Rp499.000 (stok terbatas, Tab S11)",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series).",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "tablet",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Keyboard Cover senilai Rp2.999 ribu (Ultra), Rp1.999 ribu (basic cellular dan WiFi)"
+        },
+        {
+          "name": "Double Zero: bunga 0%, biaya admin 0%"
+        },
+        {
+          "name": "MS Office 365 SGI 3 bulan senilai Rp499.000 (stok terbatas, Tab S11)"
+        },
+        {
+          "name": "Vidio Platinum dan Premier League 6 bulan senilai Rp549.000 (Tab S11)"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-027"
+    },
+    {
+      "title": "Galaxy Tab S10 FE Series · TWA · TABLET",
+      "model_code": "TABS10FE",
+      "model_name": "Galaxy Tab S10 FE Series",
+      "benefit": "Direct Cashback Rp1.000.000 semua varian by Cores; Finance+ DP mulai 0% dan bunga 0%; Canva Pro 3 bulan",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series).",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "tablet",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Direct Cashback Rp1.000.000 semua varian by Cores"
+        },
+        {
+          "name": "Finance+ DP mulai 0% dan bunga 0%"
+        },
+        {
+          "name": "Canva Pro 3 bulan"
+        },
+        {
+          "name": "Gratis Keyboard Cover oleh SGI (khusus FE)"
+        },
+        {
+          "name": "Vidio Platinum dan Premier League 6 bulan"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-028"
+    },
+    {
+      "title": "Galaxy Tab S10 Lite · TWA · TABLET",
+      "model_code": "TABS10LITE",
+      "model_name": "Galaxy Tab S10 Lite",
+      "benefit": "PWP Cashback Rp300.000; Finance+ DP mulai 0%, bunga 0; Termasuk Keyboard Cover hard bundling stok baru dan stok lama oleh SGI, senilai Rp999.000",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series).",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "tablet",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP Cashback Rp300.000"
+        },
+        {
+          "name": "Finance+ DP mulai 0%, bunga 0"
+        },
+        {
+          "name": "Termasuk Keyboard Cover hard bundling stok baru dan stok lama oleh SGI, senilai Rp999.000"
+        },
+        {
+          "name": "Canva Pro 3 bulan"
+        },
+        {
+          "name": "Vidio Platinum dan Premier League 6 bulan"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-029"
+    },
+    {
+      "title": "Galaxy Tab A11+ · TWA · TABLET",
+      "model_code": "TABA11PLUS",
+      "model_name": "Galaxy Tab A11+",
+      "benefit": "PWP Cashback Rp600.000 untuk 5G/WiFi (ACC dan wearables: TV 32 inci, Buds3 Core, Fit 3); Finance+ DP mulai 0% dan processing fee; Termasuk Bluetooth Keyboard senilai Rp999.000 (tertulis Tab A11 pada bulletin)",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series). Catatan: bonus keyboard pada bagian A11+ secara eksplisit menyebut 'Tab A11'; mohon verifikasi sebelum menawarkan.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "tablet",
+      "sku_variant": "5G / WiFi",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP Cashback Rp600.000 untuk 5G/WiFi (ACC dan wearables: TV 32 inci, Buds3 Core, Fit 3)"
+        },
+        {
+          "name": "Finance+ DP mulai 0% dan processing fee"
+        },
+        {
+          "name": "Termasuk Bluetooth Keyboard senilai Rp999.000 (tertulis Tab A11 pada bulletin)"
+        },
+        {
+          "name": "Termasuk Trifold Cover senilai Rp299.000 (Tab A11+ WiFi)"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-030"
+    },
+    {
+      "title": "Galaxy Tab A11 · TWA · TABLET",
+      "model_code": "TABA11",
+      "model_name": "Galaxy Tab A11",
+      "benefit": "PWP Cashback Rp500.000 LTE atau Rp500.000 WiFi, untuk ACC dan wearables (TV 32 inci, Buds3 Core & Fit 3); Finance+ DP mulai 0%, processing fee; Termasuk Travel Adaptor 25W",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series).",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "tablet",
+      "sku_variant": "LTE / WiFi",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP Cashback Rp500.000 LTE atau Rp500.000 WiFi, untuk ACC dan wearables (TV 32 inci, Buds3 Core & Fit 3)"
+        },
+        {
+          "name": "Finance+ DP mulai 0%, processing fee"
+        },
+        {
+          "name": "Termasuk Travel Adaptor 25W"
+        },
+        {
+          "name": "Canva Pro 3 bulan senilai Rp285.000"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-031"
+    },
+    {
+      "title": "TnC Trade-in · Tablet",
+      "model_code": "*",
+      "model_name": "Ketentuan Trade-in Tablet",
+      "benefit": "Via laptop/tablet tetap memperoleh cashback meskipun nilai laptop Rp0; Maksimal 3 unit device lama; Minimal Rp1.000.000 (di luar Tab S Series dan A Series)",
+      "terms": "Segmen: SEGMENT TWA · TABLET. TnC trade-in tablet: lewat laptop/tablet tetap memperoleh cashback sekalipun nilai laptop Rp0. Maksimal 3 unit device lama; minimum Rp1 juta (di luar Tab S Series dan A Series).",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "information",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Via laptop/tablet tetap memperoleh cashback meskipun nilai laptop Rp0"
+        },
+        {
+          "name": "Maksimal 3 unit device lama"
+        },
+        {
+          "name": "Minimal Rp1.000.000 (di luar Tab S Series dan A Series)"
+        }
+      ],
+      "record_kind": "information",
+      "import_key": "sk-promo-nov23-032"
+    },
+    {
+      "title": "Galaxy Watch Ultra 2 · TWA · WEARABLE",
+      "model_code": "WATCHULTRA2",
+      "model_name": "Galaxy Watch Ultra 2",
+      "benefit": "PWP 20% senilai Rp2.099.800; Gratis Strava 60 hari",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. Pilihan item PWP: FF8, FF7, S26F, S25F, Tab S10FE/+, S11F, S12F, semua Buds, semua Travel Adaptor, Strap Watch Ultra 2, Strap Watch Ultra. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP 20% senilai Rp2.099.800"
+        },
+        {
+          "name": "Gratis Strava 60 hari"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-033"
+    },
+    {
+      "title": "Galaxy Watch 9F · TWA · WEARABLE",
+      "model_code": "WATCH9F",
+      "model_name": "Galaxy Watch 9F",
+      "benefit": "PWP 20% Watch 9F 44mm Rp1.299.800 dan 40mm Rp1.199.800; Gratis Strava 60 hari",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. Pilihan item PWP: FF8, FF7, S26F, S25F, Tab S10FE/+, S11F, S12F, semua Buds, semua Travel Adaptor, Strap Watch Ultra 2, Strap Watch Ultra. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "44mm / 40mm",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP 20% Watch 9F 44mm Rp1.299.800 dan 40mm Rp1.199.800"
+        },
+        {
+          "name": "Gratis Strava 60 hari"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-034"
+    },
+    {
+      "title": "Galaxy Watch Ultra · TWA · WEARABLE",
+      "model_code": "WATCHULTRA",
+      "model_name": "Galaxy Watch Ultra",
+      "benefit": "Harga normal",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Harga normal"
+        }
+      ],
+      "record_kind": "no_offer",
+      "import_key": "sk-promo-nov23-035"
+    },
+    {
+      "title": "Galaxy Watch 8 Classic · TWA · WEARABLE",
+      "model_code": "WATCH8CLASSIC",
+      "model_name": "Galaxy Watch 8 Classic",
+      "benefit": "PWP 20% senilai Rp1.399.800",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP 20% senilai Rp1.399.800"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-036"
+    },
+    {
+      "title": "Galaxy Watch 8 · TWA · WEARABLE",
+      "model_code": "WATCH8",
+      "model_name": "Galaxy Watch 8",
+      "benefit": "Cashback Rp1.000.000 by Cores untuk ukuran 40mm/44mm",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "40mm / 44mm",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Cashback Rp1.000.000 by Cores untuk ukuran 40mm/44mm"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-037"
+    },
+    {
+      "title": "Galaxy Watch 7 Series · TWA · WEARABLE",
+      "model_code": "WATCH7",
+      "model_name": "Galaxy Watch 7 Series",
+      "benefit": "EOLS: 40mm dan 44mm harga normal",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet. EOLS mengikuti materi.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "40mm / 44mm",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "EOLS: 40mm dan 44mm harga normal"
+        }
+      ],
+      "record_kind": "no_offer",
+      "import_key": "sk-promo-nov23-038"
+    },
+    {
+      "title": "Galaxy Fit 3 · TWA · WEARABLE",
+      "model_code": "FIT3",
+      "model_name": "Galaxy Fit 3",
+      "benefit": "Harga normal",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "wearable",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Harga normal"
+        }
+      ],
+      "record_kind": "no_offer",
+      "import_key": "sk-promo-nov23-039"
+    },
+    {
+      "title": "TnC Trade-in · Wearable",
+      "model_code": "*",
+      "model_name": "Ketentuan Trade-in Wearable",
+      "benefit": "Maksimal 3 device; Tanpa minimum BBTI; Berlaku trade-in dari semua watch semua brand, semua smartphone, dan semua tablet",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. TnC trade-in wearable: maksimum 3 device, tanpa minimum BBTI. Dapat berasal dari watch semua brand, semua smartphone, dan semua tablet.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "information",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Maksimal 3 device"
+        },
+        {
+          "name": "Tanpa minimum BBTI"
+        },
+        {
+          "name": "Berlaku trade-in dari semua watch semua brand, semua smartphone, dan semua tablet"
+        }
+      ],
+      "record_kind": "information",
+      "import_key": "sk-promo-nov23-040"
+    },
+    {
+      "title": "Galaxy Buds 4 Pro · TWA · WEARABLE",
+      "model_code": "BUDS4PRO",
+      "model_name": "Galaxy Buds 4 Pro",
+      "benefit": "Cashback Rp500.000 hanya Buds 4 Pro pada channel Organized (ORG); Cashback PWP 20% senilai Rp799.800 hanya Buds 4 Pro pada channel Traditional (TRD); PWP Cashback 10% senilai Rp299.900 untuk semua Buds 4 (syarat PWP sesuai bulletin)",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. Item PWP 10%: semua smartphone Flagship, Watch, dan semua tablet di atas Tab S10 Lite. Benefit ORG/TRD tidak boleh ditukar.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "audio",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Cashback Rp500.000 hanya Buds 4 Pro pada channel Organized (ORG)"
+        },
+        {
+          "name": "Cashback PWP 20% senilai Rp799.800 hanya Buds 4 Pro pada channel Traditional (TRD)"
+        },
+        {
+          "name": "PWP Cashback 10% senilai Rp299.900 untuk semua Buds 4 (syarat PWP sesuai bulletin)"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-041"
+    },
+    {
+      "title": "Galaxy Buds 4 Series · TWA · WEARABLE",
+      "model_code": "BUDS4",
+      "model_name": "Galaxy Buds 4 Series",
+      "benefit": "PWP Cashback 10% senilai Rp299.900 untuk semua Buds 4",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. Item PWP: semua smartphone Flagship, Watch, dan semua tablet di atas Tab S10 Lite. Untuk Buds 4 Pro terdapat benefit khusus berdasarkan channel.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "audio",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "PWP Cashback 10% senilai Rp299.900 untuk semua Buds 4"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-042"
+    },
+    {
+      "title": "Galaxy Buds 3 Series · TWA · WEARABLE",
+      "model_code": "BUDS3",
+      "model_name": "Galaxy Buds 3 Series",
+      "benefit": "Harga normal",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "audio",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Harga normal"
+        }
+      ],
+      "record_kind": "no_offer",
+      "import_key": "sk-promo-nov23-043"
+    },
+    {
+      "title": "Galaxy Buds 3 FE · TWA · WEARABLE",
+      "model_code": "BUDS3FE",
+      "model_name": "Galaxy Buds 3 FE",
+      "benefit": "Direct Cashback Rp200.000 by Cores; MBO PWP 10% senilai Rp199.900",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. Item PWP: S25 FE, A57, S26 FE, Tab S Lite, Tab S10 FE, dan Tab A11 Series.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "audio",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Direct Cashback Rp200.000 by Cores"
+        },
+        {
+          "name": "MBO PWP 10% senilai Rp199.900"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-044"
+    },
+    {
+      "title": "Galaxy Buds Core · TWA · WEARABLE",
+      "model_code": "BUDSCORE",
+      "model_name": "Galaxy Buds Core",
+      "benefit": "MBO PWP Cashback 10% senilai Rp79.900",
+      "terms": "Segmen: SEGMENT TWA · WEARABLE. Item PWP: A57, A37, A27, A17, A07, dan Tab A11 Series.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "audio",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "MBO PWP Cashback 10% senilai Rp79.900"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-045"
+    },
+    {
+      "title": "Aksesori · Case FF7",
+      "model_code": "CASEFF7",
+      "model_name": "Case Galaxy FF7",
+      "benefit": "Diskon Case FF7 50%, hingga Rp499.500",
+      "terms": "Segmen: SEGMENT TWA · AKSESORIS.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "information",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Diskon Case FF7 50%, hingga Rp499.500"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-046"
+    },
+    {
+      "title": "Aksesori · Case S26 FE",
+      "model_code": "CASES26F",
+      "model_name": "Case Galaxy S26 FE",
+      "benefit": "Diskon Case S26F 25%, hingga Rp199.750",
+      "terms": "Segmen: SEGMENT TWA · AKSESORIS.",
+      "channel_label": "Channel mengikuti ketentuan bulletin",
+      "scope_type": "national",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-30",
+      "source_url": null,
+      "verification_state": "verified",
+      "published": true,
+      "source_type": "internal_bulletin",
+      "source_reference": "Program Update Oct'26 · promosi November 2026 · materi diberikan pengguna 23 Nov 2026",
+      "source_date": "2026-11-23",
+      "verified_basis": "bulletin_user_transcription",
+      "program_category": "information",
+      "sku_variant": "Semua varian",
+      "channel_code": "unspecified",
+      "offer_items": [
+        {
+          "name": "Diskon Case S26F 25%, hingga Rp199.750"
+        }
+      ],
+      "record_kind": "offer",
+      "import_key": "sk-promo-nov23-047"
+    }
+  ]
+}

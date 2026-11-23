@@ -334,6 +334,16 @@ function renderAlerts(ctx,mount){
   applyState:s=>{sel.value=typeof s.severity==="string"&&[...sel.options].some(o=>o.value===s.severity)?s.severity:"all";redraw();}
  });
 }
+function roleSearchTarget(role,group,allowedSections=[]){
+ const routes={
+  Store:{admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"},
+  Promoter:{admin:"RAW Sellout",tl:"Performa EC",tso:"RAW Sellout",ec:null},
+  Model:{admin:"RAW Sellout",tl:"RAW Sellout",tso:"RAW Sellout",ec:"Laporan Saya"},
+  Promo:{admin:"Promo",tl:"Promo",tso:"Promo",ec:"Promo"}
+ };
+ const target=routes[group]?.[role]||null;
+ return target&&allowedSections.includes(target)?target:null;
+}
 function setupSearch(ctx){
  const input=document.getElementById("global-search"),list=document.getElementById("global-search-results");
  if(!input||!list)return;
@@ -347,13 +357,7 @@ function setupSearch(ctx){
   const query=input.value.trim().toLocaleLowerCase("id-ID");
   if(query.length<2||!activeContext){list.hidden=true;return;}
   const c=activeContext,role=c.profile.role,allowed=new Set(c.allowedSections||[]);
-  const routes={
-   Store:{admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"},
-   Promoter:{admin:"RAW Sellout",tl:"Performa EC",tso:"RAW Sellout",ec:null},
-   Model:{admin:"RAW Sellout",tl:"RAW Sellout",tso:"RAW Sellout",ec:"Laporan Saya"},
-   Promo:{admin:"Promo",tl:"Promo",tso:"Promo",ec:"Promo"}
-  };
-  const route=group=>routes[group]?.[role]||null;
+  const route=group=>roleSearchTarget(role,group,c.allowedSections||[]);
   const suggestions=[
    ...(c.stores||[]).map(s=>({label:s.site_name+" · "+s.site_id,query:s.site_id,group:"Store",target:route("Store")})),
    ...(c.manpower||[]).map(m=>({label:m.full_name+" · "+(m.promoter_id||m.employee_id),query:m.promoter_id||m.employee_id,group:"Promoter",target:route("Promoter")})),
@@ -376,5 +380,5 @@ function setupSearch(ctx){
  }
  if(input.value.length>=2)showSearch();
 }
-window.SalesIntelligence={renderDashboard,renderCharts,renderAlerts,analytics,weekKey,dateLocal,modelNorm,clearCharts};
+window.SalesIntelligence={renderDashboard,renderCharts,renderAlerts,analytics,weekKey,dateLocal,modelNorm,clearCharts,roleSearchTarget};
 })();

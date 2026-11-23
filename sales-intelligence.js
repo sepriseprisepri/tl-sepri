@@ -312,7 +312,18 @@ function renderAlerts(ctx,mount){
    const holder=document.createElement("div");
    holder.className="intel-card";holder.innerHTML='<h3>'+esc(item.title)+'</h3><p class="intel-alert-number">'+N(item.count)+'</p><p>'+esc(item.desc)+'</p>';
    const action=document.createElement("button");action.type="button";action.className="intel-link";action.textContent="Lihat data terkait ↗";
-   action.addEventListener("click",()=>ctx.openSection(item.target));holder.appendChild(action);grid.appendChild(holder);
+   const allowed=new Set(ctx.allowedSections||[]);
+   const role=ctx.profile?.role;
+   const routeMap={
+    ec:{"Target":"Target Saya","RAW Sellout":"Laporan Saya","Performa EC":"Laporan Saya","Coverage & Toko":"Target Saya"},
+    tl:{"Target":"Coverage & Toko"},
+    tso:{"Target":"Coverage","Performa EC":"RAW Sellout","Coverage & Toko":"Coverage"},
+    admin:{"Coverage & Toko":"Target"}
+   };
+   const target=allowed.has(item.target)?item.target:routeMap[role]?.[item.target];
+   if(target&&allowed.has(target))action.addEventListener("click",()=>ctx.openSection(target));
+   else{action.disabled=true;action.title="Rincian alert tidak tersedia bagi role ini.";action.textContent="Detail tidak tersedia";}
+   holder.appendChild(action);grid.appendChild(holder);
   }
  };
  sel.addEventListener("change",redraw);redraw();
@@ -335,13 +346,22 @@ function setupSearch(ctx){
  function showSearch(){
   const query=input.value.trim().toLocaleLowerCase("id-ID");
   if(query.length<2||!activeContext){list.hidden=true;return;}
-  const c=activeContext,role=c.profile.role;
-  const entries=[
-   ...(c.stores||[]).map(s=>({label:s.site_name+" · "+s.site_id,query:s.site_id,group:"Store",target:role==="ec"?"Target Saya":role==="admin"?"Target":role==="tso"?"Coverage":"Coverage & Toko"})),
-   ...(c.manpower||[]).map(m=>({label:m.full_name+" · "+(m.promoter_id||m.employee_id),query:m.promoter_id||m.employee_id,group:"Promoter",target:role==="ec"?"Laporan Saya":"Performa EC"})),
-   ...(c.promos||[]).filter(p=>p.published&&p.verification_state==="verified").map(p=>({label:p.title+" · "+p.model_name,query:p.model_name,group:"Promo",target:"Promo"})),
-   ...[...new Set((c.sales||[]).map(s=>s.model).filter(Boolean))].map(model=>({label:model,query:model,group:"Model",target:role==="ec"?"Laporan Saya":"RAW Sellout"}))
-  ].filter(e=>(e.label||"").toLocaleLowerCase("id-ID").includes(query)).slice(0,9);
+  const c=activeContext,role=c.profile.role,allowed=new Set(c.allowedSections||[]);
+  const routes={
+   Store:{admin:"Target",tl:"Coverage & Toko",tso:"Coverage",ec:"Target Saya"},
+   Promoter:{admin:"RAW Sellout",tl:"Performa EC",tso:"RAW Sellout",ec:null},
+   Model:{admin:"RAW Sellout",tl:"RAW Sellout",tso:"RAW Sellout",ec:"Laporan Saya"},
+   Promo:{admin:"Promo",tl:"Promo",tso:"Promo",ec:"Promo"}
+  };
+  const route=group=>routes[group]?.[role]||null;
+  const suggestions=[
+   ...(c.stores||[]).map(s=>({label:s.site_name+" · "+s.site_id,query:s.site_id,group:"Store",target:route("Store")})),
+   ...(c.manpower||[]).map(m=>({label:m.full_name+" · "+(m.promoter_id||m.employee_id),query:m.promoter_id||m.employee_id,group:"Promoter",target:route("Promoter")})),
+   ...(c.promos||[]).filter(p=>p.published&&p.verification_state==="verified").map(p=>({label:p.title+" · "+p.model_name,query:p.model_name,group:"Promo",target:route("Promo")})),
+   ...[...new Set((c.sales||[]).map(s=>s.model).filter(Boolean))].map(model=>({label:model,query:model,group:"Model",target:route("Model")}))
+  ];
+  const entries=suggestions.filter(e=>e.target&&allowed.has(e.target)&&
+   (e.label||"").toLocaleLowerCase("id-ID").includes(query)).slice(0,9);
   list.innerHTML="";
   if(!entries.length){list.innerHTML='<p class="intel-search-empty">Tidak ditemukan pada data yang dapat diakses.</p>';list.hidden=false;return;}
   for(const e of entries){

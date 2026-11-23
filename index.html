@@ -454,7 +454,25 @@ async function loadDashboard(){
   $("sync-status").classList.remove("error");
   $("sync-status").textContent="Data dimuat pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB · Perbarui untuk memuat data terbaru.";
   return true;
- }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));return false;}
+ }catch(err){
+  console.error(err);
+  const selectedId=$("period-select").value;
+  if(lastSalesData?.period?.id!==selectedId){
+   // Never show KPIs/charts from an earlier period under a newly selected one.
+   lastSalesData=null;
+   ["kpi-stores","kpi-target-qty","kpi-actual-qty","kpi-actual-amt","small-target-amt","small-gap-qty","small-gap-amt","small-pending"].forEach(id=>{$(id).textContent="—";});
+   $("kpi-qty-progress").textContent="Data belum tersedia."; $("kpi-amt-progress").textContent="Data belum tersedia.";
+   $("qty-progress-fill").style.width="0%";$("amt-progress-fill").style.width="0%";
+   $("intel-dashboard").replaceChildren();
+   $("store-table").innerHTML='<tr><td colspan="4" class="text-center text-slate-400 py-8">Data untuk periode ini belum dapat dimuat.</td></tr>';
+   Object.values(charts).forEach(c=>c?.destroy?.());charts={};
+   $("global-search").value="";$("global-search-results").hidden=true;
+  }
+  $("sync-status").classList.add("error");
+  $("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";
+  showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));
+  return false;
+ }
  finally{setBusy(false)}
 }
 function renderDashboard(d){

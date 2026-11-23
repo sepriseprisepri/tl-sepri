@@ -225,20 +225,33 @@ function renderReport(ctx,mount){
   '<section class="panel rounded-xl p-4"><h4 class="font-semibold">Detail survey per EC / toko</h4><div id="aff-detail" class="table-wrap mt-4"></div></section></div>';
  const today=localDate(),start=today.slice(0,7)+"-01";
  const from=mount.querySelector("#aff-from"),to=mount.querySelector("#aff-to");
- from.value=start;to.value=today;to.max=today;
+ from.value=start;from.max=today;to.value=today;to.max=today;
  const status=mount.querySelector("#aff-report-status"),download=mount.querySelector("#aff-download");
- let summary=null;
+ let summary=null,loadedRange="",loadSerial=0;
+ const invalidate=()=>{
+  loadSerial++;summary=null;loadedRange="";download.disabled=true;
+  status.textContent="Filter tanggal berubah. Klik Tampilkan untuk memuat data sesuai rentang baru.";
+  for(const id of ["#aff-metrics","#aff-providers","#aff-models","#aff-detail"]){
+   const target=mount.querySelector(id);if(target)target.textContent="";
+  }
+ };
+ from.addEventListener("change",invalidate);to.addEventListener("change",invalidate);
  const bars=(rows,total)=>rows.length?rows.slice(0,15).map(x=>
   '<div class="space-y-1"><div class="flex items-center justify-between gap-2 text-xs"><span>'+esc(x.name)+'</span><b>'+num(x.qty)+' unit</b></div>'+
   '<div class="h-2 rounded-full bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-cyan-400" style="width:'+Math.min(100,total?100*x.qty/total:0)+'%"></div></div></div>').join(""):'<p class="text-sm text-slate-400">Belum ada closing multifinance pada periode ini.</p>';
  async function load(){
-  if(!from.value||!to.value||from.value>to.value){status.textContent="Rentang tanggal tidak valid.";return}
+  const fromDate=from.value,toDate=to.value,now=localDate();
+  if(!fromDate||!toDate||fromDate>toDate||toDate>now||fromDate>now){
+   invalidate();status.textContent="Rentang tanggal tidak valid atau melebihi hari ini.";return;
+  }
+  const serial=++loadSerial;
   const btn=mount.querySelector("#aff-load");btn.disabled=true;download.disabled=true;status.textContent="Mengambil survey sesuai cakupan…";
   try{
    const [surveys,stores]=await Promise.all([
-    request(ctx,"affordability_surveys",{select:"employee_id,store_id,survey_date,has_multifinance,no_finance_confirmed,closings",filters:[["survey_date","gte",from.value],["survey_date","lte",to.value]]}),
+    request(ctx,"affordability_surveys",{select:"employee_id,store_id,survey_date,has_multifinance,no_finance_confirmed,closings",filters:[["survey_date","gte",fromDate],["survey_date","lte",toDate]]}),
     request(ctx,"stores",{select:"id,site_name,site_id"})
    ]);
+   if(serial!==loadSerial||!mount.isConnected)return;
    const storeMap=new Map(stores.map(s=>[s.id,s.site_name]));
    summary=summarize(surveys.map(s=>({...s,site_name:storeMap.get(s.store_id)||s.store_id})));
    const metrics=[["Survey terkumpul",summary.surveys],["Jawaban Ya",summary.yes],["Jawaban Tidak",summary.no],["Unit via multifinance",summary.units]];
@@ -248,15 +261,16 @@ function renderReport(ctx,mount){
    mount.querySelector("#aff-detail").innerHTML='<table class="w-full text-sm"><thead><tr><th>Tanggal</th><th>EC</th><th>Toko</th><th>Model</th><th>Multifinance</th><th>Qty</th></tr></thead><tbody>'+
     (summary.details.slice(0,100).map(d=>'<tr><td>'+esc(d.date)+'</td><td>'+esc(d.employee_id)+'</td><td>'+esc(d.store)+'</td><td>'+esc(d.model)+'</td><td>'+esc(d.provider)+'</td><td>'+num(d.qty)+'</td></tr>').join("")||
      '<tr><td colspan="6">Belum ada data closing.</td></tr>')+'</tbody></table>';
-   status.textContent=num(summary.surveys)+" survey terhimpun pada rentang "+from.value+" hingga "+to.value+".";
+   loadedRange=fromDate+"_"+toDate;
+   status.textContent=num(summary.surveys)+" survey terhimpun pada rentang "+fromDate+" hingga "+toDate+".";
    download.disabled=false;
-  }catch(err){status.textContent=err.message||"Gagal memuat survey.";summary=null}
+  }catch(err){if(serial===loadSerial){status.textContent=err.message||"Gagal memuat survey.";summary=null;loadedRange="";download.disabled=true;}}
   finally{btn.disabled=false}
  }
  mount.querySelector("#aff-load").addEventListener("click",load);
  download.addEventListener("click",()=>{
   if(!summary)return;
-  try{downloadDashboard(summary,from.value+"_"+to.value)}catch(err){status.textContent=err.message}
+  try{downloadDashboard(summary,loadedRange)}catch(err){status.textContent=err.message}
  });
  load();
 }

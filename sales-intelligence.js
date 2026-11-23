@@ -187,14 +187,15 @@ function renderCharts(ctx,mount){
  clearCharts();const unique=x=>[...new Set(x)];
  const sales=(ctx.sales||[]),stores=ctx.stores||[];
  const models=unique(sales.map(s=>s.model).filter(Boolean)).sort(),siteCodes=unique(stores.map(s=>s.site_id)).sort();
+ const siteNames=new Map(stores.map(s=>[s.site_id,s.site_name||s.site_id]));
  mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Analytics Studio · '+esc(ctx.period?.period_name||"Periode")+'</p><h3>Grafik Sellout</h3><p>Tren harian, pertumbuhan mingguan, kontribusi model dan toko, berdasarkan transaksi yang diizinkan RLS.</p></div></div>'+
   '<div class="intel-filters">'+
-   '<label>Store<select id="intel-chart-store" class="field"><option value="">Seluruh scope</option>'+siteCodes.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("")+'</select></label>'+
+   '<label>Store<select id="intel-chart-store" class="field"><option value="">Seluruh scope</option>'+siteCodes.map(s=>'<option value="'+esc(s)+'">'+esc(siteNames.get(s)+' · '+s)+'</option>').join("")+'</select></label>'+
    '<label>Model<select id="intel-chart-model" class="field"><option value="">Semua model</option>'+models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")+'</select></label>'+
    '<label>Metrik<select id="intel-chart-metric" class="field"><option value="qty">Qty</option><option value="amt">Amount</option></select></label>'+
    '<label>Dari tanggal<input id="intel-chart-from" class="field" type="date" min="'+esc(ctx.period?.period_start||dateLocal())+'" max="'+esc(ctx.period?.period_end||dateLocal())+'" value="'+esc(ctx.period?.period_start||dateLocal())+'"></label>'+
    '<label>Sampai tanggal<input id="intel-chart-to" class="field" type="date" min="'+esc(ctx.period?.period_start||dateLocal())+'" max="'+esc(ctx.period?.period_end||dateLocal())+'" value="'+esc(ctx.period?.period_end||dateLocal())+'"></label>'+
-  '</div><div id="intel-filter-bar"></div>'+
+  '</div><div class="intel-panel-actions"><button type="button" id="intel-chart-reset" class="intel-action intel-action-subtle">Reset filter grafik</button></div><div id="intel-filter-bar"></div>'+
   '<div id="intel-chart-stats" class="intel-stat-grid"></div>'+
   panel("Artificial Insight · Filter Terpilih",
     '<div id="intel-chart-insight" class="intel-promo-summary" aria-live="polite"></div>'+
@@ -212,8 +213,11 @@ function renderCharts(ctx,mount){
   from:selects[3].value,to:selects[4].value});
  const redraw=()=>{
   clearCharts();const f=state(),metric=f.metric;
-  if(f.from>f.to){
-   document.getElementById("intel-chart-insight").textContent="Rentang tanggal tidak valid: tanggal mulai harus sebelum tanggal akhir.";
+  const min=ctx.period?.period_start||dateLocal(),max=ctx.period?.period_end||dateLocal();
+  if(!f.from||!f.to||f.from>f.to||f.from<min||f.to>max){
+   document.getElementById("intel-chart-insight").textContent="Rentang tanggal tidak valid. Pilih tanggal mulai dan akhir dalam periode "+min+" sampai "+max+".";
+   document.getElementById("intel-chart-stats").innerHTML='<div class="intel-zero">Grafik belum tersedia hingga rentang tanggal diperbaiki.</div>';
+   document.getElementById("intel-pace-panel").textContent="Perbaiki filter tanggal untuk menghitung target dan pace.";
    return;
   }
   const filtered=sales.filter(s=>(!f.store||s.site_id===f.store)&&(!f.model||s.model===f.model)&&
@@ -281,10 +285,13 @@ function renderCharts(ctx,mount){
     '<p class="intel-caption">'+(f.model?"Pace model tidak dihitung tanpa target model-spesifik.":!fullPeriod?"Rentang tanggal parsial tidak dibandingkan dengan target bulanan penuh.":"Achievement "+N(pctTarget)+"%, time gone "+N(a.timeGone*100)+"%.")+'</p>'+
     '<div class="intel-bar"><span style="width:'+Math.max(0,Math.min(100,pctTarget))+'%"></span></div>';
  };
+ const resetFilters=()=>{selects[0].value="";selects[1].value="";selects[2].value="qty";
+  selects[3].value=ctx.period?.period_start||dateLocal();selects[4].value=ctx.period?.period_end||dateLocal();redraw();};
+ mount.querySelector("#intel-chart-reset").addEventListener("click",resetFilters);
  selects.forEach(el=>el.addEventListener("change",redraw));redraw();
  if(window.UserPrefs)window.UserPrefs.savedFilterControls({
   client:ctx.client,profile:ctx.profile,feature:"charts",mount:document.getElementById("intel-filter-bar"),
-  getState:state,applyState:s=>{for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];
+  getState:state,applyState:s=>{resetFilters();for(const [k,el] of [["store",selects[0]],["model",selects[1]],["metric",selects[2]]])if(typeof s[k]==="string"&&[...el.options].some(o=>o.value===s[k]))el.value=s[k];
    for(const [k,el] of [["from",selects[3]],["to",selects[4]]])
     if(typeof s[k]==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s[k])&&s[k]>=el.min&&s[k]<=el.max)el.value=s[k];
    redraw();}
@@ -294,7 +301,7 @@ function renderAlerts(ctx,mount){
  const data=analytics.compute(ctx),items=analytics.insights(ctx,ctx.profile.role);
  mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Health & Quality</p><h3>Smart Alerts</h3><p>Risiko yang terdeteksi dari penjualan dan target dalam cakupan akun saat ini.</p></div></div>'+
  '<div class="intel-filters"><label>Prioritas<select id="intel-alert-severity" class="field"><option value="all">Semua alert</option><option value="critical">Kritis</option><option value="warning">Peringatan</option><option value="info">Info</option></select></label></div>'+
- '<div id="intel-alert-saved"></div><div id="intel-alert-results" class="intel-chart-grid"></div>'+
+ '<div class="intel-panel-actions"><button type="button" id="intel-alert-reset" class="intel-action intel-action-subtle">Reset prioritas</button></div><div id="intel-alert-saved"></div><div id="intel-alert-results" class="intel-chart-grid"></div>'+
  panel("Analisis otomatis / AI Sales Insight",insightsHtml(items))+
  '<p class="intel-caption">Alert bukan jaminan ketidakpatuhan; verifikasi transaksi dan proses bisnis sebelum mengambil keputusan.</p>';
  const sel=mount.querySelector("#intel-alert-severity"),grid=mount.querySelector("#intel-alert-results");
@@ -309,10 +316,11 @@ function renderAlerts(ctx,mount){
   }
  };
  sel.addEventListener("change",redraw);redraw();
+ mount.querySelector("#intel-alert-reset").addEventListener("click",()=>{sel.value="all";redraw();});
  if(window.UserPrefs)window.UserPrefs.savedFilterControls({
   client:ctx.client,profile:ctx.profile,feature:"alerts",mount:mount.querySelector("#intel-alert-saved"),
   getState:()=>({severity:sel.value}),
-  applyState:s=>{if(typeof s.severity==="string"&&[...sel.options].some(o=>o.value===s.severity))sel.value=s.severity;redraw();}
+  applyState:s=>{sel.value=typeof s.severity==="string"&&[...sel.options].some(o=>o.value===s.severity)?s.severity:"all";redraw();}
  });
 }
 function setupSearch(ctx){

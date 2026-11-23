@@ -184,7 +184,7 @@ function setupUi(data){
   {id:"focus-filter-model",label:"Model",opts:[{value:"",text:"Semua model"},...settings.map(s=>({value:s.model_code,text:s.display_name}))]}
  ];
  const filters='<div class="grid sm:grid-cols-2 gap-3 mb-4">'+filterData.map(f=>
-  control(f.label,f.id,f.opts)).join("")+'</div>';
+  control(f.label,f.id,f.opts)).join("")+'</div><div class="flex flex-wrap gap-3 items-center mb-3"><button type="button" id="focus-filter-reset" class="intel-action intel-action-subtle">Reset filter</button><span id="focus-filter-count" role="status" aria-live="polite" class="text-xs text-slate-300"></span></div><div id="focus-saved-filters"></div>';
  const table='<section class="panel rounded-2xl p-5"><h4 class="text-white font-semibold mb-3">'+
   (personal?"Realisasi Focus Model Pribadi":"Daftar Alokasi dan Realisasi EC")+'</h4>'+filters+
   '<div class="table-wrap"><table class="w-full text-sm"><thead><tr>'+
@@ -216,6 +216,7 @@ function setupUi(data){
  function paint(){
   const filtered=rows.filter(r=>(!stFilter.value||r.store_id===stFilter.value)&&
     (!modelFilter.value||r.model_code===modelFilter.value));
+  mount.querySelector("#focus-filter-count").textContent=filtered.length+" dari "+rows.length+" alokasi sesuai filter.";
   body.innerHTML=filtered.map(r=>'<tr>'+
    (personal?"":'<td>'+esc(r.employee_name)+'</td>')+
    '<td>'+esc(r.store_name)+'</td><td>'+esc(r.model_name)+'</td>'+
@@ -232,6 +233,13 @@ function setupUi(data){
     '" class="py-7 text-slate-400 text-center">Belum ada alokasi untuk filter ini.</td></tr>';
  }
  stFilter.addEventListener("change",paint);modelFilter.addEventListener("change",paint);paint();
+ mount.querySelector("#focus-filter-reset").addEventListener("click",()=>{stFilter.value="";modelFilter.value="";paint();});
+ if(window.UserPrefs)window.UserPrefs.savedFilterControls({
+  client,profile,feature:"coverage",scope:"Focus Model Alokasi",mount:mount.querySelector("#focus-saved-filters"),
+  getState:()=>({store:stFilter.value,model:modelFilter.value}),
+  applyState:s=>{stFilter.value=[...stFilter.options].some(o=>o.value===s.store)?s.store:"";
+   modelFilter.value=[...modelFilter.options].some(o=>o.value===s.model)?s.model:"";paint();}
+ });
  if(!manager||migrationPending||!targets.length)return;
  const formEl=mount.querySelector("#focus-ec-form"),parent=mount.querySelector("#focus-parent"),
   person=mount.querySelector("#focus-person"),qInput=mount.querySelector("#focus-qty"),
@@ -377,10 +385,17 @@ async function render(data){
  const tq=sum("target_qty"),ta=sum("target_amt"),aq=sum("actual_qty"),aa=sum("actual_amt");
  mount.innerHTML='<section class="panel rounded-2xl p-5 mb-5"><h3 class="text-xl font-semibold text-white">Focus Model Toko</h3><p class="text-sm text-slate-400 mt-2">Target dan pencapaian adalah total toko; seluruh EC pada toko yang sama melihat angka yang sama. Hanya transaksi EULA VALID dihitung.</p></section>'+
  '<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">'+metric("Target Qty Toko",targetQtyText(tq),"Total model dalam cakupan")+metric("Sellout Qty VALID",qty(aq),"Total penjualan toko")+metric("Gap Qty",qty(tq-aq),"Target dikurangi sellout toko")+metric("Achievement Qty",percentage(aq,tq),"Dari target toko")+metric("Target Amount",money(ta),"Total target toko")+metric("Sellout Amount VALID",money(aa),"Total penjualan toko")+metric("Gap Amount",money(ta-aa),"Target dikurangi sellout toko")+'</div>'+
- '<section class="panel rounded-2xl p-5"><h4 class="font-semibold text-white">Target dan Pencapaian per Toko</h4><div class="grid sm:grid-cols-2 gap-3 my-4">'+control("Toko","focus-store-filter",[{value:"",text:"Semua toko"},...stores.map(s=>({value:s.id,text:s.site_name}))])+control("Model","focus-model-filter",[{value:"",text:"Semua model"},...settings.map(s=>({value:s.model_code,text:s.display_name}))])+'</div><p class="text-xs text-slate-400 mb-2">Ringkasan di atas mencakup seluruh toko yang dapat diakses; filter berlaku pada tabel.</p><div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Toko</th><th>Model</th><th>Target Qty</th><th>VALID Qty</th><th>Gap Qty</th><th>Achievement</th><th>Target Amount</th><th>VALID Amount</th><th>Gap Amount</th></tr></thead><tbody id="focus-store-rows"></tbody></table></div><p class="text-xs text-slate-400 mt-3">Model yang namanya tidak cocok atau ambigu tidak dihitung otomatis. Periksa pemetaan model pada RAW Sellout.</p></section>';
+ '<section class="panel rounded-2xl p-5"><h4 class="font-semibold text-white">Target dan Pencapaian per Toko</h4><div class="grid sm:grid-cols-2 gap-3 my-4">'+control("Toko","focus-store-filter",[{value:"",text:"Semua toko"},...stores.map(s=>({value:s.id,text:s.site_name}))])+control("Model","focus-model-filter",[{value:"",text:"Semua model"},...settings.map(s=>({value:s.model_code,text:s.display_name}))])+'</div><div class="flex flex-wrap gap-3 items-center mb-3"><button type="button" id="focus-store-reset" class="intel-action intel-action-subtle">Reset filter</button><span id="focus-store-count" role="status" aria-live="polite" class="text-xs text-slate-300"></span></div><div id="focus-store-saved"></div><p class="text-xs text-slate-400 mb-2">Ringkasan di atas mencakup seluruh toko yang dapat diakses; filter berlaku pada tabel.</p><div class="table-wrap"><table class="w-full text-sm"><thead><tr><th>Toko</th><th>Model</th><th>Target Qty</th><th>VALID Qty</th><th>Gap Qty</th><th>Achievement</th><th>Target Amount</th><th>VALID Amount</th><th>Gap Amount</th></tr></thead><tbody id="focus-store-rows"></tbody></table></div><p class="text-xs text-slate-400 mt-3">Model yang namanya tidak cocok atau ambigu tidak dihitung otomatis. Periksa pemetaan model pada RAW Sellout.</p></section>';
  const storeFilter=mount.querySelector('#focus-store-filter'),modelFilter=mount.querySelector('#focus-model-filter'),body=mount.querySelector('#focus-store-rows');
- function paint(){const filtered=rows.filter(r=>(!storeFilter.value||r.store_id===storeFilter.value)&&(!modelFilter.value||r.model_code===modelFilter.value));body.innerHTML=filtered.map(r=>'<tr><td>'+esc(storeNames.get(r.store_id)||"Toko")+'</td><td>'+esc(names.get(r.model_code)||r.model_code)+'</td><td>'+targetQtyText(r.target_qty)+'</td><td>'+qty(r.actual_qty)+'</td><td>'+qty(num(r.target_qty)-num(r.actual_qty))+'</td><td>'+percentage(num(r.actual_qty),num(r.target_qty))+'</td><td>'+money(r.target_amt)+'</td><td>'+money(r.actual_amt)+'</td><td>'+money(num(r.target_amt)-num(r.actual_amt))+'</td></tr>').join("")||(rows.length?'<tr><td colspan="9">Tidak ada target yang cocok dengan filter.</td></tr>':'<tr><td colspan="9">Belum ada target Focus Model toko.</td></tr>');}
+ function paint(){const filtered=rows.filter(r=>(!storeFilter.value||r.store_id===storeFilter.value)&&(!modelFilter.value||r.model_code===modelFilter.value));mount.querySelector("#focus-store-count").textContent=filtered.length+" dari "+rows.length+" model toko sesuai filter.";body.innerHTML=filtered.map(r=>'<tr><td>'+esc(storeNames.get(r.store_id)||"Toko")+'</td><td>'+esc(names.get(r.model_code)||r.model_code)+'</td><td>'+targetQtyText(r.target_qty)+'</td><td>'+qty(r.actual_qty)+'</td><td>'+qty(num(r.target_qty)-num(r.actual_qty))+'</td><td>'+percentage(num(r.actual_qty),num(r.target_qty))+'</td><td>'+money(r.target_amt)+'</td><td>'+money(r.actual_amt)+'</td><td>'+money(num(r.target_amt)-num(r.actual_amt))+'</td></tr>').join("")||(rows.length?'<tr><td colspan="9">Tidak ada target yang cocok dengan filter.</td></tr>':'<tr><td colspan="9">Belum ada target Focus Model toko.</td></tr>');}
  storeFilter.addEventListener('change',paint);modelFilter.addEventListener('change',paint);paint();
+ mount.querySelector('#focus-store-reset').addEventListener('click',()=>{storeFilter.value='';modelFilter.value='';paint();});
+ if(window.UserPrefs)window.UserPrefs.savedFilterControls({
+  client,profile,feature:'coverage',scope:'Focus Model Toko',mount:mount.querySelector('#focus-store-saved'),
+  getState:()=>({store:storeFilter.value,model:modelFilter.value}),
+  applyState:s=>{storeFilter.value=[...storeFilter.options].some(o=>o.value===s.store)?s.store:'';
+   modelFilter.value=[...modelFilter.options].some(o=>o.value===s.model)?s.model:'';paint();}
+ });
  if((profile.role==="tl"||profile.role==="admin")&&isCurrent())setupAdminStoreTargets({...data,targets:rows});
 }
 window.FocusModelAllocationUI={render};

@@ -330,7 +330,7 @@ function openSection(label){
    $("section-description").textContent="Perbandingan Qty Samsung dan kompetitor sesuai coverage dan periode terpilih.";
    const mount=$("import-hub-container");
    if(!lastSalesData)mount.textContent="Data dashboard belum siap. Perbarui data terlebih dahulu.";
-   else if(window.TLCompetitorComparison)window.TLCompetitorComparison.render({...lastSalesData,profile:currentProfile,fetchAll,isActive:()=>activeSection===label},mount);
+   else if(window.TLCompetitorComparison)window.TLCompetitorComparison.render({...lastSalesData,client,profile:currentProfile,fetchAll,isActive:()=>activeSection===label},mount);
    else mount.textContent="Modul perbandingan belum tersedia. Muat ulang halaman.";
   }else if(label==="Input Competitor"&&currentProfile?.role==="ec"){
    $("section-description").textContent="Input sellout brand kompetitor oleh EC. Sellout Samsung diperbarui Admin melalui file RAW Sellout.";
@@ -454,7 +454,25 @@ async function loadDashboard(){
   $("sync-status").classList.remove("error");
   $("sync-status").textContent="Data dimuat pukul "+new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Pontianak"})+" WIB · Perbarui untuk memuat data terbaru.";
   return true;
- }catch(err){console.error(err);$("sync-status").classList.add("error");$("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));return false;}
+ }catch(err){
+  console.error(err);
+  const selectedId=$("period-select").value;
+  if(lastSalesData?.period?.id!==selectedId){
+   // Never show KPIs/charts from an earlier period under a newly selected one.
+   lastSalesData=null;
+   ["kpi-stores","kpi-target-qty","kpi-actual-qty","kpi-actual-amt","small-target-amt","small-gap-qty","small-gap-amt","small-pending"].forEach(id=>{$(id).textContent="—";});
+   $("kpi-qty-progress").textContent="Data belum tersedia."; $("kpi-amt-progress").textContent="Data belum tersedia.";
+   $("qty-progress-fill").style.width="0%";$("amt-progress-fill").style.width="0%";
+   $("intel-dashboard").replaceChildren();
+   $("store-table").innerHTML='<tr><td colspan="4" class="text-center text-slate-400 py-8">Data untuk periode ini belum dapat dimuat.</td></tr>';
+   Object.values(charts).forEach(c=>c?.destroy?.());charts={};
+   $("global-search").value="";$("global-search-results").hidden=true;
+  }
+  $("sync-status").classList.add("error");
+  $("sync-status").textContent="Pembaruan terakhir gagal. Periksa koneksi dan coba lagi.";
+  showDataError("Dashboard gagal memuat data: "+(err.message||"Kesalahan koneksi. Silakan refresh."));
+  return false;
+ }
  finally{setBusy(false)}
 }
 function renderDashboard(d){
@@ -769,18 +787,22 @@ $("password-visibility").addEventListener("click",()=>{
  input.focus({preventScroll:true});
 });
 $("density-toggle").addEventListener("click",()=>window.UserPrefs?.toggleDensity());
-let refreshingWorkspace=false;
+let refreshingWorkspace=false,pendingWorkspaceRefresh=false;
 async function refreshWorkspace(reloadPeriodList=false){
- if(refreshingWorkspace||!currentProfile)return;
+ if(!currentProfile)return;
+ if(refreshingWorkspace){pendingWorkspaceRefresh=true;return;}
  refreshingWorkspace=true;
- const status=$("workspace-feedback"),button=$("refresh-button");
- button.disabled=true;button.textContent="Memperbarui…";
+ const status=$("workspace-feedback"),button=$("refresh-button"),selector=$("period-select");
+ button.disabled=true;selector.disabled=true;
+ $("workspace-controls").setAttribute("aria-busy","true");
+ button.textContent="Memperbarui…";
  status.textContent=reloadPeriodList?"Memeriksa daftar periode…":"Memperbarui periode terpilih…";
  let periodError=false;
  try{
   if(reloadPeriodList){
    try{
     await withLoginDeadline(loadPeriods(),12000,"Daftar periode tidak merespons.");
+    selector.disabled=true;
    }catch(err){
     periodError=true;
     showDataError("Periode gagal diperbarui: "+(err.message||"Periksa koneksi."));
@@ -788,7 +810,10 @@ async function refreshWorkspace(reloadPeriodList=false){
    }
   }
   const successful=await withLoginDeadline(loadDashboard(),30000,"Dashboard tidak merespons. Periksa koneksi.");
-  if(activeSection!=="Dashboard" && currentProfile)openSection(activeSection);
+  if(activeSection!=="Dashboard" && currentProfile){
+   if(successful)openSection(activeSection);
+   else $("import-hub-container").innerHTML='<div role="alert" class="intel-zero">Data untuk periode terpilih belum berhasil dimuat. Tekan Perbarui data untuk mencoba kembali. Data lama tidak ditampilkan agar tidak tertukar dengan periode baru.</div>';
+  }
   if(!successful||periodError||!$("data-error").classList.contains("hidden")){
    status.textContent="Sebagian data tidak berhasil diperbarui. Periksa pesan kesalahan.";
   }else{
@@ -801,7 +826,10 @@ async function refreshWorkspace(reloadPeriodList=false){
   showDataError(status.textContent);
  }finally{
   refreshingWorkspace=false;
+  selector.disabled=!periods.length;
+  $("workspace-controls").removeAttribute("aria-busy");
   button.disabled=false;button.textContent="↻ Perbarui data";
+  if(pendingWorkspaceRefresh&&currentProfile){pendingWorkspaceRefresh=false;refreshWorkspace(false);}
  }
 }
 $("period-select").addEventListener("change",()=>refreshWorkspace());

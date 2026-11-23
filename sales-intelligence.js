@@ -301,7 +301,7 @@ function renderAlerts(ctx,mount){
  const data=analytics.compute(ctx),items=analytics.insights(ctx,ctx.profile.role);
  mount.innerHTML='<div class="intel-page-head"><div><p class="intel-overline">Health & Quality</p><h3>Smart Alerts</h3><p>Risiko yang terdeteksi dari penjualan dan target dalam cakupan akun saat ini.</p></div></div>'+
  '<div class="intel-filters"><label>Prioritas<select id="intel-alert-severity" class="field"><option value="all">Semua alert</option><option value="critical">Kritis</option><option value="warning">Peringatan</option><option value="info">Info</option></select></label></div>'+
- '<div id="intel-alert-saved"></div><div id="intel-alert-results" class="intel-chart-grid"></div>'+
+ '<div class="intel-panel-actions"><button type="button" id="intel-alert-reset" class="intel-action intel-action-subtle">Reset prioritas</button></div><div id="intel-alert-saved"></div><div id="intel-alert-results" class="intel-chart-grid"></div>'+
  panel("Analisis otomatis / AI Sales Insight",insightsHtml(items))+
  '<p class="intel-caption">Alert bukan jaminan ketidakpatuhan; verifikasi transaksi dan proses bisnis sebelum mengambil keputusan.</p>';
  const sel=mount.querySelector("#intel-alert-severity"),grid=mount.querySelector("#intel-alert-results");
@@ -316,10 +316,11 @@ function renderAlerts(ctx,mount){
   }
  };
  sel.addEventListener("change",redraw);redraw();
+ mount.querySelector("#intel-alert-reset").addEventListener("click",()=>{sel.value="all";redraw();});
  if(window.UserPrefs)window.UserPrefs.savedFilterControls({
   client:ctx.client,profile:ctx.profile,feature:"alerts",mount:mount.querySelector("#intel-alert-saved"),
   getState:()=>({severity:sel.value}),
-  applyState:s=>{if(typeof s.severity==="string"&&[...sel.options].some(o=>o.value===s.severity))sel.value=s.severity;redraw();}
+  applyState:s=>{sel.value=typeof s.severity==="string"&&[...sel.options].some(o=>o.value===s.severity)?s.severity:"all";redraw();}
  });
 }
 function setupSearch(ctx){

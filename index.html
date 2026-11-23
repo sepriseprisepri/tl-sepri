@@ -46,6 +46,7 @@
   <link rel="stylesheet" href="/futuristic-ui.css">
   <link rel="stylesheet" href="/sales-intelligence.css">
   <link rel="stylesheet" href="/login-redesign.css">
+  <link rel="stylesheet" href="/ui-v2.css">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body class="min-h-screen">
@@ -108,6 +109,7 @@
   </section>
 </main>
 <main id="app-view" class="app-shell hidden min-h-screen">
+  <a class="skip-to-workspace" href="#workspace-main">Lewati navigasi, langsung ke konten</a>
   <div class="app-frame">
     <aside class="app-sidebar">
       <div class="app-brand">
@@ -116,7 +118,7 @@
         <button id="mobile-menu" type="button" aria-label="Buka menu navigasi" aria-controls="nav-wrap" aria-expanded="false">☰</button>
       </div>
       <div id="nav-wrap" class="hidden lg:block">
-        <p class="sidebar-group-label">Workspace Menu</p>
+        <p class="sidebar-group-label">Navigasi</p>
         <nav id="nav-list" aria-label="Navigasi berdasarkan peran"></nav>
         <div class="sidebar-note">
           <p class="sidebar-note-label">Akses & Keamanan</p>
@@ -144,7 +146,7 @@
           <button id="logout-button" class="head-logout" type="button">Keluar</button>
         </div>
       </header>
-      <div class="app-main">
+      <div class="app-main" id="workspace-main" tabindex="-1">
         <div id="workspace-controls" class="dashboard-controls" role="group" aria-label="Kontrol data dashboard dan modul">
           <label for="period-select" class="text-xs text-slate-300">Periode target</label>
           <select id="period-select" class="field" aria-label="Pilih periode target"></select>
@@ -155,7 +157,7 @@
           <section class="dashboard-intro mb-6" aria-label="Ringkasan kerja">
             <div class="flex flex-wrap items-center justify-between gap-6">
               <div>
-                <p class="dashboard-overline">Mission overview / Sales control</p>
+                <p class="dashboard-overline">Ringkasan performa penjualan</p>
                 <h2 id="welcome-title" class="mt-2">Dashboard</h2>
                 <p id="welcome-subtitle">Ringkasan target dan sellout sesuai hak akses akun.</p>
               </div>
@@ -169,7 +171,7 @@
             <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Toko dalam cakupan</p><p id="kpi-stores" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Toko yang dapat diakses</p></div>
             <div class="metric rounded-2xl p-5"><p id="target-label" class="text-sm text-slate-400">Target Qty</p><p id="kpi-target-qty" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Target periode terpilih</p></div>
             <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Qty VALID</p><p id="kpi-actual-qty" class="text-3xl font-semibold mt-3">…</p><p id="kpi-qty-progress" class="text-xs text-slate-500 mt-2">Achievement: …</p><div id="qty-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Qty" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="qty-progress-fill" class="kpi-progress-fill"></div></div></div>
-            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Achievement Amt</p><p id="kpi-actual-amt" class="text-2xl font-semibold mt-3">…</p><p id="kpi-amt-progress" class="text-xs text-slate-500 mt-2">Target: …</p><div id="amt-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Amount" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="amt-progress-fill" class="kpi-progress-fill"></div></div></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Amt VALID</p><p id="kpi-actual-amt" class="text-2xl font-semibold mt-3">…</p><p id="kpi-amt-progress" class="text-xs text-slate-500 mt-2">Target: …</p><div id="amt-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Amount" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="amt-progress-fill" class="kpi-progress-fill"></div></div></div>
           </div>
           <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
             <div class="panel rounded-xl p-4"><p class="text-xs text-slate-500">Target Amt</p><p id="small-target-amt" class="text-lg font-semibold mt-1">…</p></div>
@@ -261,19 +263,45 @@ function menuIcon(label){
 }
 function renderNav(role){
  const menu=menus[role]||[];
- $("nav-list").innerHTML="";
- menu.forEach(([label,icon],i)=>{
-  const b=document.createElement("button");
-  b.type="button";b.className="nav-item"+(i===0?" active":"");
-  b.dataset.label=label;
-  b.setAttribute("aria-current",i===0?"page":"false");
-  b.innerHTML='<span aria-hidden="true">'+menuIcon(label)+'</span><span>'+label+'</span>';
-  b.addEventListener("click",()=>openSection(label));
-  $("nav-list").appendChild(b);
- });
- const quickLabels=["Promo","Grafik Sellout","Smart Alerts","Coverage & Toko","Coverage","Target","Target Saya","RAW Sellout","Performa EC","Laporan Saya","Laporan","Focus Model"];
- const quick=quickLabels.filter(label=>menu.some(([name])=>name===label)).slice(0,3);
- const container=$("quick-actions");container.innerHTML="";
+ const nav=$("nav-list");nav.replaceChildren();
+ const navGroups=[
+  ["Utama",["Dashboard","Smart Alerts","Promo"]],
+  ["Analisis penjualan",["Grafik Sellout","Samsung vs Competitor","Target","Target Saya","Focus Model","Performa EC","Coverage & Toko","Coverage"]],
+  ["Operasional",["Input Competitor","RAW Sellout","Data & Import","Store Shadow","Survey","Manpower","Aktivasi Akun EC"]],
+  ["Laporan & akun",["Laporan","Laporan Saya","Pengaturan"]]
+ ];
+ const mapped=new Set();
+ function appendGroup(title,labels){
+  const entries=labels.filter(label=>menu.some(([name])=>name===label)&&!mapped.has(label));
+  if(!entries.length)return;
+  const group=document.createElement("div");
+  group.className="nav-group";
+  const heading=document.createElement("p");
+  heading.className="nav-group-title";
+  heading.textContent=title;
+  group.appendChild(heading);
+  entries.forEach(label=>{
+   const b=document.createElement("button");
+   b.type="button";b.className="nav-item"+(label==="Dashboard"?" active":"");
+   b.dataset.label=label;
+   b.setAttribute("aria-current",label==="Dashboard"?"page":"false");
+   b.innerHTML='<span aria-hidden="true">'+menuIcon(label)+'</span><span>'+label+'</span>';
+   b.addEventListener("click",()=>openSection(label));
+   group.appendChild(b);
+   mapped.add(label);
+  });
+  nav.appendChild(group);
+ }
+ navGroups.forEach(([title,labels])=>appendGroup(title,labels));
+ appendGroup("Lainnya",menu.map(([label])=>label));
+ const quickByRole={
+  ec:["Input Competitor","Target Saya","Survey"],
+  tl:["Samsung vs Competitor","Performa EC","Focus Model"],
+  admin:["Smart Alerts","Target","Data & Import"],
+  tso:["Grafik Sellout","Coverage","Focus Model"]
+ };
+ const quick=(quickByRole[role]||[]).filter(label=>menu.some(([name])=>name===label)).slice(0,3);
+ const container=$("quick-actions");container.replaceChildren();
  quick.forEach(label=>{
   const b=document.createElement("button");b.type="button";b.className="quick-action";
   b.textContent=label;b.addEventListener("click",()=>openSection(label));container.appendChild(b);

@@ -109,17 +109,37 @@ function attachOpsSearch({client:db,profile:person,label,mount}){
  if(!featureMap[label]||!mount)return;
  const inputs=[...mount.querySelectorAll("[data-search]")];
  if(!inputs.length)return;
+ const facetInputs=[...mount.querySelectorAll("[data-filter-col]")];
  const feature=featureMap[label];
  const bar=document.createElement("div");bar.className="intel-ops-saved";mount.insertBefore(bar,mount.firstChild);
- const applyInputs=values=>{
-  inputs.forEach((input,i)=>{input.value=typeof values[i]==="string"?values[i]:"";input.dispatchEvent(new Event("input",{bubbles:true}));});
+ const applyInputs=(values,facets=[])=>{
+  inputs.forEach((input,i)=>{
+   input.value=typeof values[i]==="string"?values[i]:"";
+   input.dispatchEvent(new Event("input",{bubbles:true}));
+  });
+  facetInputs.forEach((input,i)=>{
+   const saved=facets[i];
+   const value=saved&&saved.index===input.dataset.filterCol&&typeof saved.value==="string"?saved.value:"";
+   input.value=[...input.options].some(option=>option.value===value)?value:"";
+   input.dispatchEvent(new Event("change",{bubbles:true}));
+  });
  };
  savedFilterControls({client:db,profile:person,feature,scope:label,mount:bar,
-  getState:()=>({search:inputs[0].value||"",searches:inputs.map(input=>input.value||"")}),
-  applyState:s=>applyInputs(Array.isArray(s.searches)?s.searches:[typeof s.search==="string"?s.search:""])
+  getState:()=>({
+   search:inputs[0].value||"",
+   searches:inputs.map(input=>input.value||""),
+   facets:facetInputs.map(input=>({index:input.dataset.filterCol,value:input.value||""}))
+  }),
+  applyState:s=>applyInputs(
+   Array.isArray(s.searches)?s.searches:[typeof s.search==="string"?s.search:""],
+   Array.isArray(s.facets)?s.facets:[]
+  )
+ }).catch(error=>{
+  const info=bar.querySelector("#intel-saved-message");
+  setStatus(info,"Filter tersimpan belum tersedia: "+(error.message||"koneksi gagal"),true);
  });
  const reset=document.createElement("button");reset.type="button";reset.className="intel-action intel-action-subtle";
- reset.textContent="Reset pencarian";reset.addEventListener("click",()=>applyInputs([]));
+ reset.textContent="Reset semua filter tabel";reset.addEventListener("click",()=>applyInputs([],[]));
  bar.appendChild(reset);
  if(typeof api.pendingSearch==="string"&&api.pendingSearch){
   inputs[0].value=api.pendingSearch;api.pendingSearch="";

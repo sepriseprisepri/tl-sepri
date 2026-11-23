@@ -70,8 +70,8 @@ const analytics={
   if(a.unmapped.length)items.push({type:"risk",title:"Pemetaan promoter belum lengkap",body:N(a.unmapped.length)+" baris memiliki penanda promoter belum termapping."});
   if(a.missing.length)items.push({type:"risk",title:"Target toko belum tersedia",body:N(a.missing.length)+" store belum memiliki target pada periode ini."});
   if(a.slowStores.length)items.push({type:"recommendation",title:"Prioritaskan toko di bawah pace",body:N(a.slowStores.length)+" toko berada di bawah 65% pace per tanggal berjalan. Validasi target serta rencana aksi lapangan."});
-  if(a.promoOpportunity.length)items.push({type:"opportunity",title:"Promo terverifikasi untuk model terjual",body:a.promoOpportunity.map(m=>m.model).join(", ")+" memiliki penawaran model-spesifik terverifikasi. Periksa syarat promo sebelum menawarkan."});
-  if(!a.activePromo.some(p=>p.model_code!=="*"&&(p.record_kind==="offer"||!p.record_kind)))items.push({type:"info",title:"Belum ada promo model-spesifik aktif yang tercatat",body:"Admin dapat menerbitkan penawaran yang terverifikasi di Promo Center."});
+  if(a.promoOpportunity.length)items.push({type:"opportunity",title:"Promo bulletin untuk model terjual",body:a.promoOpportunity.map(m=>m.model).join(", ")+" memiliki penawaran model-spesifik pada bulletin internal. Periksa masa berlaku, varian dan syarat sebelum menawarkan."});
+  if(!a.activePromo.some(p=>p.model_code!=="*"&&(p.record_kind==="offer"||!p.record_kind)))items.push({type:"info",title:"Belum ada promo model-spesifik aktif yang tercatat",body:"Periksa katalog Promo dan tanggal berlaku bulletin internal."});
   return items.slice(0,7);
  }
 };
@@ -109,8 +109,8 @@ function renderDashboard(ctx){
    '<div class="intel-dashboard-bottom">'+
    panel("AI Sales Insight · Analisis otomatis berbasis aturan",'<div id="intel-insight-items">'+insightsHtml(analytics.insights(ctx,ctx.profile.role))+'</div>'+
    '<div class="intel-panel-actions"><button id="intel-copy-insights" class="intel-link">Salin analisis</button><button id="intel-open-charts" class="intel-link">Grafik detail ↗</button></div><p class="intel-caption">Bukan model AI generatif atau prediksi. Seluruh kesimpulan berasal dari angka yang terlihat.</p>')+
-   panel("Promo Samsung Terverifikasi",'<div id="intel-promo-summary" class="intel-promo-summary">Memeriksa promo aktif...</div>'+
-     '<button id="intel-open-promos" class="intel-link">Lihat semua promo ↗</button><p class="intel-caption">Hanya penawaran dengan sumber resmi, tanggal dan status verifikasi yang ditampilkan.</p>')+'</div>';
+   panel("Promo Samsung · November 2026",'<div id="intel-promo-summary" class="intel-promo-summary">Memeriksa promo aktif...</div>'+
+     '<button id="intel-open-promos" class="intel-link">Lihat semua promo ↗</button><p class="intel-caption">Sumber: bulletin internal yang diberikan. Periksa periode, stok dan syarat sebelum transaksi.</p>')+'</div>';
  const list=document.getElementById("intel-alert-list");
  if(stats.alerts.length){
   for(const alert of stats.alerts){
@@ -134,7 +134,7 @@ function renderDashboard(ctx){
      const modelSpecific=active.filter(p=>p.model_code!=="*"&&(p.record_kind==="offer"||!p.record_kind));
      const div=document.getElementById("intel-promo-summary");
      div.textContent=error?"Promo tidak dapat dimuat; cek koneksi.":modelSpecific.length?
-       N(modelSpecific.length)+" entri program model aktif dari sumber resmi atau bulletin internal.":"Belum ada promo model-spesifik terverifikasi untuk cakupan Anda.";
+       N(modelSpecific.length)+" entri program model aktif dari sumber resmi atau bulletin internal.":"Belum ada promo model-spesifik yang berlaku sesuai periode dan cakupan Anda.";
      if(active.some(p=>p.model_code==="*"))div.textContent+=" Tersedia kampanye umum yang syaratnya perlu diperiksa secara terpisah.";
      activeContext={...ctx,promos:data||[]};
      document.getElementById("intel-insight-items").innerHTML=insightsHtml(analytics.insights(activeContext,ctx.profile.role));

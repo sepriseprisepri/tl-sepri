@@ -10,7 +10,10 @@ const kindLabel={offer:"Promo",price_update:"Informasi harga",no_offer:"Tanpa pr
 // One eligibility rule for cards, model coverage, and KPI totals.
 const matchesChannel=(actualCode,selected)=>{
  const actual=actualCode||"unspecified";
- if(!selected||selected==="all"||actual==="all"||actual===selected)return true;
+ if(!selected||selected==="all")return true;
+ if(selected==="unspecified")return actual==="unspecified";
+ if(actual==="unspecified")return false;
+ if(actual==="all"||actual===selected)return true;
  if(selected==="offline")return actual==="traditional"||actual==="organized";
  return (selected==="traditional"||selected==="organized")&&actual==="offline";
 };
@@ -59,9 +62,9 @@ async function render(ctx,mount){
      '<label>Model atau kata kunci<input id="promo-query" class="field" placeholder="Cari Galaxy A / cashback…" aria-label="Cari promosi"></label>'+
      '<label>Status<select id="promo-status" class="field"><option value="active">Sedang berjalan</option><option value="upcoming">Akan datang</option><option value="expired">Sudah berakhir</option><option value="all">Semua status</option></select></label>'+
      '<label>Model<select id="promo-model" class="field"><option value="">Semua model</option>'+models.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join("")+'</select></label>'+
-     '<label>Channel<select id="promo-channel" class="field"><option value="">Semua channel</option><option value="traditional">Traditional</option><option value="organized">Organized</option><option value="offline">Offline (Trad + Organized)</option><option value="e_store">E-Store</option><option value="online">Online</option></select></label>'+
+     '<label>Channel<select id="promo-channel" class="field"><option value="">Semua channel</option><option value="traditional">Traditional</option><option value="organized">Organized</option><option value="offline">Offline (Trad + Organized)</option><option value="e_store">E-Store</option><option value="online">Online</option><option value="unspecified">Channel belum dipastikan</option></select></label>'+
      '<label>Kategori<select id="promo-category" class="field"><option value="">Semua kategori</option><option value="smartphone">Smartphone</option><option value="tablet">Tablet</option><option value="wearable">Watch / Wearable</option><option value="audio">Buds / Audio</option><option value="financing">Finance Plus</option><option value="price">Update Harga</option><option value="information">Info / pengecualian</option></select></label>'+
-   '</div><div id="promo-saved-filters"></div>'+
+   '</div><div class="intel-panel-actions"><button id="promo-reset" class="intel-action intel-action-subtle" type="button">Reset semua filter</button></div><div id="promo-saved-filters"></div>'+
    '<p id="promo-results-count" class="intel-caption" aria-live="polite"></p><div id="promo-results" class="intel-promo-grid" aria-live="polite"></div><button id="promo-load-more" class="intel-action intel-action-subtle" type="button" hidden>Muat 18 promo berikutnya</button>'+
    '<div id="promo-model-availability" class="intel-card"><h3>Cakupan promo per model</h3><p class="intel-caption">Promo nasional dapat dilihat semua peran; manfaat tiap model tetap mengikuti varian, channel, dan syarat. Tidak ada data promo = jangan menjanjikan cashback.</p><div id="promo-model-list" class="intel-model-chips"></div></div>';
   const query=mount.querySelector("#promo-query"),status=mount.querySelector("#promo-status"),model=mount.querySelector("#promo-model"),
@@ -71,20 +74,21 @@ async function render(ctx,mount){
   let visibleLimit=18;
   const display=()=>{
    const filter=current(),term=filter.query.trim().toLocaleLowerCase("id-ID");
-   const eligiblePromo=promos.filter(p=>{
-    if(filter.status!=="all"&&state(p)!==filter.status)return false;
+   const scopedPromo=promos.filter(p=>{
     if(filter.model&&norm(p.model_name)!==norm(filter.model)&&norm(p.model_code)!==norm(filter.model)&&p.model_code!=="*")return false;
     if(!matchesChannel(p.channel_code,filter.channel))return false;
     if(filter.category&&p.program_category!==filter.category)return false;
-    const searchable=[p.title,p.model_code,p.model_name,p.sku_variant,p.benefit,p.channel_label,p.terms,p.source_reference].join(" ").toLocaleLowerCase("id-ID");
+    const offers=Array.isArray(p.offer_items)?p.offer_items.map(x=>x.name||"").join(" "):"";
+    const searchable=[p.title,p.model_code,p.model_name,p.sku_variant,p.benefit,offers,p.channel_label,p.terms,p.source_reference].join(" ").toLocaleLowerCase("id-ID");
     return !term||searchable.includes(term);
    });
-   const currentActive=promos.filter(p=>state(p)==="active"&&matchesChannel(p.channel_code,filter.channel));
+   const eligiblePromo=scopedPromo.filter(p=>filter.status==="all"||state(p)===filter.status);
+   const currentActive=scopedPromo.filter(p=>state(p)==="active");
    const specific=currentActive.filter(p=>p.model_code!=="*"&&p.record_kind==="offer");
    const covered=new Set(specific.map(p=>norm(p.model_name)));
    mount.querySelector("#intel-promo-kpis").innerHTML=[
     ["Program model aktif",specific.length],["Kampanye umum",currentActive.filter(p=>p.model_code==="*").length],
-    ["Total model katalog",models.length],["Segera berakhir (≤ 3 hari)",currentActive.filter(p=>{const d=daysUntil(p.end_date);return d!=null&&d>=0&&d<=3;}).length]
+    ["Model sesuai filter",new Set(scopedPromo.filter(p=>p.model_code!=="*").map(p=>norm(p.model_name))).size],["Segera berakhir (≤ 3 hari)",currentActive.filter(p=>{const d=daysUntil(p.end_date);return d!=null&&d>=0&&d<=3;}).length]
    ].map(([k,v])=>'<div class="intel-stat"><span>'+esc(k)+'</span><strong>'+fmt.format(v)+'</strong></div>').join("");
    const box=mount.querySelector("#promo-results");box.innerHTML="";
    const more=mount.querySelector("#promo-load-more");
@@ -127,12 +131,15 @@ async function render(ctx,mount){
    }
    if(!models.length)chips.innerHTML='<p class="intel-caption">Belum ada model yang dipublikasikan dalam katalog nasional.</p>';
   };
+  const resetFilters=()=>{query.value="";status.value="active";model.value="";channel.value="";category.value="";visibleLimit=18;display();};
+  mount.querySelector("#promo-reset").addEventListener("click",resetFilters);
   [query,status,model,channel,category].forEach(input=>input.addEventListener(input===query?"input":"change",()=>{visibleLimit=18;display();}));
   mount.querySelector("#promo-load-more").addEventListener("click",()=>{visibleLimit+=18;display();});
   display();
   if(window.UserPrefs)window.UserPrefs.savedFilterControls({
    client:ctx.client,profile:ctx.profile,feature:"promo",mount:mount.querySelector("#promo-saved-filters"),
    getState:current,applyState:s=>{
+    query.value="";status.value="active";model.value="";channel.value="";category.value="";visibleLimit=18;
     if(typeof s.query==="string")query.value=s.query;
     if(typeof s.status==="string"&&[...status.options].some(o=>o.value===s.status))status.value=s.status;
     if(typeof s.model==="string"&&[...model.options].some(o=>o.value===s.model))model.value=s.model;

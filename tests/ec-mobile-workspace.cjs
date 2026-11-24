@@ -16,7 +16,8 @@ assert.match(html,/const selected=periods\.find\(p=>p\.id===\$\("period-select"\
 assert.match(html,/if\(periods\.some\(p=>p\.id===previous\)\)selector\.value=previous/);
 assert.match(html,/refreshWorkspace\(true\)/);
 assert.match(html,/await loadDashboard\(\)/);
-assert.match(html,/if\(activeSection!=="Dashboard" && currentProfile\)openSection\(activeSection\)/);
+assert.match(html,/if\(activeSection!=="Dashboard" && currentProfile\)\{/);
+assert.match(html,/if\(successful\)openSection\(activeSection\)/);
 assert.match(html,/Periode target belum tersedia untuk akun ini/);
 assert.match(html,/label==="Survey"/);
 assert.match(html,/window\.SamsungAffordability\.render/);

@@ -21,7 +21,7 @@ const createNode=(id)=>{
  nodes.set(id,node);
  return node;
 };
-const mount={isConnected:true,_html:"",set innerHTML(v){
+const mount={isConnected:true,_html:"",querySelector(selector){return nodes.get(selector.replace(/^#/,""))||null;},set innerHTML(v){
  this._html=v;
  for(const match of v.matchAll(/id="([^"]+)"/g))createNode(match[1]);
 },get innerHTML(){return this._html;}};

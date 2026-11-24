@@ -116,7 +116,9 @@ for(const kind of ["offer","information","price_update","no_offer","financing"])
  assert.equal(api.state(promo(kind,"2026-11-06")),"expired",kind);
  assert.equal(api.state(promo(kind,"2026-11-07")),"active",kind);
 }
-assert.match(ui,/const currentActive=promos\.filter\(p=>state\(p\)==="active"&&matchesChannel\(p.channel_code,filter\.channel\)\)/);
+assert.match(ui,/const scopedPromo=promos\.filter\(p=>/);
+assert.match(ui,/if\(!matchesChannel\(p.channel_code,filter.channel\)\)return false/);
+assert.match(ui,/const currentActive=scopedPromo\.filter\(p=>state\(p\)==="active"\)/);
 assert.match(ui,/const covered=new Set\(specific\.map/);
 assert.match(ui,/esc\(label\[condition\]\)/);
 assert.doesNotMatch(ui,/const channelEligible=p=>|const channelMatch=/);

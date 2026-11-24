@@ -335,7 +335,7 @@ function openSection(label){
    const data=lastSalesData||{period:periods[0],stores:[],manpower:[],targets:[],sales:[]};
    if(window.PromoCenter)window.PromoCenter.render({...data,client,profile:currentProfile,openSection},$("import-hub-container"));
   }else if(label==="Samsung vs Competitor"&&currentProfile?.role==="tl"){
-   $("section-description").textContent="Perbandingan Qty Samsung dan kompetitor sesuai coverage dan periode terpilih.";
+   $("section-description").textContent="Grafik Week vs Week Qty/Amt Samsung dan kompetitor sesuai coverage, toko, dan periode terpilih.";
    const mount=$("import-hub-container");
    if(!lastSalesData)mount.textContent="Data dashboard belum siap. Perbarui data terlebih dahulu.";
    else if(window.TLCompetitorComparison)window.TLCompetitorComparison.render({...lastSalesData,client,profile:currentProfile,fetchAll,isActive:()=>activeSection===label},mount);

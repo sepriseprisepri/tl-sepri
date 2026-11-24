@@ -45,7 +45,7 @@ assert.match(html,/aria-label="Pencapaian Qty"/);
 assert.match(html,/aria-label="Pencapaian Amount"/);
 assert.match(html,/setAttribute\("aria-expanded"/);
 assert.match(html,/function menuIcon/);
-assert.match(html,/function renderQuickActions|const quickLabels=/);
+assert.match(html,/function renderQuickActions|const quickLabels=|const quickByRole=/);
 assert.match(html,/timeZone:"Asia\/Pontianak"/);
 
 for(const match of html.matchAll(/<script(?: [^>]*)?>([\s\S]*?)<\/script>/g)){

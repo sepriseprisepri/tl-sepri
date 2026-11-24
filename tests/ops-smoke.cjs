@@ -16,6 +16,7 @@ class Element {
     if(!this.nodes.has(selector))this.nodes.set(selector,new Element());
     return this.nodes.get(selector);
   }
+  querySelectorAll(){return [];}
   addEventListener(name,callback){this.listeners[name]=callback;}
 }
 const document={createElement:()=>new Element()};

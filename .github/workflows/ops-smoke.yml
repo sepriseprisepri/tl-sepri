@@ -3,6 +3,8 @@ name: Samsung Kalteng Operational Smoke
 on:
   pull_request:
     paths:
+      - 'raw-import.js'
+      - 'tests/promoter-mapping.cjs'
       - 'index.html'
       - 'sales-intelligence.js'
       - 'tl-competitor-comparison.js'
@@ -33,6 +35,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'raw-import.js'
+      - 'tests/promoter-mapping.cjs'
       - 'index.html'
       - 'sales-intelligence.js'
       - 'tl-competitor-comparison.js'
@@ -74,6 +78,8 @@ jobs:
       - name: Verify JavaScript and scoped operational views
         run: |
           node --version
+          node --check raw-import.js
+          node tests/promoter-mapping.cjs
           node --check password-recovery.js
           node tests/password-recovery-smoke.cjs
           node tests/password-recovery-mock-integration.cjs

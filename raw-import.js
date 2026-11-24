@@ -2,6 +2,22 @@
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const num = v => typeof v === "number" ? v : Number(String(v ?? "").replace(/,/g,"").trim());
+  function classifyPromoter(id, name, people) {
+    const norm=v=>String(v??"").trim().toUpperCase();
+    const key=norm(id);
+    if(!key) return "UNMAPPED";
+    const matches=people.filter(p=>norm(p.promoter_id)===key);
+    if(matches.length>1) return "UNMAPPED";
+    if(matches.length===1){
+      const p=matches[0], role=norm(p.fieldforce_position);
+      if(role==="EC") return p.is_active?"EC_ACTIVE":"EC_INACTIVE";
+      if(["TL","TERRITORY LEADER"].includes(role)) return p.is_active?"TL_ACTIVE":"TL_INACTIVE";
+      return "UNMAPPED";
+    }
+    if(key.startsWith("SP-")) return "STORE_SHADOW";
+    return "UNMAPPED";
+  }
+  const mappingLabels={EC_ACTIVE:"EC Aktif",EC_INACTIVE:"EC Nonaktif",TL_ACTIVE:"TL Aktif",TL_INACTIVE:"TL Nonaktif",STORE_SHADOW:"Store Shadow",UNMAPPED:"Unmapped Promoter"};
   function date(v) {
     if (typeof v === "number") {
       if (v >= 19000101 && v <= 29991231) { const s=String(v); return s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8); }
@@ -31,7 +47,7 @@
       '<input id="raw-file-input" type="file" accept=".xlsx,.xls" class="field block w-full rounded-xl p-3 mt-4 text-sm">'+
       '<button id="raw-analyze-btn" class="mt-3 w-full rounded-xl bg-cyan-400 text-slate-950 font-bold py-3">Validasi & Preview</button></div>'+
       '<div class="rounded-2xl border border-slate-700 bg-slate-950/40 p-5"><h4 class="font-semibold">Aturan pencocokan</h4>'+
-      '<ul class="text-xs text-slate-400 mt-3 space-y-2"><li>Promoter ID cocok EC aktif: ditautkan ke EC.</li><li>ID awalan SP: Store Shadow, tanpa akun login.</li><li>ID belum cocok: tetap disimpan sebagai Unmapped.</li><li>IMEI/SN adalah kunci unik untuk mencegah transaksi ganda.</li><li>EULA VALID masuk achievement; PENDING terpisah.</li></ul></div></div>'+
+      '<ul class="text-xs text-slate-400 mt-3 space-y-2"><li>Promoter ID unik cocok EC/TL: klasifikasi aktif atau nonaktif.</li><li>Sellout TL tetap milik toko, bukan individual EC.</li><li>ID awalan SP tanpa kecocokan master: Store Shadow.</li><li>ID belum cocok: tetap disimpan sebagai Unmapped.</li><li>IMEI/SN adalah kunci unik untuk mencegah transaksi ganda.</li><li>EULA VALID masuk achievement; PENDING terpisah.</li></ul></div></div>'+
       '<div id="raw-import-message" class="hidden mt-5 rounded-xl border p-4 text-sm"></div>'+
       '<div id="raw-import-preview" class="mt-5"></div><div id="raw-import-history" class="mt-8"></div>';
     $("raw-analyze-btn").addEventListener("click", analyze);
@@ -78,10 +94,10 @@
       const missing=required.filter(k=>!hm[k]); if(missing.length) throw Error("Kolom wajib tidak ditemukan: "+missing.join(", "));
       const [stores,people]=await Promise.all([
         fetchAll("stores","site_id,site_name"),
-        fetchAll("manpower","promoter_id,fieldforce_position,is_active",q=>q.eq("is_active",true))
+        fetchAll("manpower","promoter_id,fieldforce_position,is_active")
       ]);
       const storeMap=new Map(stores.map(s=>[String(s.site_id).trim(),s]));
-      const ec=new Set(people.filter(p=>String(p.fieldforce_position||"").toUpperCase()==="EC"&&p.promoter_id).map(p=>String(p.promoter_id).trim()));
+
       const idCounts=new Map(); source.forEach(r=>{const id=String(r[hm["imei/sn"]]??"").trim();if(id)idCounts.set(id,(idCounts.get(id)||0)+1);});
       const valid=[], invalid=[];
       source.forEach((r,i)=>{
@@ -98,8 +114,8 @@
         if(!Number.isFinite(qty)||qty<=0) errors.push("Qty tidak valid");
         if(errors.length){invalid.push({line:i+2,id,reason:errors.join("; ")});return;}
         const store=storeMap.get(site);
-        const category=!promoter?"Tanpa Promoter ID":promoter.toUpperCase().startsWith("SP-")?"Store Shadow":ec.has(promoter)?"EC Aktif":"Unmapped Promoter";
-        valid.push({transaction_id:id,site_id:site,site_name:String(get("site name")||store.site_name),promoter_id:promoter||null,promoter_name:String(get("promoter name")||"")||null,model,ram:String(get("hhp memory")||"")||null,storage:String(get("hhp storage")||"")||null,color:String(get("color")||"")||null,price_segment:String(get("price seg")||"")||null,eula_status:status,unit_price:price,qty,amt:price*qty,sold_at:sold,week_code:String(get("week")||"")||null,month_code:String(get("month")||sold.slice(0,7).replace("-",""))||null,tl_name:String(get("spv / tl name")||"")||null,segment:String(get("segment by target")||"")||null,promoter_mapping_status:category==="EC Aktif"?"EC_ACTIVE":category==="Store Shadow"?"STORE_SHADOW":category==="Unmapped Promoter"?"UNMAPPED":"NO_PROMOTER_ID",_category:category});
+        const mapping=classifyPromoter(promoter,get("promoter name"),people), category=mappingLabels[mapping];
+        valid.push({transaction_id:id,site_id:site,site_name:String(get("site name")||store.site_name),promoter_id:promoter||null,promoter_name:String(get("promoter name")||"")||null,model,ram:String(get("hhp memory")||"")||null,storage:String(get("hhp storage")||"")||null,color:String(get("color")||"")||null,price_segment:String(get("price seg")||"")||null,eula_status:status,unit_price:price,qty,amt:price*qty,sold_at:sold,week_code:String(get("week")||"")||null,month_code:String(get("month")||sold.slice(0,7).replace("-",""))||null,tl_name:String(get("spv / tl name")||"")||null,segment:String(get("segment by target")||"")||null,promoter_mapping_status:mapping,_category:category});
       });
       window.rawImportPreview={file:f,valid,invalid,sheet};
       renderPreview();
@@ -112,7 +128,7 @@
     const count=k=>v.filter(r=>r._category===k).length;
     let html='<div class="flex justify-between items-center gap-3"><div><h4 class="font-semibold">Hasil validasi</h4><p class="text-xs text-slate-500 mt-1">'+esc(p.file.name)+'</p></div><button id="raw-commit-btn" class="rounded-xl bg-cyan-400 text-slate-950 font-bold px-5 py-3" '+(!v.length?'disabled':'')+'>Konfirmasi & Impor</button></div>';
     html+='<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">';
-    [["Total baris",v.length+p.invalid.length],["Siap diimpor",v.length],["Invalid",p.invalid.length],["EC aktif",count("EC Aktif")],["Store Shadow",count("Store Shadow")],["Unmapped",count("Unmapped Promoter")],["Tanpa ID",count("Tanpa Promoter ID")]].forEach(x=>html+='<div class="rounded-xl border border-slate-700 p-3"><div class="text-xs text-slate-500">'+x[0]+'</div><div class="text-xl font-semibold">'+x[1]+'</div></div>');
+    [["Total baris",v.length+p.invalid.length],["Siap diimpor",v.length],["Invalid",p.invalid.length],["EC aktif",count("EC Aktif")],["EC nonaktif",count("EC Nonaktif")],["TL aktif",count("TL Aktif")],["TL nonaktif",count("TL Nonaktif")],["Store Shadow",count("Store Shadow")],["Unmapped",count("Unmapped Promoter")]].forEach(x=>html+='<div class="rounded-xl border border-slate-700 p-3"><div class="text-xs text-slate-500">'+x[0]+'</div><div class="text-xl font-semibold">'+x[1]+'</div></div>');
     html+='</div><div class="table-wrap rounded-xl border border-slate-800 mt-4"><table class="w-full text-xs"><thead><tr><th>IMEI/SN</th><th>Tanggal</th><th>Toko</th><th>Promoter</th><th>Klasifikasi</th><th>Qty</th><th>Amt</th><th>EULA</th></tr></thead><tbody>';
     v.slice(0,25).forEach(r=>html+='<tr><td>'+esc(r.transaction_id)+'</td><td>'+esc(r.sold_at)+'</td><td>'+esc(r.site_name)+'</td><td>'+esc(r.promoter_id||"-")+'</td><td>'+esc(r._category)+'</td><td>'+r.qty+'</td><td>'+new Intl.NumberFormat("id-ID").format(r.amt)+'</td><td>'+esc(r.eula_status)+'</td></tr>');
     html+='</tbody></table></div>';

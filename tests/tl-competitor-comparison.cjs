@@ -18,3 +18,29 @@ const partial=[{key:'2026-W44',start:'2026-11-01',end:'2026-11-01',partial:true,
 assert.doesNotMatch(m.insight(partial),/812,5%|100%/);
 assert.match(m.insight(partial),/jumlah hari berbeda/i);
 assert.match(m.insight(result),/60%/);
+
+
+const amountRows=m.compare({
+ weeks,first:'2026-W44',second:'2026-W45',stores,
+ sales:[
+  {site_id:'A',sold_at:'2026-10-27',qty:2,amt:4500000,eula_status:'VALID'},
+  {site_id:'A',sold_at:'2026-11-03',qty:3,amt:9000000,eula_status:'VALID'},
+  {site_id:'A',sold_at:'2026-11-03',qty:99,amt:99000000,eula_status:'PENDING'},
+  {site_id:'B',sold_at:'2026-11-03',qty:99,amt:99000000,eula_status:'VALID'}
+ ],
+ competitor:[
+  {store_id:'one',sold_at:'2026-10-27',qty:2,unit_price:2000000,amount:null},
+  {store_id:'one',sold_at:'2026-11-03',qty:1,unit_price:1500000,amount:1500000},
+  {store_id:'two',sold_at:'2026-11-03',qty:1,unit_price:15000000,amount:15000000}
+ ],metric:'amt'
+});
+assert.deepEqual(amountRows.map(x=>[x.samsung,x.competitor]),[[4500000,4000000],[9000000,1500000]],
+ 'Amt uses VALID Samsung and scoped competitor transaction totals, with price fallback');
+assert.match(m.insight(amountRows,'amt'),/Rp 4.500.000/);
+const qtyChart=m.chartConfig(result,'qty');
+const amtChart=m.chartConfig(amountRows,'amt');
+assert.equal(qtyChart.type,'bar');
+assert.deepEqual(qtyChart.data.datasets.map(x=>x.data),[[5,8],[3,6]]);
+assert.deepEqual(amtChart.data.datasets.map(x=>x.data),[[4500000,9000000],[4000000,1500000]]);
+assert.match(amtChart.options.plugins.tooltip.callbacks.label({dataset:{label:'Samsung'},parsed:{y:9000000}}),/Rp 9.000.000/);
+console.log('TL competitor chart: Qty/Amt amounts, EULA, scope, fallback and tooltip verified');

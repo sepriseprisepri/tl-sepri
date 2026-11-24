@@ -64,6 +64,10 @@ function summarize({period,targets=[],sales=[],asOf=localToday()}){
  return {
   start,end,asOf,elapsed,duration,remainingDays,effective,
   valid,pending,targetQty,targetAmt,actualQty,actualAmt,
+  landingQty:elapsed>0&&valid.length?actualQty*duration/elapsed:null,
+  landingAmt:elapsed>0&&valid.length?actualAmt*duration/elapsed:null,
+  landingAchievementQty:elapsed>0&&valid.length?percent(actualQty*duration/elapsed,targetQty):null,
+  landingAchievementAmt:elapsed>0&&valid.length?percent(actualAmt*duration/elapsed,targetAmt):null,
   gapQty:targetQty-actualQty,gapAmt:targetAmt-actualAmt,
   mtdQty:targetQty*elapsed/duration,mtdAmt:targetAmt*elapsed/duration,
   mtdGapQty:targetQty*elapsed/duration-actualQty,

@@ -44,3 +44,69 @@ assert.deepEqual(qtyChart.data.datasets.map(x=>x.data),[[5,8],[3,6]]);
 assert.deepEqual(amtChart.data.datasets.map(x=>x.data),[[4500000,9000000],[4000000,1500000]]);
 assert.match(amtChart.options.plugins.tooltip.callbacks.label({dataset:{label:'Samsung'},parsed:{y:9000000}}),/Rp 9.000.000/);
 console.log('TL competitor chart: Qty/Amt amounts, EULA, scope, fallback and tooltip verified');
+
+
+const test=require('node:test');
+const vm=require('node:vm');
+const fs=require('node:fs');
+test('Samsung vs Competitor chart reacts to Qty, Amt, store, invalid weeks and reset',async()=>{
+ const configs=[],destroyed=[];
+ class MockChart{
+  constructor(canvas,config){this.config=config;configs.push(config);}
+  destroy(){destroyed.push(true);}
+ }
+ const realm={window:{Chart:MockChart},module:{exports:{}},console,Intl,Date};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../tl-competitor-comparison.js'),'utf8'),realm);
+ const view=realm.module.exports;
+ const nodes=new Map();
+ const mount={
+  _html:'',textContent:'',
+  set innerHTML(html){
+   this._html=html;nodes.clear();
+   for(const match of html.matchAll(/id="([^"]+)"/g)){
+    const id=match[1];
+    nodes.set(id,{value:'',textContent:'',innerHTML:'',events:{},
+     addEventListener(name,callback){this.events[name]=callback;}});
+   }
+  },
+  get innerHTML(){return this._html;},
+  querySelector(selector){return nodes.get(selector.slice(1));}
+ };
+ await view.render({
+  profile:{role:'tl'},period:{period_name:'Nov',period_start:'2026-11-01',period_end:'2026-11-23'},
+  stores:[{id:'A',site_id:'site-A',site_name:'Store A'},{id:'B',site_id:'site-B',site_name:'Store B'}],
+  sales:[
+   {site_id:'site-A',sold_at:'2026-11-17',qty:3,amt:6000000,eula_status:'VALID'},
+   {site_id:'site-A',sold_at:'2026-11-23',qty:4,amt:8000000,eula_status:'VALID'},
+   {site_id:'site-B',sold_at:'2026-11-17',qty:5,amt:10000000,eula_status:'VALID'},
+   {site_id:'site-B',sold_at:'2026-11-23',qty:7,amt:14000000,eula_status:'VALID'}
+  ],
+  fetchAll:async()=>[
+   {store_id:'A',sold_at:'2026-11-17',qty:2,unit_price:3000000,amount:null,brand:'OPPO',model:'Reno'},
+   {store_id:'A',sold_at:'2026-11-23',qty:1,unit_price:5000000,amount:5000000,brand:'OPPO',model:'Find'},
+   {store_id:'B',sold_at:'2026-11-17',qty:2,unit_price:2000000,amount:4000000,brand:'vivo',model:'V'},
+   {store_id:'B',sold_at:'2026-11-23',qty:1,unit_price:3000000,amount:3000000,brand:'vivo',model:'V'}
+  ],isActive:()=>true
+ },mount);
+ assert.match(mount.innerHTML,/id="cmp-wow-chart"/);
+ assert.match(mount.innerHTML,/id="cmp-metric"/);
+ assert.deepEqual(Array.from(configs[0].data.datasets[0].data),[8,11]);
+ nodes.get('cmp-store').value='A';
+ nodes.get('cmp-store').events.change();
+ assert.deepEqual(Array.from(configs[1].data.datasets[0].data),[3,4]);
+ assert.deepEqual(Array.from(configs[1].data.datasets[1].data),[2,1]);
+ nodes.get('cmp-metric').value='amt';
+ nodes.get('cmp-metric').events.change();
+ assert.deepEqual(Array.from(configs[2].data.datasets[0].data),[6000000,8000000]);
+ assert.deepEqual(Array.from(configs[2].data.datasets[1].data),[6000000,5000000]);
+ assert.match(nodes.get('cmp-insight').textContent,/Rp 6.000.000/);
+ assert.equal(destroyed.length,2,'Old Chart instances must be released before replacement');
+ nodes.get('cmp-first').value=nodes.get('cmp-second').value;
+ nodes.get('cmp-first').events.change();
+ assert.equal(destroyed.length,3);
+ assert.match(nodes.get('cmp-filter-feedback').textContent,/Pilih minggu awal/);
+ nodes.get('cmp-reset').events.click();
+ assert.equal(nodes.get('cmp-metric').value,'qty');
+ assert.equal(nodes.get('cmp-store').value,'');
+ assert.deepEqual(Array.from(configs.at(-1).data.datasets[0].data),[8,11]);
+});

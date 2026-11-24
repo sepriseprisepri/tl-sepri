@@ -170,8 +170,8 @@
           <div id="kpi-grid" class="grid sm:grid-cols-2 2xl:grid-cols-4 gap-4">
             <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Toko dalam cakupan</p><p id="kpi-stores" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Toko yang dapat diakses</p></div>
             <div class="metric rounded-2xl p-5"><p id="target-label" class="text-sm text-slate-400">Target Qty</p><p id="kpi-target-qty" class="text-3xl font-semibold mt-3">…</p><p class="text-xs text-slate-500 mt-2">Target periode terpilih</p></div>
-            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Qty VALID</p><p id="kpi-actual-qty" class="text-3xl font-semibold mt-3">…</p><p id="kpi-qty-progress" class="text-xs text-slate-500 mt-2">Achievement: …</p><div id="qty-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Qty" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="qty-progress-fill" class="kpi-progress-fill"></div></div></div>
-            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Amt VALID</p><p id="kpi-actual-amt" class="text-2xl font-semibold mt-3">…</p><p id="kpi-amt-progress" class="text-xs text-slate-500 mt-2">Target: …</p><div id="amt-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Amount" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="amt-progress-fill" class="kpi-progress-fill"></div></div></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Qty VALID</p><p id="kpi-actual-qty" class="text-3xl font-semibold mt-3">…</p><p id="kpi-qty-progress" class="text-xs text-slate-500 mt-2">Achievement: …</p><div id="qty-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Qty" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="qty-progress-fill" class="kpi-progress-fill"></div></div><div class="mt-3 pt-3 border-t border-slate-700"><p class="text-xs text-slate-400">Estimate Landing Qty</p><p id="landing-qty" class="text-lg font-semibold text-cyan-300 break-words">—</p><p id="landing-qty-ach" class="text-xs text-slate-400 mt-1">—</p></div></div>
+            <div class="metric rounded-2xl p-5"><p class="text-sm text-slate-400">Sellout Amt VALID</p><p id="kpi-actual-amt" class="text-2xl font-semibold mt-3">…</p><p id="kpi-amt-progress" class="text-xs text-slate-500 mt-2">Target: …</p><div id="amt-progress-track" class="kpi-progress-track" role="progressbar" aria-label="Pencapaian Amount" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="amt-progress-fill" class="kpi-progress-fill"></div></div><div class="mt-3 pt-3 border-t border-slate-700"><p class="text-xs text-slate-400">Estimate Landing Amt</p><p id="landing-amt" class="text-lg font-semibold text-cyan-300 break-words">—</p><p id="landing-amt-ach" class="text-xs text-slate-400 mt-1">—</p></div></div>
           </div>
           <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
             <div class="panel rounded-xl p-4"><p class="text-xs text-slate-500">Target Amt</p><p id="small-target-amt" class="text-lg font-semibold mt-1">…</p></div>
@@ -468,7 +468,7 @@ async function loadDashboard(){
   if(lastSalesData?.period?.id!==selectedId){
    // Never show KPIs/charts from an earlier period under a newly selected one.
    lastSalesData=null;
-   ["kpi-stores","kpi-target-qty","kpi-actual-qty","kpi-actual-amt","small-target-amt","small-gap-qty","small-gap-amt","small-pending"].forEach(id=>{$(id).textContent="—";});
+   ["kpi-stores","kpi-target-qty","kpi-actual-qty","kpi-actual-amt","small-target-amt","small-gap-qty","small-gap-amt","small-pending","landing-qty","landing-amt","landing-qty-ach","landing-amt-ach"].forEach(id=>{$(id).textContent="—";});
    $("kpi-qty-progress").textContent="Data belum tersedia."; $("kpi-amt-progress").textContent="Data belum tersedia.";
    $("qty-progress-fill").style.width="0%";$("amt-progress-fill").style.width="0%";
    $("intel-dashboard").replaceChildren();
@@ -513,6 +513,10 @@ function renderDashboard(d){
  $("kpi-target-qty").textContent=fmtTargetQty(targetQty);$("kpi-actual-qty").textContent=fmtNum(Math.round(actualQty));
  $("kpi-qty-progress").textContent="Achievement: "+fmtNum(pct(actualQty,targetQty))+"%";
  $("kpi-actual-amt").textContent=money(actualAmt);$("kpi-amt-progress").textContent="Achievement: "+fmtNum(pct(actualAmt,targetAmt))+"%";
+ for(const [id,value,rate,format] of [["qty",marketSummary?.landingQty,marketSummary?.landingAchievementQty,fmtTargetQty],["amt",marketSummary?.landingAmt,marketSummary?.landingAchievementAmt,money]]){
+  $("landing-"+id).textContent=period&&value!=null?format(value):"—";
+  $("landing-"+id+"-ach").textContent=period&&rate!=null?"Est. Achievement: "+fmtNum(rate)+"% · "+marketSummary.elapsed+"/"+marketSummary.duration+" hari":period&&value!=null?"Target belum tersedia":"Data MTD belum tersedia";
+ }
  for(const [id,actual,target] of [["qty",actualQty,targetQty],["amt",actualAmt,targetAmt]]){
   const rate=target>0?actual/target*100:0;
   const safe=Math.min(100,Math.max(0,rate));
